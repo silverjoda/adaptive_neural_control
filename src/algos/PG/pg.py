@@ -134,60 +134,6 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
-    if False:
-        # Symmetry loss
-        batch_states_rev = batch_states.clone()
-
-        # Joint angles
-        batch_states_rev[:, 0:3] = batch_states[:, 6:9]
-        batch_states_rev[:, 3:6] = batch_states[:, 9:12]
-        batch_states_rev[:, 15:18] = batch_states[:, 12:15]
-
-        batch_states_rev[:, 6:9] = batch_states[:, 0:3]
-        batch_states_rev[:, 9:12] = batch_states[:, 3:6]
-        batch_states_rev[:, 12:15] = batch_states[:, 15:18]
-
-        # Joint angle velocities
-        batch_states_rev[:, 0 + 18:3 + 18] = batch_states[:, 6 + 18:9 + 18]
-        batch_states_rev[:, 3 + 18:6 + 18] = batch_states[:, 9 + 18:12 + 18]
-        batch_states_rev[:, 15 + 18:18 + 18] = batch_states[:, 12 + 18:15 + 18]
-
-        batch_states_rev[:, 6 + 18:9 + 18] = batch_states[:, 0 + 18:3 + 18]
-        batch_states_rev[:, 9 + 18:12 + 18] = batch_states[:, 3 + 18:6 + 18]
-        batch_states_rev[:, 12 + 18:15 + 18] = batch_states[:, 15 + 18:18 + 18]
-
-        # Reverse yaw and y
-        batch_states_rev[44] = - batch_states[44]
-        batch_states_rev[45] = - batch_states[45]
-
-        # Reverse contacts
-        batch_states_rev[46] = batch_states[48]
-        batch_states_rev[47] = batch_states[49]
-        batch_states_rev[51] = batch_states[50]
-
-        batch_states_rev[48] = batch_states[46]
-        batch_states_rev[49] = batch_states[47]
-        batch_states_rev[50] = batch_states[51]
-
-        # Actions
-        for i in range(3):
-            actions = policy(batch_states)
-            actions_rev = T.zeros_like(actions)
-
-            actions_rev[:, 0:3] = actions[:, 6:9]
-            actions_rev[:, 3:6] = actions[:, 9:12]
-            actions_rev[:, 15:18] = actions[:, 12:15]
-
-            actions_rev[:, 6:9] = actions[:, 0:3]
-            actions_rev[:, 9:12] = actions[:, 3:6]
-            actions_rev[:, 12:15] = actions[:, 15:18]
-
-            loss = (actions - actions_rev).pow(2).mean()
-            policy_optim.zero_grad()
-            loss.backward()
-            policy.soft_clip_grads(1.)
-            policy_optim.step()
-
 
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
     assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
@@ -276,14 +222,14 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
               "note" : "/wo ctct", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
+    from src.envs.hexapod.hex_limited.hexapod_limited import Hexapod as env
     env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=350, walls=True)
 
     # Current experts:
