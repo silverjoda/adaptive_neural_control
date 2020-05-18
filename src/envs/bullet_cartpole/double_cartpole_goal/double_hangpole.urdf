@@ -38,8 +38,8 @@
     <origin xyz="0.0 0.0 0.0"/>
     <parent link="slideBar"/>
     <child link="cart"/>
-    <limit effort="1000.0" lower="-3" upper="3" velocity="5"/>
-    <dynamics damping="0.1" friction="0.0"/>
+    <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+    <dynamics damping="0.1" friction="0.1"/>
   </joint>
 
   <link name="pole_1">
@@ -64,8 +64,8 @@
     <origin xyz="0.0 0.0 0"/>
     <parent link="cart"/>
     <child link="pole_1"/>
-    <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
-    <joint_properties damping="0.0" friction="0.0"/>
+    <dynamics damping="0.03" friction="0.03"/>
+    <limit effort="200.0" lower="-30" upper="30" velocity="10"/>
   </joint>
 
   <link name="pole_2">
@@ -90,8 +90,9 @@
     <origin xyz="0.0 0.0 -0.5"/>
     <parent link="pole_1"/>
     <child link="pole_2"/>
-    <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
-    <joint_properties damping="0.0" friction="0.0"/>
+    <limit effort="100.0" lower="-2" upper="2" velocity="1"/>
+    <dynamics damping="0.03" friction="0.03"/>
+    <limit effort="200.0" lower="-30" upper="30" velocity="10"/>
   </joint>
 
 </robot>
