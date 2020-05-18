@@ -47,13 +47,13 @@
       <geometry>
         <box size="0.05 0.05 0.5"/>
       </geometry>
-      <origin xyz="0 0 -0.25"/>
+      <origin xyz="0 0 0.25"/>
       <material name="pmat1">
         <color rgba="0 0.0 1. 1"/>
       </material>
     </visual>
     <inertial>
-      <origin xyz="0 0 -0.25"/>
+      <origin xyz="0 0 0.25"/>
       <mass value="1"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
@@ -73,13 +73,13 @@
       <geometry>
         <box size="0.05 0.05 0.5"/>
       </geometry>
-      <origin xyz="0 0 -0.25"/>
+      <origin xyz="0 0 0.25"/>
       <material name="pmat2">
         <color rgba="0 0.0 1. 1"/>
       </material>
     </visual>
     <inertial>
-      <origin xyz="0 0 -0.25"/>
+      <origin xyz="0 0 0.25"/>
       <mass value="1"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
@@ -87,7 +87,7 @@
 
   <joint name="swing_2" type="continuous">
     <axis xyz="0 1 0"/>
-    <origin xyz="0.0 0.0 -0.5"/>
+    <origin xyz="0.0 0.0 0.5"/>
     <parent link="pole_1"/>
     <child link="pole_2"/>
     <limit effort="100.0" lower="-2" upper="2" velocity="1"/>

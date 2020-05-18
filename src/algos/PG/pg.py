@@ -215,54 +215,31 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
-
-    if len(sys.argv) > 1:
-        env_list = [sys.argv[1]]
-
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "note" : "/wo ctct", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod.hex_limited.hexapod_limited import Hexapod as env
-    env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=350, walls=True)
-
-    # Current experts:
-    # Generalization: Novar: QO6, Var: OSM
-    # flat: P92, DFE
-    # tiles: K4F
-    # triangles: I08
-    # Stairs: HOS
-    # pipe: 9GV
-    # perlin: P92
-
-    # Current experts w/ orientation rew:
-    # flat: KYH
-    # holes: 2CW
-    # tiles: YI7
-    # triangles: M3X
-    # Stairs: H1Y
-    # pipe: W01
-    # perlin: H03
+    from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
+    env = env(animate=params["animate"])
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 96)
+        policy = policies.NN_PG(env, 24)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "RCG" # LX3: joints + contacts + yaw
+        policy_name = "SHO" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
-        env.test(policy, N=10)
+        env.test(policy)
         print(policy_path)
 
 

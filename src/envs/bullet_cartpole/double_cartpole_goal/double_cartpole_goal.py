@@ -17,8 +17,8 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class DoubleHangPoleBulletEnv():
-    def __init__(self, animate=False, action_input=False, seed=None):
+class DoubleCartPoleBulletEnv():
+    def __init__(self, animate=False, action_input=False, max_steps=150, seed=None):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -32,7 +32,7 @@ class DoubleHangPoleBulletEnv():
         self.prev_act_input = action_input
 
         # Simulator parameters
-        self.max_steps = 300
+        self.max_steps = max_steps
         self.obs_dim = 6 + int(self.prev_act_input) + 1
         self.act_dim = 1
         self.timeStep = 0.02
@@ -50,9 +50,8 @@ class DoubleHangPoleBulletEnv():
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        if socket.gethostname() != "goedel":
-            self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
-            self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
 
     def get_obs(self):
@@ -63,7 +62,7 @@ class DoubleHangPoleBulletEnv():
             p.getJointState(self.cartpole, 2)[0:2]
 
         # Get goal target observation
-        x_goal = p.getJointState(self.cartpole, 0)[0]
+        x_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0]
 
         # Clip velocities
         x_dot = np.clip(x_dot / 3, -7, 7)
@@ -117,7 +116,7 @@ class DoubleHangPoleBulletEnv():
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
         x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0]) - np.sin(p.getJointState(self.cartpole, 2)[0])
 
-        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta_2)), -2, 2)
+        target_pen = np.clip(np.abs(x_sphere - self.target) * 1.5 * (1 - abs(theta_2)), -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
 
@@ -134,7 +133,7 @@ class DoubleHangPoleBulletEnv():
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         if self.prev_act_input:
             obs = np.concatenate((obs, ctrl))
@@ -219,12 +218,14 @@ class DoubleHangPoleBulletEnv():
             self.reset()
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
-                self.step(np.array([-1]))
-                time.sleep(0.02)
+                obs, _, _, _ = self.step(np.array([-1]))
+                input("Press Enter to continue...")
+                print(obs)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
-                self.step(np.array([1]))
+                obs, _, _, _ = self.step(np.array([1]))
                 time.sleep(0.02)
+                print(obs)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-0.3]))
@@ -240,5 +241,5 @@ class DoubleHangPoleBulletEnv():
 
 
 if __name__ == "__main__":
-    env = DoubleHangPoleBulletEnv(animate=True)
+    env = DoubleCartPoleBulletEnv(animate=True)
     env.demo()
