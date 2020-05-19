@@ -257,34 +257,28 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"max_frames": 8000000,
-              "max_steps" : 400,
+              "max_steps" : 150,
               "batch_size": 64,
-              "hidden_dim": 16,
-              "gamma": 0.99,
+              "hidden_dim": 24,
+              "gamma": 0.995,
               "mean_lambda" : 1e-4,
               "std_lambda" : 1e-4,
               "z_lambda" : 0.000,
               "soft_tau" : 1e-3,
-              "value_lr": 1e-4,
-              "soft_q_lr": 1e-4,
-              "policy_lr": 1e-4,
+              "value_lr": 1e-5,
+              "soft_q_lr": 1e-5,
+              "policy_lr": 1e-5,
               "replay_buffer_size" : 1000000,
               "render": False,
+              "animate": False,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
-
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=False, latent_input=False, action_input=False)
-
-    # from src.envs.cartpole_pbt.cartpole_mem import CartPoleBulletEnv
-    # env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
-
-    # from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
-    # env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+    from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
+    env = env(animate=params["animate"])
 
     # Test
     print("Training")

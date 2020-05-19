@@ -18,6 +18,11 @@ if socket.gethostname() != "goedel":
     from gym.utils import seeding
 
 class DoubleCartPoleBulletEnv():
+    metadata = {
+        'render.modes': ['human', 'rgb_array'],
+        'video.frames_per_second': 50
+    }
+
     def __init__(self, animate=False, action_input=False, max_steps=150, seed=None):
         if (animate):
           p.connect(p.GUI)
@@ -62,7 +67,7 @@ class DoubleCartPoleBulletEnv():
             p.getJointState(self.cartpole, 2)[0:2]
 
         # Get goal target observation
-        x_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0]
+        x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
 
         # Clip velocities
         x_dot = np.clip(x_dot / 3, -7, 7)
@@ -111,12 +116,14 @@ class DoubleCartPoleBulletEnv():
 
         self.step_ctr += 1
 
+        pendulum_height = p.getLinkState(self.cartpole, 2)[0][2]
+
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
-        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0]) - np.sin(p.getJointState(self.cartpole, 2)[0])
+        x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
 
-        target_pen = np.clip(np.abs(x_sphere - self.target) * 1.5 * (1 - abs(theta_2)), -2, 2)
+        target_pen = np.clip(np.abs(x - self.target) * 1.5 * (np.maximum(pendulum_height, 0)), -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
 
@@ -238,6 +245,9 @@ class DoubleCartPoleBulletEnv():
 
     def kill(self):
         p.disconnect()
+
+    def close(self):
+        self.kill()
 
 
 if __name__ == "__main__":
