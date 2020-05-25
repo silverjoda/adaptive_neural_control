@@ -127,6 +127,8 @@ class DoubleCartPoleBulletEnv():
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
 
+        # TODO: debug angles, velocities and reward function
+
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
