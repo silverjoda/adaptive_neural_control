@@ -8,16 +8,14 @@ from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import D
 env = env(animate=False)
 
 model = PPO('MlpPolicy', env, verbose=1, n_steps=150)
-model.learn(total_timesteps=1000000)
+model.learn(total_timesteps=200000)
 model.save("model")
 env.close()
 
-from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
 env = env(animate=True)
 model = PPO('MlpPolicy', env, verbose=1, n_steps=150)
 model.load("model")
 obs = env.reset()
-
 
 for _ in range(100):
     cum_rew = 0.

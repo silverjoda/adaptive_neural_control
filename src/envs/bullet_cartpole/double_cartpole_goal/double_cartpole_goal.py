@@ -23,7 +23,7 @@ class DoubleCartPoleBulletEnv():
         'video.frames_per_second': 50
     }
 
-    def __init__(self, animate=False, action_input=False, max_steps=150, seed=None):
+    def __init__(self, animate=False, action_input=False, max_steps=250, seed=None):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -40,7 +40,7 @@ class DoubleCartPoleBulletEnv():
         self.max_steps = max_steps
         self.obs_dim = 6 + int(self.prev_act_input) + 1
         self.act_dim = 1
-        self.timeStep = 0.02
+        self.timeStep = 0.01
 
         p.setGravity(0, 0, -9.8)
         p.setTimeStep(self.timeStep)
@@ -70,9 +70,9 @@ class DoubleCartPoleBulletEnv():
         x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
 
         # Clip velocities
-        x_dot = np.clip(x_dot / 3, -7, 7)
-        theta_dot_1 = np.clip(theta_dot_1 / 3, -7, 7)
-        theta_dot_2 = np.clip(theta_dot_2 / 3, -7, 7)
+        x_dot = np.clip(x_dot / 5, -5, 5)
+        theta_dot_1 = np.clip(theta_dot_1 / 5, -5, 5)
+        theta_dot_2 = np.clip(theta_dot_2 / 5, -5, 5)
 
         # Change theta range to [-pi, pi]
         if theta_1 > 0:
@@ -111,7 +111,8 @@ class DoubleCartPoleBulletEnv():
 
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
+        ctrl = np.clip(ctrl, -1, 1)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 50)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -121,26 +122,30 @@ class DoubleCartPoleBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
-        x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
+        #x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
 
-        target_pen = np.clip(np.abs(x - self.target) * 1.5 * (np.maximum(pendulum_height, 0)), -2, 2)
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
+        target_pen = np.clip(np.abs(x - self.target) * 1.5, -2, 2) * 0
+        height_rew = pendulum_height
+        vel_pen = (np.square(x_dot) * 0.0 * (1 - np.minimum(abs(x - self.target), 1))
+                                             + np.square(theta_dot_1) * 0.00
+                                             + np.square(theta_dot_2) * 0.00)
+        r = height_rew - target_pen - vel_pen - np.square(ctrl[0]) * 0.00
 
-        # TODO: debug angles, velocities and reward function
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
+        # p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
+        # p.addUserDebugText("theta_1: {:.3f} ".format(theta_1) +
+        #                    "theta_dot_1: {:.3f} ".format(theta_dot_1) +
+        #                    "theta_2: {:.3f} ".format(theta_2) +
+        #                    "theta_dot_2: {:.3f} ".format(theta_dot_2), [-2, 0, 2.4])
+        # p.addUserDebugText("Pendulum height: {0:.3f}".format(pendulum_height), [0, 0, 2.6])
+        # p.addUserDebugText("target_pen: {0:.3f}".format(target_pen), [0, 0, 2.8])
+        # p.addUserDebugText("vel_pen: {0:.3f}".format(vel_pen), [0, 0, 3.0])
 
-        #p.removeAllUserDebugItems()
-        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
-        #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
-        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
-        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
-
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or pendulum_height < 0
 
         # Change target
-        if np.random.rand() < self.target_change_prob:
+        if np.random.rand() < self.target_change_prob and False:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
@@ -152,7 +157,7 @@ class DoubleCartPoleBulletEnv():
 
     def reset(self):
         self.step_ctr = 0
-        self.target = np.random.rand() * 2 * self.target_var - self.target_var
+        self.target = 0 #np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         self.mass_1, self.mass_2 = self.mass_min + np.random.rand(2) * self.mass_range

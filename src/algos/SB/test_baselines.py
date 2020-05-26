@@ -5,17 +5,16 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
 import time
 
-from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
-env = env(animate=False)
+from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv
+env = DoubleCartPoleBulletEnv(animate=False)
 env = DummyVecEnv([lambda: env])
 
-model = PPO2('MlpPolicy', env, verbose=1, n_steps=100)
-model.learn(total_timesteps=100000)
+model = PPO2('MlpPolicy', env, verbose=1, n_steps=150)
+model.learn(total_timesteps=200000)
 model.save("model")
 env.close()
 
-from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
-env = env(animate=True)
+env = DoubleCartPoleBulletEnv(animate=True)
 env = DummyVecEnv([lambda: env])
 model = PPO2('MlpPolicy', env, verbose=1, n_steps=150)
 model.load("model")
