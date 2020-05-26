@@ -3,17 +3,18 @@ import gym
 from stable_baselines3 import PPO
 import time
 
-#env = gym.make('CartPole-v1')
-from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
-env = env(animate=False)
+from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv
+TRAIN = False
 
-model = PPO('MlpPolicy', env, verbose=1, n_steps=150)
-model.learn(total_timesteps=200000)
-model.save("model")
-env.close()
+if TRAIN:
+    env = DoubleCartPoleBulletEnv(animate=False)
+    model = PPO('MlpPolicy', env, verbose=1, n_steps=300)
+    model.learn(total_timesteps=200000)
+    model.save("model")
+    env.close()
 
-env = env(animate=True)
-model = PPO('MlpPolicy', env, verbose=1, n_steps=150)
+env = DoubleCartPoleBulletEnv(animate=True)
+model = PPO('MlpPolicy', env, verbose=1, n_steps=300)
 model.load("model")
 obs = env.reset()
 
