@@ -28,7 +28,7 @@ obs = env.reset()
 
 for _ in range(100):
     cum_rew = 0
-    for i in range(1000):
+    for i in range(800):
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
         cum_rew += reward
