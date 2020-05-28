@@ -237,13 +237,16 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "6B7" # 4KP
+        policy_name = "VMP" # 4KP
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
         env.test(policy)
         print(policy_path)
 
+    # TODO: See how to make gym env correctly because algos not working correctly on them
+    # TODO: Test out various SB algos
+    # TODO: Improve PG and test on the 3 envs
 
 
 

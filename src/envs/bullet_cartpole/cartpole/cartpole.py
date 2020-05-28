@@ -97,7 +97,7 @@ class CartPoleBulletEnv():
         x, x_dot, theta_1, theta_dot_1 = obs
 
         height_rew = pendulum_height
-        r = height_rew + abs(x) * 0.1
+        r = height_rew - abs(x) * 0.1
 
         done = self.step_ctr > self.max_steps or pendulum_height < 0
 
