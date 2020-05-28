@@ -38,7 +38,7 @@ class DoubleCartPoleBulletEnv():
 
         # Simulator parameters
         self.max_steps = max_steps
-        self.obs_dim = 6 + int(self.prev_act_input) + 1
+        self.obs_dim = 6 + 1 + int(self.prev_act_input)
         self.act_dim = 1
         self.timeStep = 0.01
 
@@ -46,16 +46,15 @@ class DoubleCartPoleBulletEnv():
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
-        self.target_debug_line = None
         self.target_var = 2.0
         self.target_change_prob = 0.008
         self.mass_min = 1.0
         self.mass_range = 0
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_hangpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_cartpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
 
@@ -145,7 +144,7 @@ class DoubleCartPoleBulletEnv():
         done = self.step_ctr > self.max_steps or pendulum_height < 0
 
         # Change target
-        if np.random.rand() < self.target_change_prob and False:
+        if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
@@ -157,7 +156,7 @@ class DoubleCartPoleBulletEnv():
 
     def reset(self):
         self.step_ctr = 0
-        self.target = 0 #np.random.rand() * 2 * self.target_var - self.target_var
+        self.target = np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         self.mass_1, self.mass_2 = self.mass_min + np.random.rand(2) * self.mass_range
@@ -177,15 +176,6 @@ class DoubleCartPoleBulletEnv():
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
-
-    def render_line(self):
-        if not self.animate:
-            return
-        p.removeAllUserDebugItems()
-        self.target_debug_line = p.addUserDebugLine([self.target, 0, 0],
-                                                    [self.target, 0, 0.5],
-                                                    lineWidth=6,
-                                                    lineColorRGB=[1, 0, 0])
 
     def test(self, policy, slow=True, seed=None):
         if seed is not None:

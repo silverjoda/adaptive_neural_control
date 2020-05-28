@@ -217,7 +217,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "...", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -243,7 +243,7 @@ if __name__=="__main__":
         print(policy_path)
 
         # TODO: Make simple single_cartpole env as very easy env
-        # TODO: Make simpler single_cartpole_goal env as medium env
+        # TODO: Make simpler single_cartpole_goal env as medium env <- In progress
         # TODO: Add back complexities of double_cartpole_goal as hard env
 
 
