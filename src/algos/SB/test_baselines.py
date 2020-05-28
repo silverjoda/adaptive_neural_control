@@ -5,11 +5,14 @@ from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2
 import time
 
-from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv
+from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
+#from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
+#from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
+
 TRAIN = True
 
 if TRAIN:
-    env = DoubleCartPoleBulletEnv(animate=False)
+    env = env(animate=False, max_steps=200)
     env = DummyVecEnv([lambda: env])
 
     model = PPO2('MlpPolicy', env, verbose=1, n_steps=300)
@@ -17,8 +20,8 @@ if TRAIN:
     model.save("model")
     env.close()
 
-env = DoubleCartPoleBulletEnv(animate=True)
-#env = DummyVecEnv([lambda: env])
+env = env(animate=False, max_steps=200)
+env = DummyVecEnv([lambda: env])
 model = PPO2('MlpPolicy', env, verbose=1, n_steps=300)
 model.load("model")
 obs = env.reset()
