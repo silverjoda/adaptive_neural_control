@@ -51,7 +51,7 @@ class DoubleCartPoleBulletEnv():
         self.mass_min = 1.0
         self.mass_range = 0
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_cartpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,))
@@ -115,20 +115,18 @@ class DoubleCartPoleBulletEnv():
         p.stepSimulation()
 
         self.step_ctr += 1
-
         pendulum_height = p.getLinkState(self.cartpole, 2)[0][2]
 
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
-        #x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
 
-        target_pen = np.clip(np.abs(x - self.target) * 1.5, -2, 2) * 0
+        target_pen = np.clip(np.abs(x - self.target) * 0.3, -2, 2)
         height_rew = pendulum_height
         vel_pen = (np.square(x_dot) * 0.0 * (1 - np.minimum(abs(x - self.target), 1))
                                              + np.square(theta_dot_1) * 0.00
                                              + np.square(theta_dot_2) * 0.00)
-        r = height_rew - target_pen - vel_pen - np.square(ctrl[0]) * 0.00
+        r = height_rew - target_pen - vel_pen - np.square(ctrl[0]) * 0.001
 
         # p.removeAllUserDebugItems()
         # p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])

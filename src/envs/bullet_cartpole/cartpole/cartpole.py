@@ -17,13 +17,13 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class DoubleCartPoleBulletEnv():
+class CartPoleBulletEnv():
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second': 50
     }
 
-    def __init__(self, animate=False, action_input=False, max_steps=250, seed=None):
+    def __init__(self, animate=False, max_steps=200, seed=None):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -34,45 +34,32 @@ class DoubleCartPoleBulletEnv():
             T.manual_seed(seed)
 
         self.animate = animate
-        self.prev_act_input = action_input
 
         # Simulator parameters
         self.max_steps = max_steps
-        self.obs_dim = 6 + int(self.prev_act_input) + 1
+        self.obs_dim = 4
         self.act_dim = 1
-        self.timeStep = 0.01
+        self.timeStep = 0.02
 
         p.setGravity(0, 0, -9.8)
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
-        self.target_debug_line = None
-        self.target_var = 2.0
-        self.target_change_prob = 0.008
-        self.mass_min = 1.0
-        self.mass_range = 0
-
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
-        self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
 
     def get_obs(self):
         # Get cartpole observation
-        x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2 = \
+        x, x_dot, theta_1, theta_dot_1 = \
             p.getJointState(self.cartpole, 0)[0:2] + \
-            p.getJointState(self.cartpole, 1)[0:2] + \
-            p.getJointState(self.cartpole, 2)[0:2]
-
-        # Get goal target observation
-        x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
+            p.getJointState(self.cartpole, 1)[0:2]
 
         # Clip velocities
         x_dot = np.clip(x_dot / 5, -5, 5)
         theta_dot_1 = np.clip(theta_dot_1 / 5, -5, 5)
-        theta_dot_2 = np.clip(theta_dot_2 / 5, -5, 5)
 
         # Change theta range to [-pi, pi]
         if theta_1 > 0:
@@ -88,20 +75,7 @@ class DoubleCartPoleBulletEnv():
 
         theta_1 /= np.pi
 
-        if theta_2 > 0:
-            if theta_2 % (2 * np.pi) <= np.pi:
-                theta_2 = theta_2 % (2 * np.pi)
-            else:
-                theta_2 = -np.pi + theta_2 % np.pi
-        else:
-            if theta_2 % (-2 * np.pi) >= -np.pi:
-                theta_2 = theta_2 % (-2 * np.pi)
-            else:
-                theta_2 = np.pi + theta_2 % -np.pi
-
-        theta_2 /= np.pi
-
-        self.state = np.array([x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal])
+        self.state = np.array([x, x_dot, theta_1, theta_dot_1])
 
         return self.state
 
@@ -116,76 +90,29 @@ class DoubleCartPoleBulletEnv():
         p.stepSimulation()
 
         self.step_ctr += 1
-
-        pendulum_height = p.getLinkState(self.cartpole, 2)[0][2]
+        pendulum_height = p.getLinkState(self.cartpole, 1)[0][2]
 
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
-        x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
-        #x_goal, y_goal = p.getBasePositionAndOrientation(self.target_vis)[0][0:2]
+        x, x_dot, theta_1, theta_dot_1 = obs
 
-        target_pen = np.clip(np.abs(x - self.target) * 1.5, -2, 2) * 0
         height_rew = pendulum_height
-        vel_pen = (np.square(x_dot) * 0.0 * (1 - np.minimum(abs(x - self.target), 1))
-                                             + np.square(theta_dot_1) * 0.00
-                                             + np.square(theta_dot_2) * 0.00)
-        r = height_rew - target_pen - vel_pen - np.square(ctrl[0]) * 0.00
-
-        # p.removeAllUserDebugItems()
-        # p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        # p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        # p.addUserDebugText("theta_1: {:.3f} ".format(theta_1) +
-        #                    "theta_dot_1: {:.3f} ".format(theta_dot_1) +
-        #                    "theta_2: {:.3f} ".format(theta_2) +
-        #                    "theta_dot_2: {:.3f} ".format(theta_dot_2), [-2, 0, 2.4])
-        # p.addUserDebugText("Pendulum height: {0:.3f}".format(pendulum_height), [0, 0, 2.6])
-        # p.addUserDebugText("target_pen: {0:.3f}".format(target_pen), [0, 0, 2.8])
-        # p.addUserDebugText("vel_pen: {0:.3f}".format(vel_pen), [0, 0, 3.0])
+        r = height_rew + abs(x) * 0.1
 
         done = self.step_ctr > self.max_steps or pendulum_height < 0
-
-        # Change target
-        if np.random.rand() < self.target_change_prob and False:
-            self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
-
-        if self.prev_act_input:
-            obs = np.concatenate((obs, ctrl))
 
         return obs, r, done, {}
 
 
     def reset(self):
         self.step_ctr = 0
-        self.target = 0 #np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
-
-        self.mass_1, self.mass_2 = self.mass_min + np.random.rand(2) * self.mass_range
-
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
-        p.resetJointState(self.cartpole, 2, targetValue=0, targetVelocity=0)
-        p.changeDynamics(self.cartpole, 1, mass=self.mass_1)
-        p.changeDynamics(self.cartpole, 2, mass=self.mass_2)
-        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass_1 / (self.mass_min + self.mass_range),
-                                                         1 - self.mass_1 / (self.mass_min + self.mass_range), 0, 1])
-        p.changeVisualShape(self.cartpole, 2, rgbaColor=[self.mass_2 / (self.mass_min + self.mass_range),
-                                                         1 - self.mass_2 / (self.mass_min + self.mass_range), 0, 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
-        p.setJointMotorControl2(self.cartpole, 2, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
-
-    def render_line(self):
-        if not self.animate:
-            return
-        p.removeAllUserDebugItems()
-        self.target_debug_line = p.addUserDebugLine([self.target, 0, 0],
-                                                    [self.target, 0, 0.5],
-                                                    lineWidth=6,
-                                                    lineColorRGB=[1, 0, 0])
 
     def test(self, policy, slow=True, seed=None):
         if seed is not None:
@@ -233,7 +160,6 @@ class DoubleCartPoleBulletEnv():
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 obs, _, _, _ = self.step(np.array([-1]))
-                input("Press Enter to continue...")
                 print(obs)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
@@ -258,5 +184,5 @@ class DoubleCartPoleBulletEnv():
 
 
 if __name__ == "__main__":
-    env = DoubleCartPoleBulletEnv(animate=True)
+    env = CartPoleBulletEnv(animate=True)
     env.demo()

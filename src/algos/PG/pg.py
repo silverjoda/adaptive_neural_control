@@ -242,10 +242,6 @@ if __name__=="__main__":
         env.test(policy)
         print(policy_path)
 
-        # TODO: Make simple single_cartpole env as very easy env
-        # TODO: Make simpler single_cartpole_goal env as medium env <- In progress
-        # TODO: Add back complexities of double_cartpole_goal as hard env
-
 
 
 
