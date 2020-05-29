@@ -4,11 +4,13 @@ from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2, DQN, A2C
 from stable_baselines.common.evaluation import evaluate_policy
+from stable_baselines.common.env_checker import check_env
 import time
 
 #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
 #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
 from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
+
 
 TRAIN = True
 

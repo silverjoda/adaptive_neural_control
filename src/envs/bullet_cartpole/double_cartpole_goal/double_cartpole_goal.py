@@ -12,12 +12,11 @@ import time
 import socket
 import torch as T
 
-if socket.gethostname() != "goedel":
-    import gym
-    from gym import spaces
-    from gym.utils import seeding
+import gym
+from gym import spaces
+from gym.utils import seeding
 
-class DoubleCartPoleBulletEnv():
+class DoubleCartPoleBulletEnv(gym.Env):
     metadata = {
         'render.modes': ['human'],
     }
