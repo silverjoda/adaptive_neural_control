@@ -74,7 +74,7 @@ def train(env, policy, valuefun, params):
             # Calculate episode advantages
             batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
 
-            update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
@@ -97,7 +97,7 @@ def train(env, policy, valuefun, params):
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
-def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
     c_eps = 0.2
 
@@ -110,6 +110,24 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
         policy.soft_clip_grads(3.)
         policy_optim.step()
+
+
+def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
+
+    # Get action log probabilities
+    log_probs = policy.log_probs(batch_states, batch_actions)
+
+    # Calculate loss function
+    loss = -T.mean(log_probs * batch_advantages)
+
+    # Backward pass on policy
+    policy_optim.zero_grad()
+    loss.backward()
+
+    # Step policy update
+    policy_optim.step()
+
+    return loss.data
 
 
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
@@ -137,24 +155,6 @@ def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
     loss = (targets - Vs).pow(2).mean()
     loss.backward()
     V_optim.step()
-
-    return loss.data
-
-
-def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
-
-    # Get action log probabilities
-    log_probs = policy.log_probs(batch_states, batch_actions)
-
-    # Calculate loss function
-    loss = -T.mean(log_probs * batch_advantages)
-
-    # Backward pass on policy
-    policy_optim.zero_grad()
-    loss.backward()
-
-    # Step policy update
-    policy_optim.step()
 
     return loss.data
 
