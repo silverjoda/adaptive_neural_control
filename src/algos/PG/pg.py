@@ -11,6 +11,8 @@ import src.policies as policies
 import random
 import string
 import socket
+import logging
+logging.basicConfig(filename='example.log',level=logging.DEBUG)
 
 
 def train(env, policy, valuefun, params):
@@ -26,11 +28,11 @@ def train(env, policy, valuefun, params):
 
     batch_ctr = 0
     batch_rew = 0
+    global_step_ctr = 0
 
     for i in range(params["iters"]):
         s_0 = env.reset()
         done = False
-
         step_ctr = 0
 
         while not done:
@@ -39,10 +41,13 @@ def train(env, policy, valuefun, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
-            r = np.clip(r, -3, 3)
+
+            if abs(r) > 3:
+                logging.warning("Warning! high reward ({})".format(r))
+
             step_ctr += 1
 
+            # For calculating mean episode rew
             batch_rew += r
 
             if params["animate"]:
@@ -62,6 +67,7 @@ def train(env, policy, valuefun, params):
 
         # If enough data gathered, then perform update
         if batch_ctr == params["batchsize"]:
+            global_step_ctr += step_ctr
 
             batch_states = T.cat(batch_states)
             batch_new_states = T.cat(batch_new_states)
@@ -77,8 +83,8 @@ def train(env, policy, valuefun, params):
             update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
 
-            print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
-                  format(i, params["iters"], None, None, batch_rew / params["batchsize"]))
+            logging.info("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
+                  format(i, params["iters"], global_step_ctr, None, None, batch_rew / params["batchsize"]))
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -160,16 +166,17 @@ def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
 
 
 def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, batch_terminals):
-    Vs = V(batch_states)
-    Vs_ = V(batch_new_states)
-    targets = []
-    for s, r, s_, t, vs_ in zip(batch_states, batch_rewards, batch_new_states, batch_terminals, Vs_):
-        if t:
-            targets.append(r.unsqueeze(0))
-        else:
-            targets.append(r + gamma * vs_)
+    with T.no_grad():
+        Vs = V(batch_states)
+        Vs_ = V(batch_new_states)
+        targets = []
+        for s, r, s_, t, vs, vs_ in zip(batch_states, batch_rewards, batch_new_states, batch_terminals, Vs, Vs_):
+            if t:
+                targets.append(r.unsqueeze(0) - vs)
+            else:
+                targets.append(r + gamma * vs_ - vs)
 
-    return T.cat(targets) - Vs
+        return T.cat(targets)
 
 
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
@@ -196,8 +203,8 @@ if __name__=="__main__":
     params = {"iters": 500000,
               "batchsize": 60,
               "gamma": 0.995,
-              "policy_lr": 0.0007,
-              "valuefun_lr": 0.0007,
+              "policy_lr": 0.001,
+              "valuefun_lr": 0.001,
               "weight_decay" : 0.0001,
               "ppo_update_iters": 32,
               "animate": False,
