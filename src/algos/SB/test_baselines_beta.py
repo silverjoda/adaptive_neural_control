@@ -2,6 +2,8 @@ import gym
 
 from stable_baselines3 import PPO
 import time
+import numpy as np
+
 
 from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
 #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
@@ -9,13 +11,13 @@ from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
 TRAIN = True
 
 if TRAIN:
-    env_instance = env(animate=False, max_steps=200)
+    env_instance = env(animate=False, max_steps=200) #gym.make("CartPole-v0") #
     model = PPO('MlpPolicy', env_instance, verbose=1, n_steps=300)
-    model.learn(total_timesteps=200000)
+    model.learn(total_timesteps=30000)
     model.save("model")
     env_instance.close()
 
-env_instance = env(animate=True, max_steps=200)
+env_instance = env(animate=True, max_steps=200) #gym.make("CartPole-v0") #
 model = PPO('MlpPolicy', env_instance, verbose=1, n_steps=300)
 model.load("model")
 obs = env_instance.reset()
@@ -25,6 +27,7 @@ for _ in range(100):
     for i in range(800):
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = env_instance.step(action)
+        print("Action: {}, _states: {}, obs: {}, reward: {}, info: {}".format(action, _states, obs, reward, info))
         cum_rew += reward
         env_instance.render()
         time.sleep(0.01)

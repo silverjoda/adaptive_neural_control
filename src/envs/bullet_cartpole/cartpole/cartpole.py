@@ -19,8 +19,7 @@ if socket.gethostname() != "goedel":
 
 class CartPoleBulletEnv():
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 50
+        'render.modes': ['human'],
     }
 
     def __init__(self, animate=False, max_steps=200, seed=None):
@@ -47,8 +46,9 @@ class CartPoleBulletEnv():
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
 
-        self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,))
-        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+        self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
+        #self.action_space = spaces.Discrete(2)
 
 
     def get_obs(self):
@@ -75,9 +75,7 @@ class CartPoleBulletEnv():
 
         theta_1 /= np.pi
 
-        self.state = np.array([x, x_dot, theta_1, theta_dot_1])
-
-        return self.state
+        return [x, x_dot, theta_1, theta_dot_1]
 
 
     def render(self, close=False):
@@ -85,6 +83,9 @@ class CartPoleBulletEnv():
 
 
     def step(self, ctrl):
+        # if ctrl==0:
+        #     ctrl = -1
+
         ctrl = np.clip(ctrl, -1, 1)
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 50)
         p.stepSimulation()
@@ -101,13 +102,13 @@ class CartPoleBulletEnv():
 
         done = self.step_ctr > self.max_steps or pendulum_height < 0
 
-        return obs, r, done, {}
+        return np.array(obs), r, done, {}
 
 
     def reset(self):
         self.step_ctr = 0
-        p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
-        p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
+        p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=np.random.randn() * 0.001)
+        p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=np.random.randn() * 0.001)
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
@@ -159,11 +160,11 @@ class CartPoleBulletEnv():
             self.reset()
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
-                obs, _, _, _ = self.step(np.array([-1]))
+                obs, _, _, _ = self.step(np.array([0]))
                 print(obs)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
-                obs, _, _, _ = self.step(np.array([1]))
+                obs, _, _, _ = self.step(np.array([0]))
                 time.sleep(0.02)
                 print(obs)
             for j in range(120):

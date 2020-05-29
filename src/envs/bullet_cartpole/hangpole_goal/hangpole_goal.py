@@ -20,20 +20,18 @@ if socket.gethostname() != "goedel" or False:
     from gym.utils import seeding
 
 class HangPoleGoalBulletEnv():
-    def __init__(self, animate=False, latent_input=False, action_input=False):
+    def __init__(self, animate=False, max_steps=100, action_input=False):
         if (animate):
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
 
         self.animate = animate
-        self.latent_input = latent_input
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 200
-        self.latent_dim = 1
-        self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
+        self.max_steps = max_steps
+        self.obs_dim = 4 + int(self.action_input) + 1
         self.act_dim = 1
 
         self.timeStep = 0.02
@@ -43,19 +41,18 @@ class HangPoleGoalBulletEnv():
         p.setRealTimeSimulation(0)
 
         self.target_debug_line = None
-        self.target_var = 2.0
+        self.target_var = 1.0
         self.target_change_prob = 0.003
         self.dist_var = 2
         self.mass_var = 0
-        self.mass_min = 2.0
+        self.mass_min = 1.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        if socket.gethostname() != "goedel":
-            self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
-            self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
-            self.metadata = None
+        self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+        self.metadata = None
 
         print(self.dist_var, self.mass_var)
 
@@ -85,11 +82,6 @@ class HangPoleGoalBulletEnv():
         return self.state
 
 
-    def get_latent_label(self):
-        mass_norm = (2 * self.mass - 2 * self.mass_min) / self.mass_var - 1
-        return mass_norm
-
-
     def render(self, close=False):
         pass
 
@@ -109,8 +101,8 @@ class HangPoleGoalBulletEnv():
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
 
-        p.removeAllUserDebugItems()
-        p.addUserDebugLine((x, 0, 0), (x_sphere, 0, -np.cos(p.getJointState(self.cartpole, 1)[0])))
+        #p.removeAllUserDebugItems()
+        #p.addUserDebugLine((x, 0, 0), (x_sphere, 0, -np.cos(p.getJointState(self.cartpole, 1)[0])))
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
@@ -125,8 +117,7 @@ class HangPoleGoalBulletEnv():
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
-        if self.latent_input:
-            obs = np.concatenate((obs, [self.get_latent_label()]))
+
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 
@@ -224,6 +215,9 @@ class HangPoleGoalBulletEnv():
 
     def kill(self):
         p.disconnect()
+
+    def close(self):
+        self.kill()
 
 
 
