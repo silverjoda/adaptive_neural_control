@@ -19,11 +19,10 @@ if socket.gethostname() != "goedel":
 
 class DoubleCartPoleBulletEnv():
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 50
+        'render.modes': ['human'],
     }
 
-    def __init__(self, animate=False, action_input=False, max_steps=250, seed=None):
+    def __init__(self, animate=False, action_input=False, max_steps=200, seed=None):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -51,7 +50,7 @@ class DoubleCartPoleBulletEnv():
         self.mass_min = 1.0
         self.mass_range = 0
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_cartpole_goal.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,))

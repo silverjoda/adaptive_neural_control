@@ -12,27 +12,11 @@ import random
 import string
 import socket
 
-class Valuefun(nn.Module):
-    def __init__(self, env):
-        super(Valuefun, self).__init__()
 
-        self.obs_dim = env.obs_dim
-
-        self.fc1 = nn.Linear(self.obs_dim, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, 1)
-
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-
-def train(env, policy, params):
+def train(env, policy, valuefun, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-4)
+    valuefun_optim = T.optim.Adam(valuefun.parameters(), lr=params["valuefun_lr"], weight_decay=params["weight_decay"], eps=1e-4)
 
     batch_states = []
     batch_actions = []
@@ -80,6 +64,7 @@ def train(env, policy, params):
         if batch_ctr == params["batchsize"]:
 
             batch_states = T.cat(batch_states)
+            batch_new_states = T.cat(batch_new_states)
             batch_actions = T.cat(batch_actions)
             batch_rewards = T.cat(batch_rewards)
 
@@ -87,15 +72,13 @@ def train(env, policy, params):
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
 
-            if params["ppo"]:
-                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            else:
-                update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
-                  format(i, params["iters"], None, None, batch_rew / params["batchsize"])) # T.exp(policy.log_std)[0][0].detach().numpy())
+                  format(i, params["iters"], None, None, batch_rew / params["batchsize"]))
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -112,12 +95,6 @@ def train(env, policy, params):
                                 "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
-
-        # if i % 500 == 0 and i > 0:
-        #     print("Wrote score to file")
-        #     c_score, v_score, d_score = env.test(policy, N=20, seed=1337, render=False)
-        #     with open("eval/{}_RE.txt".format(params["ID"]), "a+") as f:
-        #         f.write("{}, {}, {}, {} \n".format(batch_rew / params["batchsize"], c_score, v_score, d_score))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -182,11 +159,11 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     return loss.data
 
 
-def calc_advantages(V, gamma, batch_states, batch_rewards, batch_next_states, batch_terminals):
+def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, batch_terminals):
     Vs = V(batch_states)
-    Vs_ = V(batch_next_states)
+    Vs_ = V(batch_new_states)
     targets = []
-    for s, r, s_, t, vs_ in zip(batch_states, batch_rewards, batch_next_states, batch_terminals, Vs_):
+    for s, r, s_, t, vs_ in zip(batch_states, batch_rewards, batch_new_states, batch_terminals, Vs_):
         if t:
             targets.append(r.unsqueeze(0))
         else:
@@ -216,9 +193,17 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
-              "note" : "...", "ID" : ID}
+    params = {"iters": 500000,
+              "batchsize": 60,
+              "gamma": 0.995,
+              "policy_lr": 0.0007,
+              "valuefun_lr": 0.0007,
+              "weight_decay" : 0.0001,
+              "ppo_update_iters": 32,
+              "animate": False,
+              "train" : True,
+              "note" : "...",
+              "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -233,8 +218,9 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         policy = policies.NN_PG(env, 42)
+        valuefun = policies.NN_PG_VF(env, 42)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
-        train(env, policy, params)
+        train(env, policy, valuefun, params)
     else:
         print("Testing")
         policy_name = "PZ6" # 4KP
@@ -244,9 +230,7 @@ if __name__=="__main__":
         env.test(policy)
         print(policy_path)
 
-    # TODO: See how to make gym env correctly because algos not working correctly on them
-    # TODO: Test out various SB algos
-    # TODO: Improve PG and test on the 3 envs
+
 
 
 
