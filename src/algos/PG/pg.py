@@ -12,8 +12,7 @@ import random
 import string
 import socket
 import logging
-logging.basicConfig(filename='example.log',level=logging.DEBUG)
-
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def train(env, policy, valuefun, params):
 
@@ -42,7 +41,7 @@ def train(env, policy, valuefun, params):
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
 
-            if abs(r) > 3:
+            if abs(r) > 5:
                 logging.warning("Warning! high reward ({})".format(r))
 
             step_ctr += 1
@@ -83,7 +82,7 @@ def train(env, policy, valuefun, params):
             update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
 
-            logging.info("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
+            print("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
                   format(i, params["iters"], global_step_ctr, None, None, batch_rew / params["batchsize"]))
 
             # Finally reset all batch lists
