@@ -98,6 +98,7 @@ class HangPoleGoalBulletEnv():
         x_sphere = p.getLinkState(self.cartpole, 1)[0][0]
         #x_dot_sphere = p.getLinkState(self.cartpole, 1, 1)[6][0]
 
+        # TODO: Fix reward function, it's not that great
         target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0, -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
