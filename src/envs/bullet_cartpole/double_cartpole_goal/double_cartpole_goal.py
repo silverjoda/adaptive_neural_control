@@ -109,7 +109,7 @@ class DoubleCartPoleBulletEnv(gym.Env):
 
     def step(self, ctrl):
         ctrl = np.clip(ctrl, -1, 1)
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 50)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -126,18 +126,7 @@ class DoubleCartPoleBulletEnv(gym.Env):
                                              + np.square(theta_dot_2) * 0.00)
         r = height_rew - target_pen - vel_pen - np.square(ctrl[0]) * 0.001
 
-        # p.removeAllUserDebugItems()
-        # p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        # p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        # p.addUserDebugText("theta_1: {:.3f} ".format(theta_1) +
-        #                    "theta_dot_1: {:.3f} ".format(theta_dot_1) +
-        #                    "theta_2: {:.3f} ".format(theta_2) +
-        #                    "theta_dot_2: {:.3f} ".format(theta_dot_2), [-2, 0, 2.4])
-        # p.addUserDebugText("Pendulum height: {0:.3f}".format(pendulum_height), [0, 0, 2.6])
-        # p.addUserDebugText("target_pen: {0:.3f}".format(target_pen), [0, 0, 2.8])
-        # p.addUserDebugText("vel_pen: {0:.3f}".format(vel_pen), [0, 0, 3.0])
-
-        done = self.step_ctr > self.max_steps or pendulum_height < 0
+        done = self.step_ctr > self.max_steps or pendulum_height < 0.5
 
         # Change target
         if np.random.rand() < self.target_change_prob:
