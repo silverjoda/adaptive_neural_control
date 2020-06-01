@@ -10,12 +10,12 @@ from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds, make_vec_env
 import time
 #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
-#from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
-from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_dcp
+from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_dcp
+#from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_dcp
 
 def make_env():
     def _init():
-        env = env_dcp(animate=False, max_steps=500)
+        env = env_dcp(animate=False, max_steps=300)
         return env
     return _init
 
@@ -25,10 +25,10 @@ if __name__ == "__main__":
     if TRAIN:
         #env = env_dcp(animate=False, max_steps=300)
         env = SubprocVecEnv([make_env() for _ in range(6)])
-        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64,tensorboard_log="/tmp", gamma=0.99)
+        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(3000000))
+        model.learn(total_timesteps=int(1000000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("a2c_mdl")

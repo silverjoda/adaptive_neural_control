@@ -41,7 +41,7 @@ class HangPoleGoalBulletEnv():
         p.setRealTimeSimulation(0)
 
         self.target_debug_line = None
-        self.target_var = 1.0
+        self.target_var = 2.0
         self.target_change_prob = 0.003
         self.dist_var = 2
         self.mass_var = 0
@@ -54,7 +54,7 @@ class HangPoleGoalBulletEnv():
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
         self.metadata = None
 
-        print(self.dist_var, self.mass_var)
+        #print(self.dist_var, self.mass_var)
 
 
     def get_obs(self):
@@ -95,9 +95,10 @@ class HangPoleGoalBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
-        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0])
+        x_sphere = p.getLinkState(self.cartpole, 1)[0][0]
+        #x_dot_sphere = p.getLinkState(self.cartpole, 1, 1)[6][0]
 
-        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
+        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0, -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
 
@@ -105,6 +106,7 @@ class HangPoleGoalBulletEnv():
         #p.addUserDebugLine((x, 0, 0), (x_sphere, 0, -np.cos(p.getJointState(self.cartpole, 1)[0])))
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
+        #p.addUserDebugText("sphere x_dot: {}".format((1 - 0.5 * abs(x_dot_sphere))), [-4.0, 0, 2.2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
         #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
         #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
