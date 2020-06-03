@@ -150,15 +150,15 @@ def train_fomaml(env_fun, param_dict):
 if __name__ == "__main__":
     policy = SinPolicy(24)
 
-    param_dict = {"meta_training_iters" : 3000,
-                  "training_iters": 1,
+    param_dict = {"meta_training_iters" : 1000,
+                  "training_iters": 3,
                   "hidden" : 24,
                   "batch_tasks" : 24,
                   "batch_trn" : 16,
                   "lr" : 0.01,
-                  "lr_meta" : 0.01,
-                  "momentum_trn" : 0.9,
-                  "momentum_meta" : 0.9}
+                  "lr_meta" : 0.003,
+                  "momentum_trn" : 0.95,
+                  "momentum_meta" : 0.95}
 
     env_fun = SinTask
     train_fomaml(env_fun, param_dict)
