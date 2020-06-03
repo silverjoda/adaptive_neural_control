@@ -72,7 +72,7 @@ def train_fomaml(env_fun, param_dict):
             p.grad /= param_dict["batch_tasks"]
 
         # Update meta parameters
-        meta_trn_opt.step()
+        meta_trn_opt.step()#
 
 if __name__ == "__main__":
     policy = SinPolicy(24)
