@@ -3,6 +3,7 @@ import torch as T
 import torch.nn as nn
 from copy import deepcopy
 import logging
+import matplotlib.pyplot as plt
 
 class SinTask:
     def __init__(self):
@@ -29,6 +30,10 @@ class SinTask:
         Ytrn = self.a * np.sin(self.b * Xtrn)
         Ytst = self.a * np.sin(self.b * Xtst)
         return Xtrn, Xtst, Ytrn, Ytst
+
+    def plot(self, *args, **kwargs):
+        return plt.plot(self.X.numpy(), self.Y.numpy(), *args, **kwargs)
+
 
 class SinPolicy(nn.Module):
     def __init__(self, hidden=24):
@@ -109,40 +114,43 @@ def train_fomaml(env_fun, param_dict):
 
     # Test the meta learned policy to adapt to a new task after n gradient steps
     env = env_fun()
-    Xtrn, Ytrn = env.get_trn_data(param_dict["batch_trn"])
-    Xtst, Ytst = env.get_tst_data()
-    Xtrn_hc, Ytrn_hc, Xtst_hc, Ytst_hc = env.get_trn_tst_data_HC(param_dict["batch_trn"])
 
-    # Do training and evaluation on normal dataset
-    policy_normal = deepcopy(meta_policy)
-    opt = T.optim.SGD(policy_normal.parameters(), lr=param_dict["lr"], momentum=0.9)
-    for t in range(param_dict["training_iters"]):
-        Yhat = policy_normal(T.from_numpy(Xtrn).unsqueeze(1))
-        loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
-        loss.backward()
-        opt.step()
+    if True:
+        Xtrn, Ytrn = env.get_trn_data(param_dict["batch_trn"])
+        # Do training and evaluation on normal dataset
+        policy_normal = deepcopy(meta_policy)
+        opt = T.optim.SGD(policy_normal.parameters(), lr=param_dict["lr"], momentum=0.9)
+        for t in range(param_dict["training_iters"]):
+            Yhat = policy_normal(T.from_numpy(Xtrn).unsqueeze(1))
+            loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
+            loss.backward()
+            opt.step()
 
-    Yhat_tst = policy_normal(T.from_numpy(Xtst).unsqueeze(1))
+        Yhat_tst = policy_normal(T.from_numpy(env.X).unsqueeze(1))
 
-    # Do training and evaluation on hardcore dataset
-    policy_hc = deepcopy(meta_policy)
-    opt = T.optim.SGD(policy_hc.parameters(), lr=param_dict["lr"], momentum=0.9)
-    for t in range(param_dict["training_iters"]):
-        Yhat = policy_hc(T.from_numpy(Xtrn_hc).unsqueeze(1))
-        loss = lossfun(Yhat, T.from_numpy(Ytrn_hc).unsqueeze(1))
-        loss.backward()
-        opt.step()
+    if False:
+        Xtrn, Ytrn, Xtst, Ytst = env.get_trn_tst_data_HC(param_dict["batch_trn"])
+        # Do training and evaluation on hardcore dataset
+        policy = deepcopy(meta_policy)
+        opt = T.optim.SGD(policy.parameters(), lr=param_dict["lr"], momentum=0.9)
+        for t in range(param_dict["training_iters"]):
+            Yhat = policy(T.from_numpy(Xtrn).unsqueeze(1))
+            loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
+            loss.backward()
+            opt.step()
 
-    Yhat_tst_hc = policy_hc(T.from_numpy(Xtst_hc).unsqueeze(1))
-
-    # Plot that shit
+        Yhat_tst = policy_hc(T.from_numpy(Xtst_hc).unsqueeze(1))
 
 
+    env.plot()
+    plt.plot(Xtrn, Ytrn, "^")
+    plt.plot(env.X, Yhat_tst, "r")
+    plt.plot()
 
 if __name__ == "__main__":
     policy = SinPolicy(24)
 
-    param_dict = {"meta_training_iters" : 1000,
+    param_dict = {"meta_training_iters" : 10,
                   "training_iters": 1,
                   "hidden" : 24,
                   "batch_tasks" : 24,
