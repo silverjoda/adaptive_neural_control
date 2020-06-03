@@ -12,7 +12,7 @@ class SinTask:
 
     def get_trn_data(self, n):
         self.X = np.random.rand(n * 2).astype(np.float32) * np.pi * 2
-        self.Y = np.sin(self.X)
+        self.Y = self.a * np.sin(self.b * self.X)
         indeces = np.arange(n * 2)
         np.random.shuffle(indeces)
         self.trn_indeces = indeces[:n]
@@ -23,6 +23,12 @@ class SinTask:
         assert self.X is not None
         return self.X[self.tst_indeces], self.Y[self.tst_indeces]
 
+    def get_trn_tst_data_HC(self, n):
+        Xtrn = np.linspace(n, 0, np.pi)
+        Xtst = np.linspace(n, np.pi, 2 * np.pi)
+        Ytrn = self.a * np.sin(self.b * Xtrn)
+        Ytst = self.a * np.sin(self.b * Xtst)
+        return Xtrn, Xtst, Ytrn, Ytst
 
 class SinPolicy(nn.Module):
     def __init__(self, hidden=24):
@@ -101,6 +107,36 @@ def train_fomaml(env_fun, param_dict):
                                                                                      np.mean(trn_losses),
                                                                                      np.mean(tst_losses)))
 
+    # Test the meta learned policy to adapt to a new task after n gradient steps
+    env = env_fun()
+    Xtrn, Ytrn = env.get_trn_data(param_dict["batch_trn"])
+    Xtst, Ytst = env.get_tst_data()
+    Xtrn_hc, Ytrn_hc, Xtst_hc, Ytst_hc = env.get_trn_tst_data_HC(param_dict["batch_trn"])
+
+    # Do training and evaluation on normal dataset
+    policy_normal = deepcopy(meta_policy)
+    opt = T.optim.SGD(policy_normal.parameters(), lr=param_dict["lr"], momentum=0.9)
+    for t in range(param_dict["training_iters"]):
+        Yhat = policy_normal(T.from_numpy(Xtrn).unsqueeze(1))
+        loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
+        loss.backward()
+        opt.step()
+
+    Yhat_tst = policy_normal(T.from_numpy(Xtst).unsqueeze(1))
+
+    # Do training and evaluation on hardcore dataset
+    policy_hc = deepcopy(meta_policy)
+    opt = T.optim.SGD(policy_hc.parameters(), lr=param_dict["lr"], momentum=0.9)
+    for t in range(param_dict["training_iters"]):
+        Yhat = policy_hc(T.from_numpy(Xtrn_hc).unsqueeze(1))
+        loss = lossfun(Yhat, T.from_numpy(Ytrn_hc).unsqueeze(1))
+        loss.backward()
+        opt.step()
+
+    Yhat_tst_hc = policy_hc(T.from_numpy(Xtst_hc).unsqueeze(1))
+
+    # Plot that shit
+
 
 
 if __name__ == "__main__":
@@ -110,7 +146,7 @@ if __name__ == "__main__":
                   "training_iters": 1,
                   "hidden" : 24,
                   "batch_tasks" : 24,
-                  "batch_trn" : 24,
+                  "batch_trn" : 16,
                   "lr" : 0.01,
                   "lr_meta" : 0.01}
 
