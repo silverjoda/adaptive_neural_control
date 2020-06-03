@@ -7,22 +7,11 @@ class SinTask:
     def __init__(self):
         self.a = np.random.rand() * 4 + 1
         self.b = np.random.rand() * np.pi
-
-class SinPolicy(nn.Module):
-    def __init__(self, hidden=24):
-        super(SinPolicy, self).__init__()
-        self.linear1 = nn.Linear(1, hidden)
-        self.linear2 = nn.Linear(hidden, 1)
         self.X = None
 
-    def forward(self, x):
-        h_relu = self.linear1(x).clamp(min=0)
-        y_pred = self.linear2(h_relu)
-        return y_pred
-
     def get_trn_data(self, n):
-        self.X = np.random.rand(n * 2) * np.pi * 2
-        self.Y = self.forward(self.X)
+        self.X = np.random.rand(n * 2).astype(np.float32) * np.pi * 2
+        self.Y = np.sin(self.X)
         indeces = np.arange(n * 2)
         np.random.shuffle(indeces)
         self.trn_indeces = indeces[:n]
@@ -32,6 +21,17 @@ class SinPolicy(nn.Module):
     def get_tst_data(self):
         assert self.X is not None
         return self.X[self.tst_indeces], self.Y[self.tst_indeces]
+
+class SinPolicy(nn.Module):
+    def __init__(self, hidden=24):
+        super(SinPolicy, self).__init__()
+        self.linear1 = nn.Linear(1, hidden)
+        self.linear2 = nn.Linear(hidden, 1)
+
+    def forward(self, x):
+        h_relu = self.linear1(x).clamp(min=0)
+        y_pred = self.linear2(h_relu)
+        return y_pred
 
 
 def train_fomaml(env_fun, param_dict):
@@ -61,8 +61,8 @@ def train_fomaml(env_fun, param_dict):
             trn_opt = T.optim.SGD(copied_meta_policy.parameters(), lr=param_dict["lr"], momentum=0.9)
 
             for t in range(param_dict["training_iters"]):
-                Yhat = copied_meta_policy(Xtrn)
-                loss = lossfun(Yhat, Ytrn)
+                Yhat = copied_meta_policy(T.from_numpy(Xtrn).unsqueeze(1))
+                loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
                 loss.backward()
                 trn_opt.step()
 
@@ -71,14 +71,17 @@ def train_fomaml(env_fun, param_dict):
         # Calculate loss on test task
         for env, policy_i in zip(env_list, copied_meta_policy_list):
             Xtst, Ytst = env.get_tst_data()
-            Yhat = policy_i(Xtst)
-            loss = lossfun(Yhat, Ytst)
+            Yhat = policy_i(T.from_numpy(Xtst).unsqueeze(1))
+            loss = lossfun(Yhat, T.from_numpy(Ytst).unsqueeze(1))
             loss.backward()
 
             # Add to meta gradients
             with T.no_grad():
-                for p1, p2 in meta_policy.parameters(), policy_i.parameters():
-                    p1.grad += p2.grad.clone()
+                for p1, p2 in zip(meta_policy.parameters(), policy_i.parameters()):
+                    if p1.grad is None:
+                        p1.grad = p2.grad.clone()
+                    else:
+                        p1.grad += p2.grad.clone()
 
         # Divide gradient by batchsize
         for p in meta_policy.parameters():
