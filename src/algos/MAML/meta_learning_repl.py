@@ -2,6 +2,7 @@ import numpy as np
 import torch as T
 import torch.nn as nn
 from copy import deepcopy
+import logging
 
 class SinTask:
     def __init__(self):
@@ -21,6 +22,7 @@ class SinTask:
     def get_tst_data(self):
         assert self.X is not None
         return self.X[self.tst_indeces], self.Y[self.tst_indeces]
+
 
 class SinPolicy(nn.Module):
     def __init__(self, hidden=24):
@@ -50,6 +52,7 @@ def train_fomaml(env_fun, param_dict):
         # Updated params list
         copied_meta_policy_list = []
 
+        trn_losses = []
         for env in env_list:
             # Get data
             Xtrn, Ytrn = env.get_trn_data(param_dict["batch_trn"])
@@ -63,16 +66,19 @@ def train_fomaml(env_fun, param_dict):
             for t in range(param_dict["training_iters"]):
                 Yhat = copied_meta_policy(T.from_numpy(Xtrn).unsqueeze(1))
                 loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
+                trn_losses.append(loss.detach().numpy())
                 loss.backward()
                 trn_opt.step()
 
             copied_meta_policy_list.append(copied_meta_policy)
 
+        tst_losses = []
         # Calculate loss on test task
         for env, policy_i in zip(env_list, copied_meta_policy_list):
             Xtst, Ytst = env.get_tst_data()
             Yhat = policy_i(T.from_numpy(Xtst).unsqueeze(1))
             loss = lossfun(Yhat, T.from_numpy(Ytst).unsqueeze(1))
+            tst_losses.append(loss.detach().numpy())
             loss.backward()
 
             # Add to meta gradients
@@ -89,6 +95,13 @@ def train_fomaml(env_fun, param_dict):
 
         # Update meta parameters
         meta_trn_opt.step()
+
+        logging.info("Meta iter: {}/{}, trn_mean_loss: {}, tst_mean_loss: {}".format(mt,
+                                                                                     param_dict["meta_training_iters"],
+                                                                                     np.mean(trn_losses),
+                                                                                     np.mean(tst_losses)))
+
+
 
 if __name__ == "__main__":
     policy = SinPolicy(24)
