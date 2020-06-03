@@ -8,17 +8,30 @@ class SinTask:
         self.a = np.random.rand() * 4 + 1
         self.b = np.random.rand() * np.pi
 
-
 class SinPolicy(nn.Module):
     def __init__(self, hidden=24):
         super(SinPolicy, self).__init__()
         self.linear1 = nn.Linear(1, hidden)
         self.linear2 = nn.Linear(hidden, 1)
+        self.X = None
 
     def forward(self, x):
         h_relu = self.linear1(x).clamp(min=0)
         y_pred = self.linear2(h_relu)
         return y_pred
+
+    def get_trn_data(self, n):
+        self.X = np.random.rand(n * 2) * np.pi * 2
+        self.Y = self.forward(self.X)
+        indeces = np.arange(n * 2)
+        np.random.shuffle(indeces)
+        self.trn_indeces = indeces[:n]
+        self.tst_indeces = indeces[n:]
+        return self.X[self.trn_indeces], self.Y[self.trn_indeces]
+
+    def get_tst_data(self):
+        assert self.X is not None
+        return self.X[self.tst_indeces], self.Y[self.tst_indeces]
 
 
 def train_fomaml(env_fun, param_dict):
@@ -72,7 +85,7 @@ def train_fomaml(env_fun, param_dict):
             p.grad /= param_dict["batch_tasks"]
 
         # Update meta parameters
-        meta_trn_opt.step()#
+        meta_trn_opt.step()
 
 if __name__ == "__main__":
     policy = SinPolicy(24)
@@ -84,6 +97,7 @@ if __name__ == "__main__":
                   "batch_trn" : 24,
                   "lr" : 0.01,
                   "lr_meta" : 0.01}
+
     env_fun = SinTask
     train_fomaml(env_fun, param_dict)
 
