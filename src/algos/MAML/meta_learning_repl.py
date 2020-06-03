@@ -28,15 +28,18 @@ def train_fomaml(env_fun, param_dict):
     lossfun = nn.MSELoss()
 
     for mt in range(param_dict["meta_training_iters"]):
+        # Clear meta gradients
+        meta_trn_opt.zero_grad()
+
         # Sample tasks
-        env_list = [env_fun() for _ in range(param_dict["hidden"])]
+        env_list = [env_fun() for _ in range(param_dict["batch_tasks"])]
 
         # Updated params list
         copied_meta_policy_list = []
 
         for env in env_list:
             # Get data
-            Xtrn, Ytrn = env.get_trn_data()
+            Xtrn, Ytrn = env.get_trn_data(param_dict["batch_trn"])
 
             # Copy parameters to new network
             copied_meta_policy = deepcopy(meta_policy)
@@ -59,8 +62,17 @@ def train_fomaml(env_fun, param_dict):
             loss = lossfun(Yhat, Ytst)
             loss.backward()
 
-        # Update meta parameters
+            # Add to meta gradients
+            with T.no_grad():
+                for p1, p2 in meta_policy.parameters(), policy_i.parameters():
+                    p1.grad += p2.grad.clone()
 
+        # Divide gradient by batchsize
+        for p in meta_policy.parameters():
+            p.grad /= param_dict["batch_tasks"]
+
+        # Update meta parameters
+        meta_trn_opt.step()
 
 if __name__ == "__main__":
     policy = SinPolicy(24)
