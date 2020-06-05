@@ -113,20 +113,20 @@ class DoubleCartPoleBulletEnv(gym.Env):
         p.stepSimulation()
 
         self.step_ctr += 1
-        pendulum_height = p.getLinkState(self.cartpole, 2)[0][2]
+        tip_x, tip_y, tip_z = p.getLinkState(self.cartpole, 2)[0]
+        tip_x_dot= p.getLinkState(self.cartpole, 2, 1)[6][0]
 
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
 
-        target_pen = np.clip(np.abs(x - self.target) * 0.3, -2, 2)
-        height_rew = pendulum_height
-        vel_pen = (np.square(x_dot) * 0.0 * (1 - np.minimum(abs(x - self.target), 1))
-                                             + np.square(theta_dot_1) * 0.00
-                                             + np.square(theta_dot_2) * 0.00)
-        r = height_rew - target_pen - vel_pen - np.square(ctrl[0]) * 0.001
+        target_rew = 1.0 / (1.0 + np.abs(tip_x - self.target))
+        height_rew = tip_z
+        vel_pen = np.square(tip_x_dot)
+        ctrl_pen = np.square(ctrl[0]) * 0.001
+        r = height_rew + target_rew / (1 + 3.0 * vel_pen) - ctrl_pen
 
-        done = self.step_ctr > self.max_steps or pendulum_height < 0.5
+        done = self.step_ctr > self.max_steps or tip_z < 0.5
 
         # Change target
         if np.random.rand() < self.target_change_prob:

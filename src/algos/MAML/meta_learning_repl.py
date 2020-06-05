@@ -142,7 +142,6 @@ def train_fomaml(env_fun, param_dict):
         env.get_trn_data(param_dict["batch_trn"])
         Yhat_tst = policy_normal(T.from_numpy(env.X).unsqueeze(1)).detach().numpy()
 
-
     env.plot()
     plt.plot(env.X, Yhat_tst, "r")
     plt.show()
