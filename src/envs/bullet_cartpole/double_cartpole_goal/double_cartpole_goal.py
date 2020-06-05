@@ -114,7 +114,7 @@ class DoubleCartPoleBulletEnv(gym.Env):
 
         self.step_ctr += 1
         tip_x, tip_y, tip_z = p.getLinkState(self.cartpole, 2)[0]
-        tip_x_dot= p.getLinkState(self.cartpole, 2, 1)[6][0]
+        tip_x_dot = p.getLinkState(self.cartpole, 2, 1)[6][0]
 
         obs = self.get_obs()
 
@@ -123,6 +123,9 @@ class DoubleCartPoleBulletEnv(gym.Env):
         vel_pen = np.square(tip_x_dot)
         ctrl_pen = np.square(ctrl[0]) * 0.001
         r = height_rew + target_rew / (1 + 3.0 * vel_pen) - ctrl_pen
+
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("Tip: % 3.3f, % 3.3f, % 3.3f, % 3.2f" % (tip_x, tip_y, tip_z, tip_x_dot), [-1, 0, 2])
 
         done = self.step_ctr > self.max_steps or tip_z < 0.5
 
