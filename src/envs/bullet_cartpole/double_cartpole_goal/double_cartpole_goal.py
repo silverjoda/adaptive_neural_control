@@ -116,9 +116,7 @@ class DoubleCartPoleBulletEnv(gym.Env):
         tip_x, tip_y, tip_z = p.getLinkState(self.cartpole, 2)[0]
         tip_x_dot= p.getLinkState(self.cartpole, 2, 1)[6][0]
 
-        # x, x_dot, theta, theta_dot
         obs = self.get_obs()
-        x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2, x_goal = obs
 
         target_rew = 1.0 / (1.0 + np.abs(tip_x - self.target))
         height_rew = tip_z
