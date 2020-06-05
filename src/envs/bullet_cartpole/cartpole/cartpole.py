@@ -80,11 +80,7 @@ class CartPoleBulletEnv():
 
 
     def step(self, ctrl):
-        # if ctrl==0:
-        #     ctrl = -1
-
-        ctrl = np.clip(ctrl, -1, 1)
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 50)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -95,9 +91,10 @@ class CartPoleBulletEnv():
         x, x_dot, theta_1, theta_dot_1 = obs
 
         height_rew = pendulum_height
-        r = height_rew - abs(x) * 0.1
+        ctrl_pen = np.square(ctrl[0]) * 0.001
+        r = height_rew - abs(x) * 0.1 - ctrl_pen
 
-        done = self.step_ctr > self.max_steps or pendulum_height < 0
+        done = self.step_ctr > self.max_steps or pendulum_height < 0.2
 
         return np.array(obs), r, done, {}
 

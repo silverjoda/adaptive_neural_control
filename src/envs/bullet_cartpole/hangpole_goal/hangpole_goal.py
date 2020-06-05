@@ -20,7 +20,7 @@ if socket.gethostname() != "goedel" or False:
     from gym.utils import seeding
 
 class HangPoleGoalBulletEnv():
-    def __init__(self, animate=False, max_steps=100, action_input=False):
+    def __init__(self, animate=False, max_steps=200, action_input=False):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -87,7 +87,7 @@ class HangPoleGoalBulletEnv():
 
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -100,17 +100,8 @@ class HangPoleGoalBulletEnv():
 
         target_rew = 1.0 / (1.0 + np.abs(x_sphere - self.target)) # Reward agent for being close to target
         vel_pen = np.square(x_dot_sphere) # Velocity pen
-        r = target_rew / (1 + 3.0 * vel_pen) # Agent is rewarded only if low velocity near target
-
-        #p.removeAllUserDebugItems()
-        #p.addUserDebugLine((x, 0, 0), (x_sphere, 0, -np.cos(p.getJointState(self.cartpole, 1)[0])))
-        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
-        #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
-        #p.addUserDebugText("sphere x_dot: {}".format((1 - 0.5 * abs(x_dot_sphere))), [-4.0, 0, 2.2])
-        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
-        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
+        ctrl_pen = np.square(ctrl[0]) * 0.001
+        r = target_rew / (1 + 3.0 * vel_pen) - ctrl_pen # Agent is rewarded only if low velocity near target
 
         done = self.step_ctr > self.max_steps
 

@@ -38,7 +38,7 @@ class DoubleCartPoleBulletEnv(gym.Env):
         self.max_steps = max_steps
         self.obs_dim = 6 + 1 + int(self.prev_act_input)
         self.act_dim = 1
-        self.timeStep = 0.01
+        self.timeStep = 0.02
 
         p.setGravity(0, 0, -9.8)
         p.setTimeStep(self.timeStep)
@@ -108,7 +108,6 @@ class DoubleCartPoleBulletEnv(gym.Env):
 
 
     def step(self, ctrl):
-        ctrl = np.clip(ctrl, -1, 1)
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
