@@ -20,7 +20,7 @@ def make_env():
     return _init
 
 if __name__ == "__main__":
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN:
         env = SubprocVecEnv([make_env() for _ in range(6)])
