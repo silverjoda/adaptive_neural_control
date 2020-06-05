@@ -101,7 +101,7 @@ class HangPoleGoalBulletEnv():
         target_rew = 1.0 / (1.0 + 5 * np.abs(x_sphere - self.target)) # Reward agent for being close to target
         vel_pen = np.square(x_dot_sphere) # Velocity pen
         ctrl_pen = np.square(ctrl[0]) * 0.001
-        r = target_rew / (1 + 3.0 * vel_pen) - ctrl_pen # Agent is rewarded only if low velocity near target
+        r = target_rew / (1 + 2.0 * vel_pen) - ctrl_pen # Agent is rewarded only if low velocity near target
 
         done = self.step_ctr > self.max_steps
 

@@ -118,10 +118,10 @@ class DoubleCartPoleBulletEnv(gym.Env):
         obs = self.get_obs()
 
         target_rew = 1.0 / (1.0 + 10 * np.abs(tip_x - self.target))
-        height_rew = tip_z * 0.2
+        height_rew = tip_z * 0.3
         vel_pen = np.square(tip_x_dot)
-        ctrl_pen = np.square(ctrl[0]) * 0.001
-        r = height_rew + target_rew / (1 + 3.0 * vel_pen) - ctrl_pen
+        ctrl_pen = np.square(ctrl[0]) * 0.000
+        r = height_rew + target_rew - ctrl_pen
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("Tip: % 3.3f, % 3.3f, % 3.3f, % 3.2f" % (tip_x, tip_y, tip_z, tip_x_dot), [-1, 0, 2])

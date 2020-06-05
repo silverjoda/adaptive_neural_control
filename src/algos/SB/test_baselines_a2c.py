@@ -20,14 +20,14 @@ def make_env():
     return _init
 
 if __name__ == "__main__":
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN:
         env = SubprocVecEnv([make_env() for _ in range(6)])
         model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=32, tensorboard_log="/tmp", gamma=0.99)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(1000000))
+        model.learn(total_timesteps=int(1500000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("a2c_mdl")
