@@ -134,51 +134,73 @@ def train_fomaml(env_fun, param_dict):
 
     # Test the meta learned policy to adapt to a new task after n gradient steps
     test_env_1 = env_fun()
-    Xtrn_1, Ytrn_1, X_tst_1, Y_tst_1 = test_env_1.get_dataset(param_dict["batch_trn"])
+    Xtrn_1, Ytrn_1, Xtst_1, Ytst_1 = test_env_1.get_dataset(param_dict["batch_trn"])
     # Do training and evaluation on normal dataset
     policy_test_1 = deepcopy(meta_policy)
-    opt_test = T.optim.SGD(policy_test_1.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"])
+    opt_test_1 = T.optim.SGD(policy_test_1.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"])
+    policy_baseline_1 = SinPolicy(param_dict["hidden"])
+    opt_baseline_1 = T.optim.SGD(policy_baseline_1.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"])
     for t in range(param_dict["training_iters"]):
         Yhat = policy_test_1(T.from_numpy(Xtrn_1).unsqueeze(1))
         loss = lossfun(Yhat, T.from_numpy(Ytrn_1).unsqueeze(1))
-        opt_test.zero_grad()
+        opt_test_1.zero_grad()
         loss.backward()
-        opt_test.step()
+        opt_test_1.step()
 
-    Yhat_tst_1 = policy_test_1(T.from_numpy(X_tst_1).unsqueeze(1)).detach().numpy()
+        Yhat_baseline_1 = policy_baseline_1(T.from_numpy(Xtrn_1).unsqueeze(1))
+        loss_baseline_1 = lossfun(Yhat_baseline_1, T.from_numpy(Ytrn_1).unsqueeze(1))
+        opt_baseline_1.zero_grad()
+        loss_baseline_1.backward()
+        opt_baseline_1.step()
+
+
+    Yhat_tst_1 = policy_test_1(T.from_numpy(Xtst_1).unsqueeze(1)).detach().numpy()
+    Yhat_baseline_1 = policy_baseline_1(T.from_numpy(Xtst_1).unsqueeze(1)).detach().numpy()
 
     test_env_2 = env_fun()
     Xtrn_2, Ytrn_2, Xtst_2, Ytst_2 = test_env_2.get_dataset_halfsin(param_dict["batch_trn"])
     # Do training and evaluation on hardcore dataset
     policy_test_2 = deepcopy(meta_policy)
-    opt = T.optim.SGD(policy_test_2.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"])
+    opt_test_2 = T.optim.SGD(policy_test_2.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"])
+    policy_baseline_2 = SinPolicy(param_dict["hidden"])
+    opt_baseline_2 = T.optim.SGD(policy_baseline_2.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"])
     for t in range(param_dict["training_iters"]):
         Yhat = policy_test_2(T.from_numpy(Xtrn_2).unsqueeze(1))
         loss = lossfun(Yhat, T.from_numpy(Ytrn_2).unsqueeze(1))
+        opt_test_2.zero_grad()
         loss.backward()
-        opt.step()
+        opt_test_2.step()
+
+        Yhat_baseline_2 = policy_baseline_1(T.from_numpy(Xtrn_2).unsqueeze(1))
+        loss_baseline_2 = lossfun(Yhat_baseline_2, T.from_numpy(Ytrn_2).unsqueeze(1))
+        opt_baseline_2.zero_grad()
+        loss_baseline_2.backward()
+        opt_baseline_2.step()
 
     Yhat_tst_2 = policy_test_2(T.from_numpy(Xtst_2).unsqueeze(1)).detach().numpy()
+    Yhat_baseline_2 = policy_baseline_1(T.from_numpy(Xtst_1).unsqueeze(1)).detach().numpy()
 
     plt.figure()
     test_env_1.plot_trn_set()
-    plt.plot(Xtrn_1, Yhat_tst_1, "bo")
+    plt.plot(Xtst_1, Yhat_tst_1, "bo")
+    plt.plot(Xtst_1, Yhat_baseline_1, "ko")
     plt.title("Env_1")
     plt.show()
     plt.pause(.001)
 
     plt.figure()
     plt.title("Env_2")
-    test_env_2.plot_trn_set()
-    plt.plot(Xtrn_2, Yhat_tst_2, "bo")
+    test_env_2.plot_trn_set_halfsin()
+    plt.plot(Xtst_2, Yhat_tst_2, "bo")
+    plt.plot(Xtst_2, Yhat_baseline_2, "ko")
     plt.show()
     plt.pause(1000)
 
 if __name__ == "__main__":
     policy = SinPolicy(24)
 
-    param_dict = {"meta_training_iters" : 10,
-                  "training_iters": 1,
+    param_dict = {"meta_training_iters" : 1200,
+                  "training_iters": 3,
                   "hidden" : 24,
                   "batch_tasks" : 24,
                   "batch_trn" : 16,
