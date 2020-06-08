@@ -467,5 +467,7 @@ if __name__ == "__main__":
                   "w_decay_meta" : 0.001} # 0.001
 
     env_fun = SinTask
+    #train_maml(env_fun, param_dict) # Not tested yet
     #train_fomaml(env_fun, param_dict)
     train_reptile(env_fun, param_dict)
+
