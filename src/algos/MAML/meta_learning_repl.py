@@ -453,14 +453,14 @@ if __name__ == "__main__":
 
     param_dict = {"meta_training_iters" : 800,
                   "reptile_training_iters": 1500,
-                  "reptile_k" : 3,
+                  "reptile_k" : 5,
                   "training_iters": 1, # 3
                   "hidden" : 24, # 24
                   "batch_tasks" : 24, # 24
                   "batch_trn" : 16, # 16
                   "lr" : 0.01, # 0.01
                   "lr_meta" : 0.001, # 0.001
-                  "lr_reptile" : 0.03,
+                  "lr_reptile" : 0.04,
                   "momentum_trn" : 0.95, # 0.95
                   "momentum_meta" : 0.95, # 0.95
                   "w_decay" : 0.001, # 0.001
