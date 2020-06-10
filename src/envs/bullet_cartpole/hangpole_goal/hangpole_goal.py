@@ -14,10 +14,9 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel" or False:
-    import gym
-    from gym import spaces
-    from gym.utils import seeding
+import gym
+from gym import spaces
+from gym.utils import seeding
 
 class HangPoleGoalBulletEnv():
     def __init__(self, animate=False, max_steps=200, action_input=False):

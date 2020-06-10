@@ -9,10 +9,9 @@ import time
 import socket
 import torch as T
 
-if socket.gethostname() != "goedel":
-    import gym
-    from gym import spaces
-    from gym.utils import seeding
+import gym
+from gym import spaces
+from gym.utils import seeding
 
 class CartPoleSwingUpBulletEnv():
     metadata = {

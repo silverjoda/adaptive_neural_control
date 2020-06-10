@@ -8,18 +8,16 @@ import numpy as np
 import pybullet as p
 
 import numpy as np
-import random
 import cv2
 import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel" or False:
-    import gym
-    from gym import spaces
-    from gym.utils import seeding
+import gym
+from gym import spaces
+from gym.utils import seeding
 
-class HangPoleBulletEnv():
+class DoubleCartpoleSwingupGoalVariable():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -31,9 +29,9 @@ class HangPoleBulletEnv():
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 200
-        self.latent_dim = 1
-        self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
+        self.max_steps = 300
+        self.latent_dim = 2
+        self.obs_dim = 6 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
         self.timeStep = 0.02
@@ -44,50 +42,65 @@ class HangPoleBulletEnv():
 
         self.target_debug_line = None
         self.target_var = 2.0
-        self.target_change_prob = 0.003
-        self.dist_var = 2
-        self.mass_var = 10.0
+        self.target_change_prob = 0.008
         self.mass_min = 1.0
+        self.mass_range = 7.0
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_cartpole_swingup_goal_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         if socket.gethostname() != "goedel":
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
             self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
-            self.metadata = None
 
-        print(self.dist_var, self.mass_var)
+        print(self.mass_min, self.mass_range)
 
 
     def get_obs(self):
-        x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
+        x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2 = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2] + p.getJointState(self.cartpole, 2)[0:2]
 
         # Clip velocities
-        x_dot = np.clip(x_dot / 3, -7, 7)
-        theta_dot = np.clip(theta_dot / 3, -7, 7)
+        x_dot = np.clip(x_dot / 7, -7, 7)
+        theta_dot_1 = np.clip(theta_dot_1 / 7, -7, 7)
+        theta_dot_2 = np.clip(theta_dot_2 / 7, -7, 7)
 
         # Change theta range to [-pi, pi]
-        if theta > 0:
-            if theta % (2 * np.pi) <= np.pi:
-                theta = theta % (2 * np.pi)
+        if theta_1 > 0:
+            if theta_1 % (2 * np.pi) <= np.pi:
+                theta_1 = theta_1 % (2 * np.pi)
             else:
-                theta = -np.pi + theta % np.pi
+                theta_1 = -np.pi + theta_1 % np.pi
         else:
-            if theta % (-2 * np.pi) >= -np.pi:
-                theta = theta % (-2 * np.pi)
+            if theta_1 % (-2 * np.pi) >= -np.pi:
+                theta_1 = theta_1 % (-2 * np.pi)
             else:
-                theta = np.pi + theta % -np.pi
+                theta_1 = np.pi + theta_1 % -np.pi
 
-        theta /= np.pi
+        theta_1 /= np.pi
 
-        self.state = np.array([x, x_dot, theta, theta_dot])
+        if theta_2 > 0:
+            if theta_2 % (2 * np.pi) <= np.pi:
+                theta_2 = theta_2 % (2 * np.pi)
+            else:
+                theta_2 = -np.pi + theta_2 % np.pi
+        else:
+            if theta_2 % (-2 * np.pi) >= -np.pi:
+                theta_2 = theta_2 % (-2 * np.pi)
+            else:
+                theta_2 = np.pi + theta_2 % -np.pi
+
+        theta_2 /= np.pi
+
+        # TODO:, rename everything appropriately
+
+        self.state = np.array([x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2])
         return self.state
 
 
     def get_latent_label(self):
-        mass_norm = (2 * self.mass - 2 * self.mass_min) / self.mass_var - 1
-        return mass_norm
+        m_1 = (2 * self.mass_1 - 2 * self.mass_min) / self.mass_range - 1
+        m_2 = (2 * self.mass_2 - 2 * self.mass_min) / self.mass_range - 1
+        return np.array([m_1, m_2])
 
 
     def render(self, close=False):
@@ -102,15 +115,14 @@ class HangPoleBulletEnv():
 
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
-        x, x_dot, theta, theta_dot = obs
-        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0])
+        x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2 = obs
+        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0]) - np.sin(p.getJointState(self.cartpole, 2)[0])
 
-        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
+        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta_2)), -2, 2)
+        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
+        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
 
-        p.removeAllUserDebugItems()
-        p.addUserDebugLine((x, 0, 0), (x_sphere, 0, -np.cos(p.getJointState(self.cartpole, 1)[0])))
+        #p.removeAllUserDebugItems()
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
@@ -126,7 +138,7 @@ class HangPoleBulletEnv():
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         if self.latent_input:
-            obs = np.concatenate((obs, [self.get_latent_label()]))
+            obs = np.concatenate((obs, self.get_latent_label()))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 
@@ -141,14 +153,20 @@ class HangPoleBulletEnv():
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
-        self.mass = random.sample([1,5,15], 1)[0] # self.mass_min + np.random.rand() * self.mass_var
+        self.mass_1, self.mass_2 = self.mass_min + np.random.rand(2) * self.mass_range
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
-        p.changeDynamics(self.cartpole, 1, mass=self.mass)
-        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (self.mass_min + self.mass_var), 1 - self.mass / (self.mass_min + self.mass_var), 0, 1])
+        p.resetJointState(self.cartpole, 2, targetValue=0, targetVelocity=0)
+        p.changeDynamics(self.cartpole, 1, mass=self.mass_1)
+        p.changeDynamics(self.cartpole, 2, mass=self.mass_2)
+        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass_1 / (self.mass_min + self.mass_range),
+                                                         1 - self.mass_1 / (self.mass_min + self.mass_range), 0, 1])
+        p.changeVisualShape(self.cartpole, 2, rgbaColor=[self.mass_2 / (self.mass_min + self.mass_range),
+                                                         1 - self.mass_2 / (self.mass_min + self.mass_range), 0, 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
+        p.setJointMotorControl2(self.cartpole, 2, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
@@ -162,13 +180,12 @@ class HangPoleBulletEnv():
                                                     lineWidth=6,
                                                     lineColorRGB=[1, 0, 0])
 
-
     def test(self, policy, slow=True, seed=None):
         if seed is not None:
             np.random.seed(seed)
         self.render_prob = 1.0
         total_rew = 0
-        for i in range(30):
+        for i in range(100):
             obs = self.reset()
             cr = 0
             for j in range(self.max_steps):
@@ -186,7 +203,7 @@ class HangPoleBulletEnv():
         if seed is not None:
             np.random.seed(seed)
         total_rew = 0
-        for i in range(30):
+        for i in range(100):
             obs = self.reset()
             h = None
             cr = 0
@@ -207,26 +224,25 @@ class HangPoleBulletEnv():
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-1]))
-                time.sleep(0.01)
+                time.sleep(0.02)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([1]))
-                time.sleep(0.005)
+                time.sleep(0.02)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-0.3]))
-                time.sleep(0.01)
+                time.sleep(0.02)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([0.3]))
-                time.sleep(0.01)
+                time.sleep(0.02)
 
 
     def kill(self):
         p.disconnect()
 
 
-
 if __name__ == "__main__":
-    env = HangPoleBulletEnv(animate=True)
+    env = DoubleCartpoleSwingupGoalVariable(animate=True)
     env.demo()
