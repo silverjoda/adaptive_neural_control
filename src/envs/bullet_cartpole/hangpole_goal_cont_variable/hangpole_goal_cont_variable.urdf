@@ -52,22 +52,16 @@
       <geometry>
         <box size="0.05 0.05 1.0"/>
       </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 -0.5"/>
       <material name="white">
         <color rgba="1 1 1 1"/>
       </material>
     </visual>
     <inertial>
-    <origin xyz="0 0 0.5"/>
+    <origin xyz="0 0 -0.5"/>
       <mass value="1"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
-     <collision>
-      <geometry>
-        <box size="0.05 0.05 1.0"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.5"/>
-    </collision>
   </link>
 
   <joint name="cart_to_pole" type="continuous">
@@ -75,6 +69,8 @@
     <origin xyz="0.0 0.0 0"/>
     <parent link="cart"/>
     <child link="pole"/>
+    <dynamics damping="0.07" friction="0.07"/>
+    <limit effort="200.0" lower="-30" upper="30" velocity="5"/>
   </joint>
 
   <link name="weight">
@@ -93,13 +89,6 @@
       <mass value="1.0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
-
-    <collision>
-      <geometry>
-        <box size="0.05 0.05 1.0"/>
-      </geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.5"/>
-    </collision>
   </link>
 
   <joint name="sphere_to_pole" type="prismatic">

@@ -17,6 +17,8 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
+# TODO: Fix the URDF FOR THIS!!
+
 class HangPoleGoalContVariableBulletEnv(gym.Env):
     def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False):
         if (animate):
