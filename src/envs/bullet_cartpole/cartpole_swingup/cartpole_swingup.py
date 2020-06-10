@@ -14,7 +14,7 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class CartPoleBulletEnv():
+class CartPoleSwingUpBulletEnv():
     metadata = {
         'render.modes': ['human'],
     }
@@ -41,7 +41,7 @@ class CartPoleBulletEnv():
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_swingup.urdf"))
 
         self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -55,8 +55,11 @@ class CartPoleBulletEnv():
             p.getJointState(self.cartpole, 1)[0:2]
 
         # Clip velocities
-        x_dot = np.clip(x_dot / 5, -5, 5)
-        theta_dot_1 = np.clip(theta_dot_1 / 5, -5, 5)
+        x_dot = np.clip(x_dot / 7, -7, 7)
+        theta_dot_1 = np.clip(theta_dot_1 / 7, -7, 7)
+
+        # Change operational point so that the jump in angle sign is down below
+        theta_1 += np.pi
 
         # Change theta range to [-pi, pi]
         if theta_1 > 0:
@@ -91,10 +94,13 @@ class CartPoleBulletEnv():
         x, x_dot, theta_1, theta_dot_1 = obs
 
         height_rew = pendulum_height
-        ctrl_pen = np.square(ctrl[0]) * 0.001
-        r = height_rew - abs(x) * 0.1 - ctrl_pen
+        ctrl_pen = np.square(ctrl[0]) * 0.01
+        r = height_rew - np.square(x) * 0.2 - ctrl_pen
 
-        done = self.step_ctr > self.max_steps or pendulum_height < 0.2
+        done = self.step_ctr > self.max_steps
+
+        #p.removeAllUserDebugItems()
+        #p.addUserDebugText("Pendulum height: % 3.3f, -abs(x) % 3.3f, the %3.3f, done: %s" % (pendulum_height, - abs(x) * 0.2, theta_1, done), [-1, 0, 2])
 
         return np.array(obs), r, done, {}
 
@@ -153,11 +159,11 @@ class CartPoleBulletEnv():
         for i in range(100):
             self.reset()
             for j in range(120):
-                # self.step(np.random.rand(self.act_dim) * 2 - 1)
+                self.step(np.random.rand(self.act_dim) * 2 - 1)
                 obs, _, _, _ = self.step(np.array([0]))
                 print(obs)
             for j in range(120):
-                # self.step(np.random.rand(self.act_dim) * 2 - 1)
+                self.step(np.random.rand(self.act_dim) * 2 - 1)
                 obs, _, _, _ = self.step(np.array([0]))
                 time.sleep(0.02)
                 print(obs)
@@ -179,5 +185,5 @@ class CartPoleBulletEnv():
 
 
 if __name__ == "__main__":
-    env = CartPoleBulletEnv(animate=True)
+    env = CartPoleSwingUpBulletEnv(animate=True)
     env.demo()
