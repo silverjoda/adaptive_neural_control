@@ -1,8 +1,4 @@
-import os, inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
-os.sys.path.insert(0, parentdir)
-
+import os
 import math
 import numpy as np
 import pybullet as p
@@ -18,18 +14,18 @@ from gym import spaces
 from gym.utils import seeding
 
 class DoubleCartpoleSwingupGoalVariable():
-    def __init__(self, animate=False, latent_input=False, action_input=False):
+    def __init__(self, animate=False, max_steps=300, action_input=False, latent_input=False):
         if (animate):
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
 
         self.animate = animate
-        self.latent_input = latent_input
+        self.latent_input = latent_inputs
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 300
+        self.max_steps = max_steps
         self.latent_dim = 2
         self.obs_dim = 6 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
@@ -49,12 +45,8 @@ class DoubleCartpoleSwingupGoalVariable():
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_cartpole_swingup_goal_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        if socket.gethostname() != "goedel":
-            self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
-            self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
-
-        print(self.mass_min, self.mass_range)
-
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
     def get_obs(self):
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2 = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2] + p.getJointState(self.cartpole, 2)[0:2]
@@ -91,8 +83,6 @@ class DoubleCartpoleSwingupGoalVariable():
 
         theta_2 /= np.pi
 
-        # TODO:, rename everything appropriately
-
         self.state = np.array([x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2])
         return self.state
 
@@ -108,34 +98,34 @@ class DoubleCartpoleSwingupGoalVariable():
 
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
         self.step_ctr += 1
 
+        pendulum_height = p.getLinkState(self.cartpole, 2)[0][2]
+
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta_1, theta_dot_1, theta_2, theta_dot_2 = obs
-        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0]) - np.sin(p.getJointState(self.cartpole, 2)[0])
+        x_sphere = p.getLinkState(self.cartpole, 2)[0][0]
+        x_dot_sphere = p.getLinkState(self.cartpole, 2, 1)[6][0]
 
-        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta_2)), -2, 2)
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
+        target_rew = 1.0 / (1.0 + 5 * np.abs(x_sphere - self.target))  # Reward agent for being close to target
+        height_rew = pendulum_height
+        vel_pen = np.square(x_dot_sphere)  # Velocity pen
+        ctrl_pen = np.square(ctrl[0]) * 0.01
+        r = height_rew + target_rew / (1 + 2.0 * vel_pen) - ctrl_pen  # Agent is rewarded only if low velocity near target
 
         #p.removeAllUserDebugItems()
-        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
-        #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
-        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
-        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
+        #p.addUserDebugText("Pendulum height: % 3.3f, -abs(x) % 3.3f, the %3.3f" % (pendulum_height, - abs(x) * 0.2, theta_1), [-1, 0, 2])
 
         done = self.step_ctr > self.max_steps
 
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         if self.latent_input:
             obs = np.concatenate((obs, self.get_latent_label()))
@@ -151,7 +141,7 @@ class DoubleCartpoleSwingupGoalVariable():
         self.step_ctr = 0
         self.theta_prev = 1
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         self.mass_1, self.mass_2 = self.mass_min + np.random.rand(2) * self.mass_range
 

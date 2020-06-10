@@ -47,14 +47,13 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.mass_var = 0.0
 
         self.weight_position_min = 0.5
-        self.weight_position_var = 0.0
+        self.weight_position_var = 0.5
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_goal_cont_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        if socket.gethostname() != "goedel":
-            self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
-            self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         print(self.mass_min, self.mass_var)
 
@@ -63,8 +62,8 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
 
         # Clip velocities
-        x_dot = np.clip(x_dot / 3, -7, 7)
-        theta_dot = np.clip(theta_dot / 3, -7, 7)
+        x_dot = np.clip(x_dot / 7, -7, 7)
+        theta_dot = np.clip(theta_dot / 7, -7, 7)
 
         # Change theta range to [-pi, pi]
         if theta > 0:
@@ -95,46 +94,27 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 10)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 30)
         p.setJointMotorControl2(self.cartpole, 2, p.POSITION_CONTROL, self.weight_position)
         p.stepSimulation()
 
         self.step_ctr += 1
 
-        # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
+        x_sphere = p.getLinkState(self.cartpole, 1)[0][0]
+        x_dot_sphere = p.getLinkState(self.cartpole, 1, 1)[6][0]
 
-        x_current = x + 0.5 * np.sin(p.getJointState(self.cartpole, 1)[0])
-        target_dist = abs(self.target - x_current)
-        target_pen = target_dist * 0.3
-        angle_pen = np.square(theta) * 1
-        velocity_pen = abs(x_dot) * 1 / (target_dist * 10 + 1)
+        target_rew = 1.0 / (1.0 + 5 * np.abs(x_sphere - self.target))  # Reward agent for being close to target
+        vel_pen = np.square(x_dot_sphere)  # Velocity pen
+        ctrl_pen = np.square(ctrl[0]) * 0.001
+        r = target_rew / (1 + 2.0 * vel_pen) - ctrl_pen  # Agent is rewarded only if low velocity near target
 
-        ctrl_pen = np.square(ctrl[0]) * 0.005
-        r = - angle_pen - target_pen - velocity_pen - ctrl_pen # Second is default, first is with if
-
-        #self.target_dist_prev = target_dist
-
-        #p.removeAllUserDebugItems()
-        #p.addUserDebugText("Generic: {0:.3f}".format(x_current), [0, 0, 2])
-        #time.sleep(0.1)
-        #p.addUserDebugText("theta: {0:.3f}".format(theta), [0, 0, 2])
-        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
-        #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
-        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
-        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
-
-        done = self.step_ctr > self.max_steps #or abs(theta) > 0.5
-
-        time.sleep(0.01)
+        done = (self.step_ctr > self.max_steps) or abs(theta) > 0.5
 
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            self.target_dist_prev = abs(self.target - x_current)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
 
         if self.latent_input:

@@ -109,7 +109,6 @@ class HangPoleGoalBulletEnv():
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
-
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 

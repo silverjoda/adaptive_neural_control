@@ -12,7 +12,9 @@ import time
 #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_dcp
 #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_dcp
 #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_dcp
-from src.envs.bullet_cartpole.cartpole_swingup.cartpole_swingup import CartPoleSwingUpBulletEnv as env_fun
+#from src.envs.bullet_cartpole.cartpole_swingup.cartpole_swingup import CartPoleSwingUpBulletEnv as env_fun
+from src.envs.bullet_cartpole.double_cartpole_swingup_goal_variable.double_cartpole_swingup_goal_variable import DoubleCartpoleSwingupGoalVariable as env_fun
+
 
 def make_env():
     def _init():
@@ -35,7 +37,7 @@ if __name__ == "__main__":
         del model
         env.close()
 
-    env = env_fun(animate=True, max_steps=200)
+    env = env_fun(animate=True, max_steps=300)
     # Load the trained agent
     model = A2C.load("a2c_mdl")
     print(evaluate_policy(model, env, n_eval_episodes=3))
