@@ -18,18 +18,22 @@ from gym import spaces
 from gym.utils import seeding
 
 class HangPoleGoalContVariableBulletEnv(gym.Env):
-    def __init__(self, animate=False, latent_input=False, action_input=False):
+    def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False):
         if (animate):
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
 
         self.animate = animate
-        self.latent_input = latent_input
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 150
+        self.max_steps = max_steps
+        self.obs_dim = 4 + int(self.action_input) + 1
+        self.act_dim = 1
+        self.animate = animate
+        self.latent_input = latent_input
+        self.action_input = action_input
         self.latent_dim = 2
         self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
@@ -54,9 +58,6 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
-
-        print(self.mass_min, self.mass_var)
-
 
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
@@ -115,7 +116,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1])
 
         if self.latent_input:
             obs = np.concatenate((obs, self.get_latent_label()))
@@ -131,12 +132,11 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.step_ctr = 0
         self.theta_prev = 1
 
-
         self.weight_position = self.weight_position_min + np.random.rand() * self.weight_position_var
         self.cartpole_mass = self.mass_min + np.random.rand() * self.mass_var
 
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1])
 
         self.target_dist_prev = self.target
 
