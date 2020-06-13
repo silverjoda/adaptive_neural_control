@@ -49,11 +49,12 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.target_debug_line = None
         self.target_var = 1.2
         self.target_change_prob = 0.008
+        self.weight_change_prob = 0.01
         self.mass_min = 0.1
         self.mass_var = 0.0
 
-        self.weight_position_min = 0.5
-        self.weight_position_var = 0.5
+        self.weight_position_min = 0.0
+        self.weight_position_var = 1.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_goal_cont_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -67,6 +68,9 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         # Clip velocities
         x_dot = np.clip(x_dot / 7, -7, 7)
         theta_dot = np.clip(theta_dot / 7, -7, 7)
+
+        # Change operational point so that the jump in angle sign is down below
+        theta += np.pi
 
         # Change theta range to [-pi, pi]
         if theta > 0:
@@ -115,10 +119,17 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
         done = (self.step_ctr > self.max_steps) or abs(theta) > 0.5
 
+        #p.removeAllUserDebugItems()
+        #p.addUserDebugText("Theta: % 3.3f" % (theta), [-1, 0, 2])
+        #time.sleep(0.01)
+
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1]) # Weight position is here only to draw correct height of target
+
+        if np.random.rand() < self.weight_change_prob:
+            self.weight_position = self.weight_position_min + np.random.rand() * self.weight_position_var
 
         if self.latent_input:
             obs = np.concatenate((obs, self.get_latent_label()))
