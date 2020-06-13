@@ -155,6 +155,7 @@ class CartPoleBulletEnv():
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 obs, _, _, _ = self.step(np.array([0]))
+                time.sleep(0.02)
                 print(obs)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)

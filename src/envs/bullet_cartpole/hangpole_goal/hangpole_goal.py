@@ -189,19 +189,19 @@ class HangPoleGoalBulletEnv():
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-1]))
-                time.sleep(0.01)
+                time.sleep(0.021)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([1]))
-                time.sleep(0.005)
+                time.sleep(0.02)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-0.3]))
-                time.sleep(0.01)
+                time.sleep(0.02)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([0.3]))
-                time.sleep(0.01)
+                time.sleep(0.02)
 
 
     def kill(self):

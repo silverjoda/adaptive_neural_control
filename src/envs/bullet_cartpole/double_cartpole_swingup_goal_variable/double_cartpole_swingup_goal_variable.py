@@ -21,7 +21,7 @@ class DoubleCartpoleSwingupGoalVariable():
           p.connect(p.DIRECT)
 
         self.animate = animate
-        self.latent_input = latent_inputs
+        self.latent_input = latent_input
         self.action_input = action_input
 
         # Simulator parameters
