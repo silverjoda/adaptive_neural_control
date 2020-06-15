@@ -46,4 +46,6 @@ Y.mean().backward()
 
 pass
 
+# TODO: Play with second order derivatives and make sure that they work as expected
+
 
