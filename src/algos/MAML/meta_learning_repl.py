@@ -1,6 +1,7 @@
 import numpy as np
 import torch as T
 import torch.nn as nn
+import torch.nn.functional as F
 from copy import deepcopy
 import logging
 import matplotlib.pyplot as plt
@@ -65,7 +66,6 @@ def train_maml(env_fun, param_dict):
     # Initialize policy with meta parameters
     meta_policy = SinPolicy(param_dict["hidden"])
     meta_trn_opt = T.optim.SGD(meta_policy.parameters(), lr=param_dict["lr_meta"], momentum=param_dict["momentum_meta"], weight_decay=param_dict["w_decay_meta"])
-    lossfun = nn.MSELoss()
 
     for mt in range(param_dict["meta_training_iters"]):
         # Clear meta gradients
@@ -92,20 +92,18 @@ def train_maml(env_fun, param_dict):
 
             for t in range(param_dict["training_iters"]):
                 Yhat = copied_meta_policy(T.from_numpy(Xtrn).unsqueeze(1))
-                loss = lossfun(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
+                loss = F.mse_loss(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
                 trn_losses.append(loss.detach().numpy())
                 trn_opt.zero_grad()
-                loss.backward()
+                loss.backward(create_graph=True)
                 trn_opt.step()
-
-            trn_opt.zero_grad()
 
         tst_losses = []
         # Calculate loss on test task
         for env, policy_i, dataset in zip(env_list, copied_meta_policy_list, dataset_list):
             _, _, Xtst, Ytst = dataset
             Yhat = policy_i(T.from_numpy(Xtst).unsqueeze(1))
-            loss = lossfun(Yhat, T.from_numpy(Ytst).unsqueeze(1))
+            loss = F.mse_loss(Yhat, T.from_numpy(Ytst).unsqueeze(1))
             tst_losses.append(loss.detach().numpy())
             loss.backward()
 
@@ -140,13 +138,13 @@ def train_maml(env_fun, param_dict):
     opt_baseline_1 = T.optim.SGD(policy_baseline_1.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"], weight_decay=param_dict["w_decay"])
     for t in range(param_dict["training_iters"]):
         Yhat = policy_test_1(T.from_numpy(Xtrn_1).unsqueeze(1))
-        loss = lossfun(Yhat, T.from_numpy(Ytrn_1).unsqueeze(1))
+        loss = F.mse_loss(Yhat, T.from_numpy(Ytrn_1).unsqueeze(1))
         opt_test_1.zero_grad()
         loss.backward()
         opt_test_1.step()
 
         Yhat_baseline_1 = policy_baseline_1(T.from_numpy(Xtrn_1).unsqueeze(1))
-        loss_baseline_1 = lossfun(Yhat_baseline_1, T.from_numpy(Ytrn_1).unsqueeze(1))
+        loss_baseline_1 = F.mse_loss(Yhat_baseline_1, T.from_numpy(Ytrn_1).unsqueeze(1))
         opt_baseline_1.zero_grad()
         loss_baseline_1.backward()
         opt_baseline_1.step()
@@ -164,13 +162,13 @@ def train_maml(env_fun, param_dict):
     opt_baseline_2 = T.optim.SGD(policy_baseline_2.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"], weight_decay=param_dict["w_decay"])
     for t in range(param_dict["training_iters"]):
         Yhat = policy_test_2(T.from_numpy(Xtrn_2).unsqueeze(1))
-        loss = lossfun(Yhat, T.from_numpy(Ytrn_2).unsqueeze(1))
+        loss = F.mse_loss(Yhat, T.from_numpy(Ytrn_2).unsqueeze(1))
         opt_test_2.zero_grad()
         loss.backward()
         opt_test_2.step()
 
         Yhat_baseline_2 = policy_baseline_1(T.from_numpy(Xtrn_2).unsqueeze(1))
-        loss_baseline_2 = lossfun(Yhat_baseline_2, T.from_numpy(Ytrn_2).unsqueeze(1))
+        loss_baseline_2 = F.mse_loss(Yhat_baseline_2, T.from_numpy(Ytrn_2).unsqueeze(1))
         opt_baseline_2.zero_grad()
         loss_baseline_2.backward()
         opt_baseline_2.step()
@@ -467,7 +465,7 @@ if __name__ == "__main__":
                   "w_decay_meta" : 0.001} # 0.001
 
     env_fun = SinTask
-    #train_maml(env_fun, param_dict) # Not tested yet
+    train_maml(env_fun, param_dict) # Not tested yet
     #train_fomaml(env_fun, param_dict)
-    train_reptile(env_fun, param_dict)
+    #train_reptile(env_fun, param_dict)
 
