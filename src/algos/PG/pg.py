@@ -29,6 +29,8 @@ def train(env, policy, valuefun, params):
     batch_rew = 0
     global_step_ctr = 0
 
+    loss_v = None
+
     for i in range(params["iters"]):
         s_0 = env.reset()
         done = False
@@ -78,12 +80,14 @@ def train(env, policy, valuefun, params):
 
             # Calculate episode advantages
             batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
+            #batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-            update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
+            loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            #loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            loss_v = update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
 
             print("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
-                  format(i, params["iters"], global_step_ctr, None, None, batch_rew / params["batchsize"]))
+                  format(i, params["iters"], global_step_ctr, loss_v, loss_policy, batch_rew / params["batchsize"]))
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -116,6 +120,8 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
+    return loss.data
+
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
 
@@ -137,30 +143,13 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
     assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
-    N = len(batch_states)
-
-    # Predicted values
     Vs = V(batch_states)
+    targets = calc_advantages_MC(gamma, batch_rewards, batch_terminals)
 
-    # Monte carlo estimate of targets
-    targets = []
-    for i in range(N):
-        cumrew = T.tensor(0.)
-        for j in range(i, N):
-            cumrew += (gamma ** (j-i)) * batch_rewards[j]
-            if batch_terminals[j]:
-                break
-        targets.append(cumrew.view(1, 1))
-
-    targets = T.cat(targets)
-
-    # MSE loss#
     V_optim.zero_grad()
-
-    loss = (targets - Vs).pow(2).mean()
+    loss = F.mse_loss(Vs, targets)
     loss.backward()
     V_optim.step()
-
     return loss.data
 
 
@@ -180,18 +169,17 @@ def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, bat
 
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     N = len(batch_rewards)
-
     # Monte carlo estimate of targets
     targets = []
-    for i in range(N):
-        cumrew = T.tensor(0.)
-        for j in range(i, N):
-            cumrew += (gamma ** (j - i)) * batch_rewards[j]
-            if batch_terminals[j]:
-                break
-        targets.append(cumrew.view(1, 1))
-    targets = T.cat(targets)
-
+    with T.no_grad():
+        for i in range(N):
+            cumrew = T.tensor(0.)
+            for j in range(i, N):
+                cumrew += (gamma ** (j - i)) * batch_rewards[j]
+                if batch_terminals[j]:
+                    break
+            targets.append(cumrew.view(1, 1))
+        targets = T.cat(targets)
     return targets
 
 
@@ -205,8 +193,8 @@ if __name__=="__main__":
               "policy_lr": 0.001,
               "valuefun_lr": 0.001,
               "weight_decay" : 0.0001,
-              "ppo_update_iters": 32,
-              "animate": False,
+              "ppo_update_iters" : 1,
+              "animate" : False,
               "train" : True,
               "note" : "...",
               "ID" : ID}
@@ -229,7 +217,7 @@ if __name__=="__main__":
         train(env, policy, valuefun, params)
     else:
         print("Testing")
-        policy_name = "PZ6" # 4KP
+        policy_name = "660" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 

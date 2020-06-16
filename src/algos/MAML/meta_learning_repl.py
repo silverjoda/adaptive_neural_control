@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 
 class SinTask:
     def __init__(self):
-        self.a = np.random.rand() * 4 + 1
+        self.a = np.random.rand() * 3 + 1
         self.b = np.random.rand() * np.pi
         self.dataset_generated = False
 
 
     def get_dataset(self, n):
         if not self.dataset_generated:
-            self.X = np.linspace(0, 2 * np.pi, 2 * n).astype(np.float32)
+            self.X = np.linspace(-np.pi, np.pi, 2 * n).astype(np.float32)
             self.Y = self.a * np.sin(self.b + self.X)
             indeces = np.arange(n * 2)
             np.random.shuffle(indeces)
@@ -31,8 +31,8 @@ class SinTask:
 
 
     def get_dataset_halfsin(self, n):
-        Xtrn = np.linspace(0, 2 * np.pi, n).astype(np.float32)
-        Xtst = np.linspace(np.pi, 2 * np.pi, n).astype(np.float32)
+        Xtrn = np.linspace(-np.pi, 0, n).astype(np.float32)
+        Xtst = np.linspace(0, np.pi, n).astype(np.float32)
         Ytrn = self.a * np.sin(self.b + Xtrn)
         Ytst = self.a * np.sin(self.b + Xtst)
         return Xtrn, Ytrn, Xtst, Ytst
@@ -449,15 +449,15 @@ def train_reptile(env_fun, param_dict):
 if __name__ == "__main__":
     policy = SinPolicy(24)
 
-    param_dict = {"meta_training_iters" : 800,
+    param_dict = {"meta_training_iters" : 25000,
                   "reptile_training_iters": 1500,
                   "reptile_k" : 5,
                   "training_iters": 1, # 3
                   "hidden" : 24, # 24
-                  "batch_tasks" : 24, # 24
+                  "batch_tasks" : 1, # 24
                   "batch_trn" : 16, # 16
                   "lr" : 0.01, # 0.01
-                  "lr_meta" : 0.001, # 0.001
+                  "lr_meta" : 0.002, # 0.001
                   "lr_reptile" : 0.04,
                   "momentum_trn" : 0.95, # 0.95
                   "momentum_meta" : 0.95, # 0.95
