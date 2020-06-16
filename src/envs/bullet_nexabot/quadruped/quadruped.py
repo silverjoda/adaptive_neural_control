@@ -37,6 +37,8 @@ class QuadrupedBulletEnv(gym.Env):
         self.act_dim = 12
         self.timeStep = 0.02
 
+        # TODO: Keep making the bullet quadruped
+
         p.setGravity(0, 0, -9.8)
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)

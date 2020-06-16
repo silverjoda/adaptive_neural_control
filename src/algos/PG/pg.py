@@ -208,6 +208,8 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
     env = env(animate=params["animate"], max_steps=150)
 
+    # TODO: Find out why this shit aint working
+
     # Test
     if params["train"]:
         print("Training")
@@ -223,6 +225,8 @@ if __name__=="__main__":
 
         env.test(policy)
         print(policy_path)
+
+
 
 
 
