@@ -46,6 +46,7 @@ class DoubleCartpoleSwingupGoalVariable():
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        # TODO: -1,1 MIGHT BE A PROBLEM! Velocities have a much larger range!
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
     def get_obs(self):
