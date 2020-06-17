@@ -117,9 +117,13 @@ class QuadrupedBulletEnv(gym.Env):
                 time.sleep(0.02)
                 print(obs)
 
-
     def visualize_XML(self):
-        pass
+        p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
+        #p.setJointMotorControl2(self.robot, 0, p.VELOCITY_CONTROL, force=0)
+        #p.setJointMotorControl2(self.robot, 1, p.VELOCITY_CONTROL, force=0)
+
+        while True:
+            pass
 
     def kill(self):
         p.disconnect()
@@ -130,4 +134,4 @@ class QuadrupedBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     env = QuadrupedBulletEnv(animate=True)
-    env.demo()
+    env.visualize_XML()
