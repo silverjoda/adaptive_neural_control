@@ -121,7 +121,7 @@ class QuadrupedBulletEnv(gym.Env):
         #p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         #p.setJointMotorControl2(self.robot, 0, p.VELOCITY_CONTROL, force=0)
         #p.setJointMotorControl2(self.robot, 1, p.VELOCITY_CONTROL, force=0)
-
+        # TODO: TEST JOINTS ON 1 leg, then copy leg 4 times
         while True:
             pass
 

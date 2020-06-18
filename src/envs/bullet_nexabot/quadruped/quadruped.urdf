@@ -30,7 +30,7 @@
 
   <link name="coxa_fr">
     <visual>
-      <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+      <origin xyz=".0 -.01 0.0" rpy="1.5708 0 0" />
       <geometry>
         <cylinder radius="0.01" length="0.02"/>
       </geometry>
@@ -38,7 +38,7 @@
     </visual>
 
     <inertial>
-      <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+      <origin xyz=".0 -.01 0.0" rpy="1.5708 0 0" />
       <mass value="1"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
@@ -87,17 +87,17 @@
 
   <joint name="coxa_femur_fr" type="revolute">
     <axis xyz="0 0 1"/>
-    <origin xyz="0.0 -0.10 0"/>
+    <origin xyz="0.0 -0.01 0"/>
     <parent link="coxa_fr"/>
     <child link="femur_fr"/>
     <limit effort="100.0" lower="-2" upper="2" velocity="5"/>
     <dynamics damping="0.1" friction="0.1"/>
   </joint>
 
-  <joint name="coxa_tibia_fr" type="revolute">
+  <joint name="femur_tibia_fr" type="revolute">
     <axis xyz="0 0 1"/>
     <origin xyz="0.0 -0.10 0"/>
-    <parent link="coxa_fr"/>
+    <parent link="femur_fr"/>
     <child link="tibia_fr"/>
     <limit effort="100.0" lower="-2" upper="2" velocity="5"/>
     <dynamics damping="0.1" friction="0.1"/>
