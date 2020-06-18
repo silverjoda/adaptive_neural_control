@@ -1,45 +1,108 @@
 <?xml version="1.0"?>
 <robot name="quadruped">
+  <material name="green">
+        <color rgba="0 .8 .8 1"/>
+  </material>
+
+  <material name="blue">
+        <color rgba="0 .0 1 1"/>
+  </material>
+
+  <material name="black">
+        <color rgba="0 0 0 1"/>
+  </material>
 
   <link name="torso">
     <visual>
       <geometry>
-        <box size="0.2 0.1 0.05"/>
+        <box size="0.1 0.1 0.05"/>
       </geometry>
       <origin xyz="0 0 0"/>
-      <material name="green">
-        <color rgba="0 0.8 .8 1"/>
-      </material>
+      <material name="green"/>
     </visual>
+
     <inertial>
-      <mass value="0"/>
+      <origin xyz="0 0 0"/>
+      <mass value="1"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
   </link>
 
-    <link name="femur_lr">
-      <visual>
-        <geometry>
-          <cylinder radius="0.01" length="0.1"/>
-        </geometry>
-        <origin xyz="0 0 0"/>
-        <material name="green">
-          <color rgba="0 0.8 .8 1"/>
-        </material>
-      </visual>
-      <inertial>
-        <mass value="0"/>
-        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-      </inertial>
-    </link>
+  <link name="coxa_fr">
+    <visual>
+      <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder radius="0.01" length="0.02"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
 
-  <joint name="torso_femur_lr" type="prismatic">
-    <axis xyz="1 0 0"/>
-    <origin xyz="0.0 0.0 0.0"/>
+    <inertial>
+      <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <link name="femur_fr">
+    <visual>
+      <origin xyz=".0 -.05 0.0" rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder radius="0.01" length="0.1"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+
+    <inertial>
+      <origin xyz=".0 -.05 0.0" rpy="1.5708 0 0" />
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <link name="tibia_fr">
+    <visual>
+      <origin xyz=".0 -.05 0.0" rpy="1.5708 0 0" />
+      <geometry>
+        <cylinder radius="0.01" length="0.1"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+
+    <inertial>
+      <origin xyz=".0 -.05 0.0" rpy="1.5708 0 0" />
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <joint name="torso_coxa_fr" type="revolute">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0.05 -0.05 0"/>
     <parent link="torso"/>
-    <child link="femur_lr"/>
-    <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+    <child link="coxa_fr"/>
+    <limit effort="100.0" lower="-2" upper="2" velocity="5"/>
     <dynamics damping="0.1" friction="0.1"/>
   </joint>
+
+  <joint name="coxa_femur_fr" type="revolute">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0.0 -0.10 0"/>
+    <parent link="coxa_fr"/>
+    <child link="femur_fr"/>
+    <limit effort="100.0" lower="-2" upper="2" velocity="5"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <joint name="coxa_tibia_fr" type="revolute">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0.0 -0.10 0"/>
+    <parent link="coxa_fr"/>
+    <child link="tibia_fr"/>
+    <limit effort="100.0" lower="-2" upper="2" velocity="5"/>
+    <dynamics damping="0.1" friction="0.1"/>
+  </joint>
+
+  <!--contact_coefficients mu="0.5" / -->
 
 </robot>
