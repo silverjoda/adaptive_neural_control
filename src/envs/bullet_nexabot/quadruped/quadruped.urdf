@@ -94,11 +94,11 @@
 
     <joint name="torso_coxa_fl" type="revolute">
       <axis xyz="0 0 -1"/>
-      <origin xyz="0.05 0.05 0"/>
+      <origin xyz="0.05 0.05 0" rpy="0 0 -0.7"/>
       <parent link="torso"/>
       <child link="coxa_fl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="coxa_femur_fl" type="revolute">
@@ -107,7 +107,7 @@
       <parent link="coxa_fl"/>
       <child link="femur_fl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="femur_tibia_fl" type="revolute">
@@ -116,7 +116,7 @@
       <parent link="femur_fl"/>
       <child link="tibia_fl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <!-- FR leg (2) /-->
@@ -177,11 +177,11 @@
 
     <joint name="torso_coxa_fr" type="revolute">
       <axis xyz="0 0 1"/>
-      <origin xyz="0.05 -0.05 0"/>
+      <origin xyz="0.05 -0.05 0" rpy="0 0 0.7"/>
       <parent link="torso"/>
       <child link="coxa_fr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="coxa_femur_fr" type="revolute">
@@ -190,7 +190,7 @@
       <parent link="coxa_fr"/>
       <child link="femur_fr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="femur_tibia_fr" type="revolute">
@@ -199,7 +199,7 @@
       <parent link="femur_fr"/>
       <child link="tibia_fr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <!-- RL leg (3) /-->
@@ -260,11 +260,11 @@
 
     <joint name="torso_coxa_rl" type="revolute">
       <axis xyz="0 0 -1"/>
-      <origin xyz="-0.05 0.05 0"/>
+      <origin xyz="-0.05 0.05 0" rpy="0 0 0.7"/>
       <parent link="torso"/>
       <child link="coxa_rl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="coxa_femur_rl" type="revolute">
@@ -273,7 +273,7 @@
       <parent link="coxa_rl"/>
       <child link="femur_rl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="femur_tibia_rl" type="revolute">
@@ -282,7 +282,7 @@
       <parent link="femur_rl"/>
       <child link="tibia_rl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
   <!-- RR leg (4) /-->
@@ -344,11 +344,11 @@
 
     <joint name="torso_coxa_rr" type="revolute">
       <axis xyz="0 0 1"/>
-      <origin xyz="-0.05 -0.05 0"/>
+      <origin xyz="-0.05 -0.05 0" rpy="0 0 -0.7"/>
       <parent link="torso"/>
       <child link="coxa_rr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="coxa_femur_rr" type="revolute">
@@ -357,7 +357,7 @@
       <parent link="coxa_rr"/>
       <child link="femur_rr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
     <joint name="femur_tibia_rr" type="revolute">
@@ -366,7 +366,7 @@
       <parent link="femur_rr"/>
       <child link="tibia_rr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
-      <dynamics damping="0.1" friction="0.1"/>
+      <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
   <contact_coefficients mu="0.5" />
