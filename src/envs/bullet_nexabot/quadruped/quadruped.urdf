@@ -97,7 +97,7 @@
       <origin xyz="0.05 0.05 0"/>
       <parent link="torso"/>
       <child link="coxa_fl"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -106,7 +106,7 @@
       <origin xyz="0.0 0.01 0"/>
       <parent link="coxa_fl"/>
       <child link="femur_fl"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -115,7 +115,7 @@
       <origin xyz="0.0 0.06 0"/>
       <parent link="femur_fl"/>
       <child link="tibia_fl"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -180,7 +180,7 @@
       <origin xyz="0.05 -0.05 0"/>
       <parent link="torso"/>
       <child link="coxa_fr"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -189,7 +189,7 @@
       <origin xyz="0.0 -0.01 0"/>
       <parent link="coxa_fr"/>
       <child link="femur_fr"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -198,7 +198,7 @@
       <origin xyz="0.0 -0.06 0"/>
       <parent link="femur_fr"/>
       <child link="tibia_fr"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -263,7 +263,7 @@
       <origin xyz="-0.05 0.05 0"/>
       <parent link="torso"/>
       <child link="coxa_rl"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -272,7 +272,7 @@
       <origin xyz="0.0 0.01 0"/>
       <parent link="coxa_rl"/>
       <child link="femur_rl"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -281,7 +281,7 @@
       <origin xyz="0.0 0.06 0"/>
       <parent link="femur_rl"/>
       <child link="tibia_rl"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -347,7 +347,7 @@
       <origin xyz="-0.05 -0.05 0"/>
       <parent link="torso"/>
       <child link="coxa_rr"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -356,7 +356,7 @@
       <origin xyz="0.0 -0.01 0"/>
       <parent link="coxa_rr"/>
       <child link="femur_rr"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 
@@ -365,7 +365,7 @@
       <origin xyz="0.0 -0.06 0"/>
       <parent link="femur_rr"/>
       <child link="tibia_rr"/>
-      <limit effort="100.0" lower="-3" upper="3" velocity="5"/>
+      <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
       <dynamics damping="0.1" friction="0.1"/>
     </joint>
 

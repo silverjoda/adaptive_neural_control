@@ -44,7 +44,7 @@ class QuadrupedBulletEnv(gym.Env):
         self.joints_rads_high = np.array([0.3, 0.0, 2.5] * 4)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.max_joint_force = 1.6
+        self.max_joint_force = 1.2
         self.target_vel = 0.2
         self.sim_steps_per_iter = 1
         self.step_ctr = 0
@@ -81,7 +81,7 @@ class QuadrupedBulletEnv(gym.Env):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
     def render(self, close=False):
-        time.sleep(0.035)
+        time.sleep(0.0035 * self.sim_steps_per_iter)
 
     def step(self, ctrl):
         scaled_action = self.scale_action(ctrl)
@@ -207,11 +207,11 @@ class QuadrupedBulletEnv(gym.Env):
                 time.sleep(0.004)
 
             for j in range(n_rep):
-                self.step([0,-1,1] * 4)
+                self.step([0,-1,-1] * 4)
                 time.sleep(0.004)
 
             for j in range(n_rep):
-                self.step([0,1,-1] * 4)
+                self.step([0,1,1] * 4)
                 time.sleep(0.004)
 
     def close(self):

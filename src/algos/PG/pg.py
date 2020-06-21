@@ -79,8 +79,8 @@ def train(env, policy, valuefun, params):
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
-            #batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
+            #batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
+            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             #loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
@@ -194,7 +194,7 @@ if __name__=="__main__":
               "valuefun_lr": 0.001,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
-              "animate" : False,
+              "animate" : True,
               "train" : True,
               "note" : "...",
               "ID" : ID}
@@ -204,9 +204,10 @@ if __name__=="__main__":
         params["train"] = True
 
     #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
-    from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
-    #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env
-    env = env(animate=params["animate"], max_steps=150)
+    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
+    #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
+    from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    env = env_fun(animate=params["animate"], max_steps=200)
 
     # TODO: Find out why this shit aint working
 
