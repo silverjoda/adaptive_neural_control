@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import pybullet as p
+import pybullet_data
 import time
 import torch as T
 import gym
@@ -17,6 +18,8 @@ class QuadrupedBulletEnv(gym.Env):
         else:
           p.connect(p.DIRECT)
 
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+
         if seed is not None:
             np.random.seed(seed)
             T.manual_seed(seed)
@@ -27,7 +30,7 @@ class QuadrupedBulletEnv(gym.Env):
         self.max_steps = max_steps
         self.obs_dim = 20
         self.act_dim = 12
-        self.timeStep = 0.02
+        self.timeStep = 0.002
 
         # TODO: Keep making the bullet quadruped
 
@@ -36,6 +39,7 @@ class QuadrupedBulletEnv(gym.Env):
         p.setRealTimeSimulation(0)
 
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadruped.urdf"))
+        self.plane = p.loadURDF("plane.urdf")
 
         self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -99,31 +103,39 @@ class QuadrupedBulletEnv(gym.Env):
 
 
     def demo(self):
+        # p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
+        # p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, .20], [0, 0, 0, 1])
+
         for i in range(100):
-            self.reset()
             for j in range(120):
-                act = self.step(np.zeros(self.act_dim))
-                obs, _, _, _ = self.step(act)
-                time.sleep(0.02)
-                print(obs)
-            for j in range(120):
-                act = self.step(np.ones(self.act_dim))
-                obs, _, _, _ = self.step(act)
-                time.sleep(0.02)
-                print(obs)
-            for j in range(120):
-                act = self.step(np.ones(self.act_dim) * -1)
-                obs, _, _, _ = self.step(act)
-                time.sleep(0.02)
-                print(obs)
+                p.setJointMotorControlArray(bodyUniqueId=self.robot,
+                                            jointIndices=list(range(12)),
+                                            controlMode=p.POSITION_CONTROL,
+                                            targetPositions=[1] * 12,
+                                            forces=[1] * 12)
+
+                p.stepSimulation()
+                time.sleep(0.002)
+
 
     def visualize_XML(self):
         #p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         #p.setJointMotorControl2(self.robot, 0, p.VELOCITY_CONTROL, force=0)
         #p.setJointMotorControl2(self.robot, 1, p.VELOCITY_CONTROL, force=0)
         # TODO: TEST JOINTS ON 1 leg, then copy leg 4 times
+        p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
+        p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, .15], [0, 0, 0, 1])
         while True:
-            pass
+            p.setJointMotorControlArray(bodyUniqueId=0,
+                                        jointIndices=[0,1,2],
+                                        controlMode=p.POSITION_CONTROL,
+                                        targetPositions=[0, 1, 0],
+                                        forces=[1,1,1])
+
+            p.stepSimulation()
+            time.sleep(0.002)
 
     def kill(self):
         p.disconnect()
@@ -134,4 +146,4 @@ class QuadrupedBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     env = QuadrupedBulletEnv(animate=True)
-    env.visualize_XML()
+    env.demo()
