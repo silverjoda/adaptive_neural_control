@@ -6,6 +6,7 @@ import time
 import torch as T
 import gym
 from gym import spaces
+import src.my_utils
 
 class QuadrupedBulletEnv(gym.Env):
     metadata = {
@@ -13,64 +14,104 @@ class QuadrupedBulletEnv(gym.Env):
     }
 
     def __init__(self, animate=False, max_steps=200, seed=None):
-        if (animate):
-          p.connect(p.GUI)
-        else:
-          p.connect(p.DIRECT)
-
-        p.setAdditionalSearchPath(pybullet_data.getDataPath())
-
         if seed is not None:
             np.random.seed(seed)
             T.manual_seed(seed)
 
-        self.animate = animate
+        if (animate):
+            self.client_ID = p.connect(p.GUI)
+        else:
+            self.client_ID = p.connect(p.DIRECT)
+        assert self.client_ID != -1, "Physics client failed to connect"
 
-        # Simulator parameters
+        self.animate = animate
         self.max_steps = max_steps
+        self.seed = seed
+
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
+
+        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadruped.urdf"), physicsClientId=self.client_ID)
+        self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+
         self.obs_dim = 20
         self.act_dim = 12
-        self.timeStep = 0.002
-
-        # TODO: Keep making the bullet quadruped
-
-        p.setGravity(0, 0, -9.8)
-        p.setTimeStep(self.timeStep)
-        p.setRealTimeSimulation(0)
-
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadruped.urdf"))
-        self.plane = p.loadURDF("plane.urdf")
 
         self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
+        self.joints_rads_low = np.array([-0.4, -1.0, -0.5] * 4)
+        self.joints_rads_high = np.array([0.4, 0.0, 0.5] * 4)
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.max_joint_force = 1.6
+        self.target_vel = 0.2
+
     def get_obs(self):
-        # Get cartpole observation
-        obs = p.getJointState(self.robot, 0)
-        return obs
+        # Torso
+        torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
+        torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
+
+        # Joints
+        obs = p.getJointStates(self.robot, range(12), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
+        joint_angles = []
+        joint_velocities = []
+        joint_torques = []
+        for o in obs:
+            joint_angles.append(o[0])
+            joint_velocities.append(o[1])
+            joint_torques.append(o[3])
+        return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques
+
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
+
+    def scale_action(self, action):
+        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
     def render(self, close=False):
         pass
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.robot, 0, p.POSITION_CONTROL)
+        scaled_action = self.scale_action(ctrl)
+        p.setJointMotorControlArray(bodyUniqueId=self.robot,
+                                    jointIndices=range(12),
+                                    controlMode=p.POSITION_CONTROL,
+                                    targetPositions=scaled_action,
+                                    forces=[self.max_joint_force] * 12,
+                                    physicsClientId=self.client_ID)
         p.stepSimulation()
 
+        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques = self.get_obs()
+        xd, yd, zd = torso_vel
+        qx, qy, qz, qw = torso_quat
+
+        # Reward shaping
+        torque_pen = np.square(joint_torques)
+
+        velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
+        velocity_rew = velocity_rew * (1 / (1 + 30 * np.square(yd)))
+
+        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
+        q_yaw = 2 * np.acos(qw)
+
+        r_neg = np.square(q_yaw) * 0.7 + \
+                np.square(pitch) * 0.5 + \
+                np.square(roll) * 0.5 + \
+                torque_pen * 0.001 + \
+                np.square(zd) * 0.7
+        r_pos = velocity_rew * 6
+        r = r_pos - r_neg
+
+        env_obs = np.concatenate()
+
         self.step_ctr += 1
-
-        # x, x_dot, theta, theta_dot
-        obs = self.get_obs()
-        x, y, z = obs[0:3]
-        quat = obs[3:7]
-        joints = obs[7:]
-
-        ctrl_pen = np.square(ctrl[0]) * 0.001
-        r = 0
-
         done = self.step_ctr > self.max_steps
 
-        return np.array(obs), r, done, {}
-
+        return env_obs, r, done, {}
 
     def reset(self):
         self.step_ctr = 0
@@ -79,7 +120,6 @@ class QuadrupedBulletEnv(gym.Env):
         p.setJointMotorControl2(self.robot, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
-
 
     def test(self, policy, slow=True, seed=None):
         if seed is not None:
@@ -100,48 +140,59 @@ class QuadrupedBulletEnv(gym.Env):
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 
-
-
     def demo(self):
         # p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
         # p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, .20], [0, 0, 0, 1])
-
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, .20], [0, 0, 0, 1], physicsClientId=self.client_ID)
+        self.get_obs()
+        n_rep = 600
+        force = 2
         for i in range(100):
-            for j in range(120):
+            for j in range(n_rep):
                 p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=list(range(12)),
+                                            jointIndices=range(12),
                                             controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[1] * 12,
-                                            forces=[1] * 12)
+                                            targetPositions=[0.5] * 12,
+                                            forces=[force] * 12,
+                                            physicsClientId=self.client_ID)
 
                 p.stepSimulation()
-                time.sleep(0.002)
+                time.sleep(0.004)
 
+            for j in range(n_rep):
+                p.setJointMotorControlArray(bodyUniqueId=self.robot,
+                                            jointIndices=range(12),
+                                            controlMode=p.POSITION_CONTROL,
+                                            targetPositions=[-0.5] * 12,
+                                            forces=[force] * 12,
+                                            physicsClientId=self.client_ID)
 
-    def visualize_XML(self):
-        #p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
-        #p.setJointMotorControl2(self.robot, 0, p.VELOCITY_CONTROL, force=0)
-        #p.setJointMotorControl2(self.robot, 1, p.VELOCITY_CONTROL, force=0)
-        # TODO: TEST JOINTS ON 1 leg, then copy leg 4 times
-        p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
-        p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, .15], [0, 0, 0, 1])
-        while True:
-            p.setJointMotorControlArray(bodyUniqueId=0,
-                                        jointIndices=[0,1,2],
-                                        controlMode=p.POSITION_CONTROL,
-                                        targetPositions=[0, 1, 0],
-                                        forces=[1,1,1])
+                p.stepSimulation()
+                time.sleep(0.004)
 
-            p.stepSimulation()
-            time.sleep(0.002)
+            for j in range(n_rep):
+                p.setJointMotorControlArray(bodyUniqueId=self.robot,
+                                            jointIndices=range(12),
+                                            controlMode=p.POSITION_CONTROL,
+                                            targetPositions=[0,2,-2] * 4,
+                                            forces=[force] * 12,
+                                            physicsClientId=self.client_ID)
+                p.stepSimulation()
+                time.sleep(0.004)
 
-    def kill(self):
-        p.disconnect()
+            for j in range(n_rep):
+                p.setJointMotorControlArray(bodyUniqueId=self.robot,
+                                            jointIndices=range(12),
+                                            controlMode=p.POSITION_CONTROL,
+                                            targetPositions=[0,-2,2] * 4,
+                                            forces=[force] * 12,
+                                            physicsClientId=self.client_ID)
+
+                p.stepSimulation()
+                time.sleep(0.004)
 
     def close(self):
-        self.kill()
+        p.disconnect(physicsClientId=self.client_ID)
 
 
 if __name__ == "__main__":

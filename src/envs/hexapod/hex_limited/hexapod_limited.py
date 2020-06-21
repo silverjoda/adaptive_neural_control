@@ -103,7 +103,6 @@ class Hexapod():
         return np.asarray(a, dtype=np.float32)
 
 
-
     def get_state(self):
         return self.sim.get_state()
 
@@ -122,7 +121,6 @@ class Hexapod():
             self.viewer = mujoco_py.MjViewer(self.sim)
 
         self.viewer.render()
-
 
     def step(self, ctrl):
         ctrl = np.clip(ctrl, -1, 1)
