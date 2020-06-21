@@ -146,7 +146,7 @@ class QuadrupedBulletEnv(gym.Env):
                 cr += r
                 total_rew += r
                 if slow:
-                    time.sleep(0.01)
+                    time.sleep(0.001)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 
