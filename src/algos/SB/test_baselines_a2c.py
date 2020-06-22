@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
     from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
 
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env() for _ in range(10)])

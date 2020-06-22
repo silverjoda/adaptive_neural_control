@@ -185,7 +185,7 @@ if __name__=="__main__":
               "batchsize": 60,
               "gamma": 0.995,
               "policy_lr": 0.001,
-              "valuefun_lr": 0.001,
+              "valuefun_lr": 0.003,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "animate" : False,
