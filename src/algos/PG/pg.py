@@ -15,7 +15,6 @@ import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def train(env, policy, valuefun, params):
-
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-4)
     valuefun_optim = T.optim.Adam(valuefun.parameters(), lr=params["valuefun_lr"], weight_decay=params["weight_decay"], eps=1e-4)
 
@@ -79,12 +78,12 @@ def train(env, policy, valuefun, params):
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
+            batch_targets, batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
             #batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-            loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            #loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
-            loss_v = update_V(valuefun, valuefun_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
+            #loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            loss_v = update_V(valuefun, valuefun_optim, batch_states, batch_rewards, batch_terminals, batch_targets)
 
             print("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
                   format(i, params["iters"], global_step_ctr, loss_v, loss_policy, batch_rew / params["batchsize"]))
@@ -140,11 +139,9 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
     return loss.data
 
-
-def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
+def update_V(V, V_optim, batch_states, batch_rewards, batch_terminals, targets):
     assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
     Vs = V(batch_states)
-    targets = calc_advantages_MC(gamma, batch_rewards, batch_terminals)
 
     V_optim.zero_grad()
     loss = F.mse_loss(Vs, targets)
@@ -152,20 +149,17 @@ def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
     V_optim.step()
     return loss.data
 
-
 def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, batch_terminals):
     with T.no_grad():
         Vs = V(batch_states)
         Vs_ = V(batch_new_states)
+        advantages = []
         targets = []
-        for s, r, s_, t, vs, vs_ in zip(batch_states, batch_rewards, batch_new_states, batch_terminals, Vs, Vs_):
-            if t:
-                targets.append(r.unsqueeze(0) - vs)
-            else:
-                targets.append(r + gamma * vs_ - vs)
-
-        return T.cat(targets)
-
+        for r, t, vs, vs_ in zip(batch_rewards, batch_terminals, Vs, Vs_):
+            target = r + (1.0 - t) * gamma * vs_
+            targets.append(target)
+            advantages.append(target - vs)
+        return T.cat(targets), T.cat(advantages)
 
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     N = len(batch_rewards)
