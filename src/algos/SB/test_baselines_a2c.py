@@ -9,6 +9,7 @@ from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds, make_vec_env
 import time
+import socket
 #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_dcp
 #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_dcp
 #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_dcp
@@ -28,17 +29,17 @@ if __name__ == "__main__":
 
     if TRAIN:
         env = SubprocVecEnv([make_env() for _ in range(4)])
-        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=32, tensorboard_log="/tmp", gamma=0.99)
+        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(1000000))
+        model.learn(total_timesteps=int(300000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
-        model.save("a2c_mdl")
+        model.save("agents/a2c_mdl")
         del model
         env.close()
 
-    env = env_fun(animate=True, max_steps=300)
+    env = env_fun(animate=socket.gethostname() != "goedel", max_steps=300)
     # Load the trained agent
     model = A2C.load("a2c_mdl")
     print(evaluate_policy(model, env, n_eval_episodes=3))
@@ -48,12 +49,11 @@ if __name__ == "__main__":
         cum_rew = 0
         for i in range(800):
             action, _states = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
+            obs, reward, done, info = env.step(action, render=True)
             cum_rew += reward
             env.render()
             if done:
                 obs = env.reset()
                 print(cum_rew)
                 break
-
     env.close()

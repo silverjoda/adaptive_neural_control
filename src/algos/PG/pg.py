@@ -79,8 +79,8 @@ def train(env, policy, valuefun, params):
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            #batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
-            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
+            #batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             #loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
@@ -203,11 +203,11 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env
-    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
+    #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
+    from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=150)
+    #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    env = env_fun(animate=params["animate"], max_steps=200)
 
     # Test
     if params["train"]:
@@ -218,7 +218,7 @@ if __name__=="__main__":
         train(env, policy, valuefun, params)
     else:
         print("Testing")
-        policy_name = "660" # 660 hangpole (15minstraining)
+        policy_name = "9R7" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
