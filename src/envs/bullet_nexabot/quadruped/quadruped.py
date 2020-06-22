@@ -40,14 +40,15 @@ class QuadrupedBulletEnv(gym.Env):
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
-        self.joints_rads_low = np.array([-0.3, -1.2, 0.5] * 4)
-        self.joints_rads_high = np.array([0.3, 0.0, 2.5] * 4)
+        self.joints_rads_low = np.array([-0.3, -1.8, 1.4] * 4)
+        self.joints_rads_high = np.array([0.3, -0.2, 2.6] * 4)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.max_joint_force = 1.6
-        self.target_vel = 0.2
+        self.max_joint_force = 1.4
+        self.target_vel = 0.15
         self.sim_steps_per_iter = 10
         self.step_ctr = 0
+        self.xd_queue = []
 
     def get_obs(self):
         # Torso
@@ -83,17 +84,21 @@ class QuadrupedBulletEnv(gym.Env):
     def render(self, close=False):
         time.sleep(0.0035 * self.sim_steps_per_iter)
 
-    def step(self, ctrl):
+    def step(self, ctrl, render=False):
         ctrl_clipped = np.clip(ctrl, -1, 1)
-        scaled_action = self.scale_action(ctrl)
+        scaled_action = self.scale_action(ctrl_clipped)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(12),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
                                     forces=[self.max_joint_force] * 12,
+                                    positionGains=[0.01] * 12,
+                                    velocityGains=[0.07] * 12,
                                     physicsClientId=self.client_ID)
+
         for i in range(self.sim_steps_per_iter):
             p.stepSimulation(physicsClientId=self.client_ID)
+            if render: time.sleep(0.004)
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
@@ -102,18 +107,23 @@ class QuadrupedBulletEnv(gym.Env):
         # Reward shaping
         torque_pen = np.mean(np.square(joint_torques))
 
-        velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
-        velocity_rew = velocity_rew * (1 / (1 + 30 * np.square(yd)))
+        self.xd_queue.append(xd)
+        if len(self.xd_queue) > 15:
+            self.xd_queue.pop(0)
+        xd_av = sum(self.xd_queue) / len(self.xd_queue)
+
+        velocity_rew = 1. / (abs(xd_av - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
+        velocity_rew *= (0.3 / self.target_vel)
 
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
         q_yaw = 2 * np.arccos(qw)
 
-        r_neg = np.square(q_yaw) * 0.7 + \
+        r_neg = np.square(q_yaw) * 0.9 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                torque_pen * 0.001 + \
+                torque_pen * 0.000 + \
                 np.square(zd) * 0.5
-        r_pos = velocity_rew * 14
+        r_pos = velocity_rew * 7
         r = np.clip(r_pos - r_neg, -3, 3)
 
         scaled_joint_angles = self.scale_joints(joint_angles)
@@ -128,6 +138,9 @@ class QuadrupedBulletEnv(gym.Env):
         self.step_ctr = 0
         # p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
         # p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
+
+        joint_init_pos_list = self.scale_action([0] * 12)
+        [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(12)]
         p.resetBasePositionAndOrientation(self.robot, [0, 0, .15], [0, 0, 0, 1], physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(12),
@@ -210,23 +223,19 @@ class QuadrupedBulletEnv(gym.Env):
 
     def demo_step(self):
         self.reset()
-        n_rep = 600
+        n_rep = 100
         for i in range(100):
             for j in range(n_rep):
-                self.step([0,0,0] * 4)
-                time.sleep(0.004)
+                self.step([0,0,0] * 4, render=True)
 
             for j in range(n_rep):
-                self.step([0,-1,-1] * 4)
-                time.sleep(0.004)
+                self.step([0,-1,-1] * 4, render=True)
 
             for j in range(n_rep):
-                self.step([0,1,1] * 4)
-                time.sleep(0.004)
+                self.step([0,1,1] * 4, render=True)
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
-
 
 if __name__ == "__main__":
     env = QuadrupedBulletEnv(animate=True)

@@ -194,7 +194,7 @@ if __name__=="__main__":
               "valuefun_lr": 0.001,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
-              "animate" : True,
+              "animate" : False,
               "train" : True,
               "note" : "...",
               "ID" : ID}
@@ -207,9 +207,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=200)
-
-    # TODO: Find out why this shit aint working
+    env = env_fun(animate=params["animate"], max_steps=150)
 
     # Test
     if params["train"]:

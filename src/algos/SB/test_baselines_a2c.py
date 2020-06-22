@@ -19,7 +19,7 @@ from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as en
 
 def make_env():
     def _init():
-        env = env_fun(animate=False, max_steps=200)
+        env = env_fun(animate=False, max_steps=150)
         return env
     return _init
 
@@ -27,11 +27,11 @@ if __name__ == "__main__":
     TRAIN = True
 
     if TRAIN:
-        env = SubprocVecEnv([make_env() for _ in range(6)])
+        env = SubprocVecEnv([make_env() for _ in range(4)])
         model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=32, tensorboard_log="/tmp", gamma=0.99)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(200000))
+        model.learn(total_timesteps=int(1000000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("a2c_mdl")
