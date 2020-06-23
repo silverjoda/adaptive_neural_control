@@ -15,7 +15,7 @@
   <link name="torso">
     <visual>
       <geometry>
-        <box size="0.18 0.1 0.05"/>
+        <box size="0.28 0.14 0.08"/>
       </geometry>
       <origin xyz="0 0 0"/>
       <material name="green"/>
@@ -23,20 +23,20 @@
 
     <collision>
       <geometry>
-        <box size="0.18 0.1 0.05"/>
+        <box size="0.28 0.14 0.08"/>
       </geometry>
       <origin xyz="0 0 0"/>
     </collision>
 
     <inertial>
       <origin xyz="0 0 0"/>
-      <mass value="1.5"/>
+      <mass value="1.8"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
   </link>
 
 
-  <!-- FL leg (1) /-->
+    <!-- FL leg (1) /-->
     <link name="coxa_fl">
       <visual>
         <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0" />
