@@ -89,6 +89,9 @@ class HangPoleGoalBulletEnv():
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
+        if self.animate:
+            time.sleep(0.01)
+
         self.step_ctr += 1
 
         # x, x_dot, theta, theta_dot

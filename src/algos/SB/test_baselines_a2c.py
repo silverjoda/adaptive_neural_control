@@ -30,11 +30,12 @@ if __name__ == "__main__":
     TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
-        env = SubprocVecEnv([make_env() for _ in range(10)])
-        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99)
+        env = SubprocVecEnv([make_env() for _ in range(6)], start_method='fork')
+        policy_kwargs = dict(net_arch=[int(40), int(40)])
+        model = A2C('MlpPolicy', env, learning_rate=0.001, verbose=1, n_steps=70, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(2000000))
+        model.learn(total_timesteps=int(1000000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("agents/a2c_mdl")
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         cum_rew = 0
         for i in range(800):
             action, _states = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action, render=True)
+            obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
             if done:

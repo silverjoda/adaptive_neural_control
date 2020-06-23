@@ -1,3 +1,7 @@
+import warnings
+warnings.filterwarnings("ignore")
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import gym
 
 from stable_baselines.common.policies import MlpPolicy
@@ -33,7 +37,7 @@ if __name__ == "__main__":
         learning_rate = args['learning_rate']
         gamma = args['gamma']
 
-        env = make_env()()#SubprocVecEnv([make_env() for _ in range(6)])
+        env = SubprocVecEnv([make_env() for _ in range(6)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(num_hidden), int(num_hidden)])
         model = A2C('MlpPolicy', env, learning_rate=learning_rate, verbose=1, n_steps=int(n_steps), tensorboard_log="/tmp", gamma=gamma, policy_kwargs=policy_kwargs)
         model.learn(total_timesteps=10000)
@@ -43,13 +47,13 @@ if __name__ == "__main__":
         del model
         env.close()
         del env
-        return mean_rew
+        return -mean_rew
 
     # define a search space
     from hyperopt import fmin, tpe, hp, STATUS_OK, Trials, space_eval
 
     hyperparameters = {
-        'n_steps': hp.quniform('batch_size', 10, 100, 10),
+        'n_steps': hp.quniform('n_steps', 10, 100, 10),
         'num_hidden': hp.quniform('num_hidden', 12, 64, 8),
         'learning_rate': hp.choice('learning_rate', [1e-4, 5e-4, 1e-3, 3e-3, 8e-3]),
         'gamma': hp.choice('gamma', [0.95, 0.97, 0.99, 0.997]),
@@ -62,7 +66,6 @@ if __name__ == "__main__":
     best = fmin(objective, hyperparameters, algo=tpe.suggest, trials=trials, max_evals=30)
 
     print(best)
-    print(space_eval(hyperparameters, best))
 
 
 
