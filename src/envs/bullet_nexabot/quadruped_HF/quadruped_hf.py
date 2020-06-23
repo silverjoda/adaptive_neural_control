@@ -3,6 +3,7 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 import time
+import random
 import torch as T
 import gym
 from gym import spaces
@@ -31,8 +32,9 @@ class QuadrupedBulletEnv(gym.Env):
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadruped.urdf"), physicsClientId=self.client_ID)
-        self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadruped_hf.urdf"), physicsClientId=self.client_ID)
+        #self.terrain = None
+        self.make_heightfield()
 
         self.obs_dim = 20
         self.act_dim = 12
@@ -50,15 +52,38 @@ class QuadrupedBulletEnv(gym.Env):
         self.step_ctr = 0
         self.xd_queue = []
 
+    def make_heightfield(self):
+        if hasattr(self, 'terrain'):
+            p.removeBody(self.terrain, self.client_ID)
+
+        heightPerturbationRange = 0.07
+        numHeightfieldRows = 256
+        numHeightfieldColumns = 256
+        heightfieldData = [0] * numHeightfieldRows * numHeightfieldColumns
+        for j in range(int(numHeightfieldColumns / 2)):
+            for i in range(int(numHeightfieldRows / 2)):
+                height = random.uniform(0, heightPerturbationRange)
+                heightfieldData[2 * i + 2 * j * numHeightfieldRows] = height
+                heightfieldData[2 * i + 1 + 2 * j * numHeightfieldRows] = height
+                heightfieldData[2 * i + (2 * j + 1) * numHeightfieldRows] = height
+                heightfieldData[2 * i + 1 + (2 * j + 1) * numHeightfieldRows] = height
+
+        terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[.05, .05, 1],
+                                              heightfieldTextureScaling=(numHeightfieldRows - 1) / 2,
+                                              heightfieldData=heightfieldData, numHeightfieldRows=numHeightfieldRows,
+                                              numHeightfieldColumns=numHeightfieldColumns)
+        self.terrain = p.createMultiBody(0, terrainShape)
+        p.resetBasePositionAndOrientation(self.terrain, [0, 0, 0], [0, 0, 0, 1])
+
     def get_obs(self):
         # Torso
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
 
-        ctct_leg_1 = int(len(p.getContactPoints(self.robot, self.plane, 2, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_2 = int(len(p.getContactPoints(self.robot, self.plane, 5, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_3 = int(len(p.getContactPoints(self.robot, self.plane, 8, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_4 = int(len(p.getContactPoints(self.robot, self.plane, 11, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_leg_1 = int(len(p.getContactPoints(self.robot, self.terrain, 2, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_leg_2 = int(len(p.getContactPoints(self.robot, self.terrain, 5, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_leg_3 = int(len(p.getContactPoints(self.robot, self.terrain, 8, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_leg_4 = int(len(p.getContactPoints(self.robot, self.terrain, 11, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
         contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4]
 
@@ -131,6 +156,9 @@ class QuadrupedBulletEnv(gym.Env):
 
         self.step_ctr += 1
         done = self.step_ctr > self.max_steps or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+
+        if np.random.rand() < 0.03:
+            self.make_heightfield()
 
         return env_obs, r, done, {}
 
