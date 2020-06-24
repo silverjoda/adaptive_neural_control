@@ -157,7 +157,7 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr += 1
         done = self.step_ctr > self.max_steps or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
 
-        if np.random.rand() < 0.03:
+        if np.random.rand() < 0.0:
             self.make_heightfield()
 
         return env_obs, r, done, {}
