@@ -28,7 +28,7 @@ if __name__ == "__main__":
     #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env() for _ in range(10)], start_method='fork')
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     env = env_fun(True, max_steps=300)
     # Load the trained agent
-    model = A2C.load("agents/a2c_mdl")
+    model = A2C.load("agents/SBL_63W")
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

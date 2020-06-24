@@ -171,7 +171,7 @@ class HexapodBulletEnv(gym.Env):
 
         joint_init_pos_list = self.scale_action([0] * 18)
         [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(18)]
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, .15], [0, 0, 0, 1], physicsClientId=self.client_ID)
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, .25], [0, 0, 0, 1], physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,
