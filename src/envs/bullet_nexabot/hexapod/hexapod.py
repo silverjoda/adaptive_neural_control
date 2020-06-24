@@ -35,14 +35,14 @@ class HexapodBulletEnv(gym.Env):
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod.urdf"), physicsClientId=self.client_ID)
         self.terrain = self.make_heightfield()
 
-        self.obs_dim = 20
-        self.act_dim = 12
+        self.obs_dim = 28
+        self.act_dim = 18
 
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
-        self.joints_rads_low = np.array([-0.5, -1.8, 1.4] * 4)
-        self.joints_rads_high = np.array([0.5, -0.2, 2.6] * 4)
+        self.joints_rads_low = np.array([-0.3, -1.6, 0.7] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 1.9] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.max_joint_force = 1.4
@@ -55,7 +55,7 @@ class HexapodBulletEnv(gym.Env):
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, self.client_ID)
 
-        heightPerturbationRange = 0.07
+        heightPerturbationRange = 0.00
         numHeightfieldRows = 256
         numHeightfieldColumns = 256
         heightfieldData = [0] * numHeightfieldRows * numHeightfieldColumns
@@ -84,11 +84,13 @@ class HexapodBulletEnv(gym.Env):
         ctct_leg_2 = int(len(p.getContactPoints(self.robot, self.terrain, 5, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
         ctct_leg_3 = int(len(p.getContactPoints(self.robot, self.terrain, 8, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
         ctct_leg_4 = int(len(p.getContactPoints(self.robot, self.terrain, 11, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_leg_5 = int(len(p.getContactPoints(self.robot, self.terrain, 14, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_leg_6 = int(len(p.getContactPoints(self.robot, self.terrain, 17, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
-        contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4]
+        contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4, ctct_leg_5, ctct_leg_6]
 
         # Joints
-        obs = p.getJointStates(self.robot, range(12), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
+        obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
         joint_angles = []
         joint_velocities = []
         joint_torques = []
@@ -113,12 +115,12 @@ class HexapodBulletEnv(gym.Env):
         ctrl_clipped = np.clip(ctrl, -1, 1)
         scaled_action = self.scale_action(ctrl)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                    jointIndices=range(12),
+                                    jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
-                                    forces=[self.max_joint_force] * 12,
-                                    positionGains=[0.01] * 12,
-                                    velocityGains=[0.07] * 12,
+                                    forces=[self.max_joint_force] * 18,
+                                    positionGains=[0.01] * 18,
+                                    velocityGains=[0.07] * 18,
                                     physicsClientId=self.client_ID)
 
         for i in range(self.sim_steps_per_iter):
@@ -167,14 +169,14 @@ class HexapodBulletEnv(gym.Env):
         # p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
         # p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
 
-        joint_init_pos_list = self.scale_action([0] * 12)
-        [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(12)]
+        joint_init_pos_list = self.scale_action([0] * 18)
+        [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(18)]
         p.resetBasePositionAndOrientation(self.robot, [0, 0, .15], [0, 0, 0, 1], physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                    jointIndices=range(12),
+                                    jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,
-                                    targetPositions=[0] * 12,
-                                    forces=[self.max_joint_force] * 12,
+                                    targetPositions=[0] * 18,
+                                    forces=[self.max_joint_force] * 18,
                                     physicsClientId=self.client_ID)
         for i in range(10):
             p.stepSimulation(physicsClientId=self.client_ID)
@@ -205,10 +207,10 @@ class HexapodBulletEnv(gym.Env):
         for i in range(100):
             for j in range(n_rep):
                 p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(12),
+                                            jointIndices=range(18),
                                             controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[0.5] * 12,
-                                            forces=[force] * 12,
+                                            targetPositions=[0.5] * 18,
+                                            forces=[force] * 18,
                                             physicsClientId=self.client_ID)
 
                 p.stepSimulation(physicsClientId=self.client_ID)
@@ -216,10 +218,10 @@ class HexapodBulletEnv(gym.Env):
 
             for j in range(n_rep):
                 p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(12),
+                                            jointIndices=range(18),
                                             controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[-0.5] * 12,
-                                            forces=[force] * 12,
+                                            targetPositions=[-0.5] * 18,
+                                            forces=[force] * 18,
                                             physicsClientId=self.client_ID)
 
                 p.stepSimulation(physicsClientId=self.client_ID)
@@ -227,20 +229,20 @@ class HexapodBulletEnv(gym.Env):
 
             for j in range(n_rep):
                 p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(12),
+                                            jointIndices=range(18),
                                             controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[0,2,-2] * 4,
-                                            forces=[force] * 12,
+                                            targetPositions=[0,2,-2] * 6,
+                                            forces=[force] * 18,
                                             physicsClientId=self.client_ID)
                 p.stepSimulation(physicsClientId=self.client_ID)
                 time.sleep(0.004)
 
             for j in range(n_rep):
                 p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(12),
+                                            jointIndices=range(18),
                                             controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[0,-2,2] * 4,
-                                            forces=[force] * 12,
+                                            targetPositions=[0,-2,2] * 6,
+                                            forces=[force] * 18,
                                             physicsClientId=self.client_ID)
 
                 p.stepSimulation(physicsClientId=self.client_ID)
@@ -251,19 +253,19 @@ class HexapodBulletEnv(gym.Env):
         n_rep = 50
         for i in range(100):
             for j in range(n_rep):
-                self.step([0,0,0] * 4, render=True)
+                self.step([0,0,0] * 6, render=True)
 
             for j in range(n_rep):
-                self.step([0,-1,-1] * 4, render=True)
+                self.step([0,-1,-1] * 6, render=True)
 
             for j in range(n_rep):
-                self.step([0,1,1] * 4, render=True)
+                self.step([0,1,1] * 6, render=True)
 
             for j in range(n_rep):
-                self.step([1,0,0] * 4, render=True)
+                self.step([1,0,0] * 6, render=True)
 
             for j in range(n_rep):
-                self.step([-1,0,0] * 4, render=True)
+                self.step([-1,0,0] * 6, render=True)
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
