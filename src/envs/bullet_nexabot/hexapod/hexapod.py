@@ -135,7 +135,7 @@ class HexapodBulletEnv(gym.Env):
         torque_pen = np.mean(np.square(joint_torques))
 
         self.xd_queue.append(xd)
-        if len(self.xd_queue) > 10:
+        if len(self.xd_queue) > 12:
             self.xd_queue.pop(0)
         xd_av = sum(self.xd_queue) / len(self.xd_queue)
 

@@ -20,22 +20,23 @@ def make_env():
 
 if __name__ == "__main__":
     # from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
+    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     # from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     # from src.envs.bullet_cartpole.cartpole_swingup.cartpole_swingup import CartPoleSwingUpBulletEnv as env_fun
     # from src.envs.bullet_cartpole.double_cartpole_swingup_goal_variable.double_cartpole_swingup_goal_variable import DoubleCartpoleSwingupGoalVariable as env_fun
     #from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
     #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
-        env = SubprocVecEnv([make_env() for _ in range(6)], start_method='fork')
-        policy_kwargs = dict(net_arch=[int(40), int(40)])
-        model = A2C('MlpPolicy', env, learning_rate=0.001, verbose=1, n_steps=70, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
+        env = SubprocVecEnv([make_env() for _ in range(10)], start_method='fork')
+        policy_kwargs = dict(net_arch=[int(96), int(96)])
+        model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=70, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(1000000))
+        model.learn(total_timesteps=int(3000000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("agents/a2c_mdl")
