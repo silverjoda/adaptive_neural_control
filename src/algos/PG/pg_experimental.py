@@ -120,7 +120,6 @@ def train(env, policy, valuefun, params):
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
-
 def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
     c_eps = 0.2
@@ -137,7 +136,6 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy_optim.step()
 
     return loss.data
-
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
 
@@ -172,15 +170,15 @@ def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, bat
         Vs_ = V(batch_new_states)
         advantages = []
         targets = []
-        for r, t, v, v_ in zip(reversed(batch_rewards), reversed(batch_terminals), reversed(Vs), reversed(Vs_)):
+        for r, t, v, v_ in zip(batch_rewards, batch_terminals, Vs, Vs_):
             if t:
                 R = r
             else:
                 R = r + gamma * v_
             targets.append(R.view(1, 1))
             advantages.append(R - v)
-        targets = T.cat(list(reversed(targets)))
-        advantages = T.cat(list(reversed(advantages)))
+        targets = T.cat(targets)
+        advantages = T.cat(advantages)
         return targets, advantages
 
 if __name__=="__main__":
