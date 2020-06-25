@@ -119,8 +119,8 @@ class HexapodBulletEnv(gym.Env):
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
                                     forces=[self.max_joint_force] * 18,
-                                    positionGains=[0.01] * 18,
-                                    velocityGains=[0.07] * 18,
+                                    positionGains=[0.003] * 18,
+                                    velocityGains=[0.03] * 18,
                                     physicsClientId=self.client_ID)
 
         for i in range(self.sim_steps_per_iter):
@@ -250,22 +250,22 @@ class HexapodBulletEnv(gym.Env):
 
     def demo_step(self):
         self.reset()
-        n_rep = 50
+        n_rep = 30
         for i in range(100):
             for j in range(n_rep):
-                self.step([0,0,0] * 6, render=True)
+                self.step([0,0,0] * 6)
 
             for j in range(n_rep):
-                self.step([0,-1,-1] * 6, render=True)
+                self.step([0,-1,-1] * 6)
 
             for j in range(n_rep):
-                self.step([0,1,1] * 6, render=True)
+                self.step([0,1,1] * 6)
 
             for j in range(n_rep):
-                self.step([1,0,0] * 6, render=True)
+                self.step([1,0,0] * 6)
 
             for j in range(n_rep):
-                self.step([-1,0,0] * 6, render=True)
+                self.step([-1,0,0] * 6)
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
@@ -273,3 +273,5 @@ class HexapodBulletEnv(gym.Env):
 if __name__ == "__main__":
     env = HexapodBulletEnv(animate=True)
     env.demo_step()
+
+    # TODO: Fix hexapod simulation forces and speed and compare to real platform to have correct everything

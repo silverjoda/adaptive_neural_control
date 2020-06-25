@@ -157,14 +157,14 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000,
               "batchsize": 60,
-              "max_steps": 200,
-              "gamma": 0.995,
-              "policy_lr": 0.001,
+              "max_steps": 100,
+              "gamma": 0.97,
+              "policy_lr": 0.0007,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "normalize_rewards": True,
-              "animate" : False,
-              "train" : True,
+              "animate" : True,
+              "train" : False,
               "note" : "...",
               "ID" : ID}
 
@@ -173,20 +173,20 @@ if __name__=="__main__":
         params["train"] = True
 
     #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
+    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64)
+        policy = policies.NN_PG(env, 96)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "9R7" # 660 hangpole (15minstraining)
+        policy_name = "CW2" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
