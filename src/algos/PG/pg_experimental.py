@@ -12,6 +12,7 @@ import random
 import string
 import socket
 import logging
+from copy import deepcopy
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def train(env, policy, valuefun, params):
@@ -92,12 +93,12 @@ def train(env, policy, valuefun, params):
             # Calculate episode advantages
             batch_targets, batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states_v, batch_rewards, batch_new_states_v, batch_terminals)
 
+            loss_v = update_V(valuefun, valuefun_optim, batch_states_v, batch_rewards, batch_terminals, batch_targets)
             if params["ppo_update_iters"] > 0:
                 loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages,
                                                 params["ppo_update_iters"])
             else:
                 loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
-            loss_v = update_V(valuefun, valuefun_optim, batch_states_v, batch_rewards, batch_terminals, batch_targets)
 
             print("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
                   format(i, params["iters"], global_step_ctr, loss_v, loss_policy, batch_rew / params["batchsize"]))
@@ -157,7 +158,6 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 def update_V(V, V_optim, batch_states, batch_rewards, batch_terminals, targets):
     assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
     Vs = V(batch_states)
-
     V_optim.zero_grad()
     loss = F.mse_loss(Vs, targets)
     loss.backward()
