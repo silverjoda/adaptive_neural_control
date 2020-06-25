@@ -173,10 +173,12 @@ if __name__=="__main__":
         params["train"] = True
 
     #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
+    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
+
+    # TODO: Add gradient sensitivities from RNN as advantage weights
 
     # Test
     if params["train"]:
