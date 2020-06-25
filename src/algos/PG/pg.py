@@ -78,8 +78,7 @@ def train(env, policy, params):
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            #batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
-            batch_advantages = calc_advantages_MC_eff(params["gamma"], batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             if params["ppo_update_iters"] > 0:
                 loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
@@ -123,7 +122,6 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy_optim.step()
 
     return loss.data
-
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
 
