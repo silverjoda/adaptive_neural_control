@@ -72,7 +72,8 @@ def train(env, policy, params):
             batch_rewards = T.cat(batch_rewards)
 
             # Scale rewards
-            batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
+            if params["normalize_rewards"]:
+                batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -137,21 +138,6 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     return loss.data
 
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
-    N = len(batch_rewards)
-    # Monte carlo estimate of targets
-    targets = []
-    with T.no_grad():
-        for i in range(N):
-            cumrew = T.tensor(0.)
-            for j in range(i, N):
-                cumrew += (gamma ** (j - i)) * batch_rewards[j]
-                if batch_terminals[j]:
-                    break
-            targets.append(cumrew.view(1, 1))
-        targets = T.cat(targets)
-    return targets
-
-def calc_advantages_MC_eff(gamma, batch_rewards, batch_terminals):
     # Monte carlo estimate of targets
     targets = []
     with T.no_grad():
@@ -176,6 +162,7 @@ if __name__=="__main__":
               "policy_lr": 0.001,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
+              "normalize_rewards": True,
               "animate" : False,
               "train" : True,
               "note" : "...",
@@ -186,15 +173,15 @@ if __name__=="__main__":
         params["train"] = True
 
     #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
+    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 24)
+        policy = policies.NN_PG(env, 64)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
