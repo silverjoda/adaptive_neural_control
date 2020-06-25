@@ -14,33 +14,40 @@ import socket
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
-def train(env, policy, params):
-    policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-8)
+def train(env, policy, valuefun, params):
+    policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-4)
+    valuefun_optim = T.optim.RMSprop(valuefun.parameters(), lr=params["valuefun_lr"], weight_decay=params["weight_decay"], eps=1e-4)
 
     batch_states = []
+    batch_states_v = []
     batch_actions = []
     batch_rewards = []
     batch_new_states = []
+    batch_new_states_v = []
     batch_terminals = []
-    batch_step_counter = []
 
     batch_ctr = 0
     batch_rew = 0
     global_step_ctr = 0
 
+    loss_v = None
+
+    def step_to_encoding(t):
+        return (float(t) / params["max_steps"]) * 2 - 1
+
     for i in range(params["iters"]):
         s_0 = env.reset()
+        s_0_v = np.concatenate((s_0, [step_to_encoding(0)]))
         done = False
         step_ctr = 0
 
         while not done:
-            batch_step_counter.append(step_ctr)
-
             # Sample action from policy
             action = policy.sample_action(my_utils.to_tensor(s_0, True)).detach()
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
+            s_1_v = np.concatenate((s_1, [step_to_encoding(step_ctr + 1)]))
 
             if abs(r) > 5:
                 logging.warning("Warning! high reward ({})".format(r))
@@ -55,12 +62,15 @@ def train(env, policy, params):
 
             # Record transition
             batch_states.append(my_utils.to_tensor(s_0, True))
+            batch_states_v.append(my_utils.to_tensor(s_0_v, True))
             batch_actions.append(action)
             batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
             batch_new_states.append(my_utils.to_tensor(s_1, True))
+            batch_new_states_v.append(my_utils.to_tensor(s_1_v, True))
             batch_terminals.append(done)
 
             s_0 = s_1
+            s_0_v = s_1_v
 
         # Just completed an episode
         batch_ctr += 1
@@ -70,24 +80,24 @@ def train(env, policy, params):
             global_step_ctr += step_ctr
 
             batch_states = T.cat(batch_states)
+            batch_states_v = T.cat(batch_states_v)
             batch_new_states = T.cat(batch_new_states)
+            batch_new_states_v = T.cat(batch_new_states_v)
             batch_actions = T.cat(batch_actions)
             batch_rewards = T.cat(batch_rewards)
 
             # Scale rewards
-            batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
+            #batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            #batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
-            batch_advantages = calc_advantages_MC_eff(params["gamma"], batch_rewards, batch_terminals)
+            batch_targets, batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states_v, batch_rewards, batch_new_states_v, batch_terminals)
 
-            if params["ppo_update_iters"] > 0:
-                loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            else:
-                loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            #loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            loss_v = update_V(valuefun, valuefun_optim, batch_states_v, batch_rewards, batch_terminals, batch_targets)
 
-            print("Episode {}/{}, n_steps: {}, loss_policy: {}, mean ep_rew: {}".
-                  format(i, params["iters"], global_step_ctr, loss_policy, batch_rew / params["batchsize"]))
+            print("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
+                  format(i, params["iters"], global_step_ctr, loss_v, loss_policy, batch_rew / params["batchsize"]))
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -98,7 +108,6 @@ def train(env, policy, params):
             batch_rewards = []
             batch_new_states = []
             batch_terminals = []
-            batch_step_counter = []
 
         if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -142,6 +151,28 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
     return loss.data
 
+def update_V(V, V_optim, batch_states, batch_rewards, batch_terminals, targets):
+    assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
+    Vs = V(batch_states)
+
+    V_optim.zero_grad()
+    loss = F.mse_loss(Vs, targets)
+    loss.backward()
+    V_optim.step()
+    return loss.data
+
+def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, batch_terminals):
+    with T.no_grad():
+        Vs = V(batch_states)
+        Vs_ = V(batch_new_states)
+        advantages = []
+        targets = []
+        for r, t, vs, vs_ in zip(batch_rewards, batch_terminals, Vs, Vs_):
+            target = r + (1.0 - t) * gamma * vs_
+            targets.append(target)
+            advantages.append(target - vs)
+        return T.cat(targets), T.cat(advantages)
+
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     N = len(batch_rewards)
     # Monte carlo estimate of targets
@@ -157,29 +188,17 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
         targets = T.cat(targets)
     return targets
 
-def calc_advantages_MC_eff(gamma, batch_rewards, batch_terminals):
-    # Monte carlo estimate of targets
-    targets = []
-    with T.no_grad():
-        for r, t in zip(reversed(batch_rewards), reversed(batch_terminals)):
-            if t:
-                R = r
-            else:
-                R = r + gamma * R
-            targets.append(R.view(1, 1))
-        targets = T.cat(list(reversed(targets)))
-    return targets
-
 
 if __name__=="__main__":
     #T.set_num_threads(1)
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000,
-              "batchsize": 60,
-              "max_steps": 200,
-              "gamma": 0.995,
+              "batchsize" : 60,
+              "max_steps" : 150,
+              "gamma" : 0.995,
               "policy_lr": 0.001,
+              "valuefun_lr": 0.003,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "animate" : False,
@@ -201,8 +220,9 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         policy = policies.NN_PG(env, 24)
+        valuefun = policies.NN_PG_VF(env, 24)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
-        train(env, policy, params)
+        train(env, policy, valuefun, params)
     else:
         print("Testing")
         policy_name = "9R7" # 660 hangpole (15minstraining)

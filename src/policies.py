@@ -222,13 +222,11 @@ class NN_PG_VF(nn.Module):
     def __init__(self, env, hid_dim=64):
         super(NN_PG_VF, self).__init__()
 
-        self.obs_dim = env.obs_dim
+        self.obs_dim = env.obs_dim + 1
         self.hid_dim = hid_dim
 
         self.fc1 = nn.Linear(self.obs_dim, hid_dim)
-        self.m1 = nn.LayerNorm(hid_dim)
         self.fc2 = nn.Linear(hid_dim, hid_dim)
-        self.m2 = nn.LayerNorm(hid_dim)
         self.fc3 = nn.Linear(hid_dim, 1)
 
         T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
