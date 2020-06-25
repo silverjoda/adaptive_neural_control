@@ -15,8 +15,8 @@ import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def train(env, policy, valuefun, params):
-    policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-4)
-    valuefun_optim = T.optim.RMSprop(valuefun.parameters(), lr=params["valuefun_lr"], weight_decay=params["weight_decay"], eps=1e-4)
+    policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-8)
+    valuefun_optim = T.optim.RMSprop(valuefun.parameters(), lr=params["valuefun_lr"], weight_decay=params["weight_decay"], eps=1e-8)
 
     batch_states = []
     batch_states_v = []
@@ -92,8 +92,11 @@ def train(env, policy, valuefun, params):
             # Calculate episode advantages
             batch_targets, batch_advantages = calc_advantages(valuefun, params["gamma"], batch_states_v, batch_rewards, batch_new_states_v, batch_terminals)
 
-            #loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            if params["ppo_update_iters"] > 0:
+                loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages,
+                                                params["ppo_update_iters"])
+            else:
+                loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
             loss_v = update_V(valuefun, valuefun_optim, batch_states_v, batch_rewards, batch_terminals, batch_targets)
 
             print("Episode {}/{}, n_steps: {}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
@@ -104,9 +107,11 @@ def train(env, policy, valuefun, params):
             batch_rew = 0
 
             batch_states = []
+            batch_states_v = []
             batch_actions = []
             batch_rewards = []
             batch_new_states = []
+            batch_new_states_v = []
             batch_terminals = []
 
         if i % 500 == 0 and i > 0:
@@ -167,11 +172,16 @@ def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, bat
         Vs_ = V(batch_new_states)
         advantages = []
         targets = []
-        for r, t, vs, vs_ in zip(batch_rewards, batch_terminals, Vs, Vs_):
-            target = r + (1.0 - t) * gamma * vs_
-            targets.append(target)
-            advantages.append(target - vs)
-        return T.cat(targets), T.cat(advantages)
+        for r, t, v, v_ in zip(reversed(batch_rewards), reversed(batch_terminals), reversed(Vs), reversed(Vs_)):
+            if t:
+                R = r
+            else:
+                R = r + gamma * v_
+            targets.append(R.view(1, 1))
+            advantages.append(R - v)
+        targets = T.cat(list(reversed(targets)))
+        advantages = T.cat(list(reversed(advantages)))
+        return targets, advantages
 
 if __name__=="__main__":
     #T.set_num_threads(1)
