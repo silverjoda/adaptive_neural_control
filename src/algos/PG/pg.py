@@ -3,9 +3,6 @@ import sys
 
 import numpy as np
 import torch as T
-import torch.nn as nn
-import torch.nn.functional as F
-import time
 import src.my_utils as my_utils
 import src.policies as policies
 import random
@@ -104,7 +101,6 @@ def train(env, policy, params):
                                 "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
-
 
 def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()

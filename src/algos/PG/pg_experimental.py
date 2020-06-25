@@ -173,22 +173,6 @@ def calc_advantages(V, gamma, batch_states, batch_rewards, batch_new_states, bat
             advantages.append(target - vs)
         return T.cat(targets), T.cat(advantages)
 
-def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
-    N = len(batch_rewards)
-    # Monte carlo estimate of targets
-    targets = []
-    with T.no_grad():
-        for i in range(N):
-            cumrew = T.tensor(0.)
-            for j in range(i, N):
-                cumrew += (gamma ** (j - i)) * batch_rewards[j]
-                if batch_terminals[j]:
-                    break
-            targets.append(cumrew.view(1, 1))
-        targets = T.cat(targets)
-    return targets
-
-
 if __name__=="__main__":
     #T.set_num_threads(1)
 
