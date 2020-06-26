@@ -56,7 +56,7 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.max_joint_force = 1.4
-        self.target_vel = 0.4
+        self.target_vel = 0.2
         self.sim_steps_per_iter = 10
         self.step_ctr = 0
         self.xd_queue = []

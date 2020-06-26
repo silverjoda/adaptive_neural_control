@@ -162,8 +162,8 @@ if __name__=="__main__":
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "normalize_rewards": True,
-              "animate" : False,
-              "train" : True,
+              "animate" : True,
+              "train" : False,
               "note" : "...",
               "ID" : ID}
 
@@ -175,7 +175,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=True)
+    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False)
 
     # Test
     if params["train"]:
@@ -185,7 +185,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "CW2" # 660 hangpole (15minstraining)
+        policy_name = "9SA" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
