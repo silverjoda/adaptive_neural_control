@@ -15,7 +15,7 @@ class HexapodBulletEnv(gym.Env):
         'render.modes': ['human'],
     }
 
-    def __init__(self, animate=False, max_steps=200, seed=None, step_counter=False, env_list=["tiles"]):
+    def __init__(self, animate=False, max_steps=200, seed=None, step_counter=False, env_list=None):
         if seed is not None:
             np.random.seed(seed)
             T.manual_seed(seed)
@@ -85,6 +85,9 @@ class HexapodBulletEnv(gym.Env):
         return terrain
 
     def generate_hybrid_env(self, n_envs, steps):
+        if self.env_list is None:
+            self.terrain = self.make_heightfield(np.zeros((self.env_length, self.env_width)))
+            return 1, None, None
         envs = np.random.choice(self.env_list, n_envs, replace=self.replace_envs)
 
         if n_envs == 1:
