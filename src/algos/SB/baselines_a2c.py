@@ -9,12 +9,14 @@ from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds, make_vec_env
 import time
+import random
+import string
 import socket
 
 
 def make_env():
     def _init():
-        env = env_fun(animate=False, max_steps=150)
+        env = env_fun(animate=False, max_steps=150, step_counter=False)
         return env
     return _init
 
@@ -28,9 +30,10 @@ if __name__ == "__main__":
     #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
+        ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         env = SubprocVecEnv([make_env() for _ in range(10)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
         model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=70, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
