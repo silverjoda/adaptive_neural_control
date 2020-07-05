@@ -223,7 +223,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "7JN" # 660 hangpole (15minstraining)
+        policy_name = "YZR" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
