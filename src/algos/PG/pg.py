@@ -118,6 +118,44 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
+        if True:
+            # Symmetry loss
+            batch_states_rev = batch_states.clone()
+
+            # Joint angles
+            batch_states_rev[:, 0:3] = batch_states[:, 3:6]
+            batch_states_rev[:, 6:9] = batch_states[:, 9:12]
+            batch_states_rev[:, 12:15] = batch_states[:, 15:18]
+
+            batch_states_rev[:, 3:6] = batch_states[:, 0:3]
+            batch_states_rev[:, 9:12] = batch_states[:, 6:9]
+            batch_states_rev[:, 15:18] = batch_states[:, 12:15]
+            batch_states_rev[:, 18] = -batch_states[:, 18]
+
+            if batch_states.shape[1] > 19:
+                batch_states_rev[:, [18, 20, 22]] = batch_states[:, [19, 21, 23]]
+                batch_states_rev[:, [19, 21, 23]] = batch_states[:, [18, 20, 22]]
+
+            # Actions
+            actions = policy(batch_states)
+            actions_rev_pred = policy(batch_states_rev)
+            actions_rev = T.zeros_like(actions)
+
+            actions_rev[:, 0:3] = actions[:, 3:6]
+            actions_rev[:, 6:9] = actions[:, 9:12]
+            actions_rev[:, 12:15] = actions[:, 15:18]
+
+            actions_rev[:, 3:6] = actions[:, 0:3]
+            actions_rev[:, 9:12] = actions[:, 6:9]
+            actions_rev[:, 15:18] = actions[:, 12:15]
+
+            loss = (actions_rev_pred - actions_rev).pow(2).mean()
+            print("Symmetry loss: {}".format(loss))
+            policy_optim.zero_grad()
+            loss.backward()
+            policy.soft_clip_grads(3.)
+            policy_optim.step()
+
     return loss.data
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
@@ -161,7 +199,7 @@ if __name__=="__main__":
               "policy_lr": 0.0007,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
-              "normalize_rewards": True,
+              "normalize_rewards": False,
               "animate" : True,
               "train" : False,
               "note" : "...",
@@ -175,7 +213,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False)
+    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, env_list=None)
 
     # Test
     if params["train"]:
@@ -185,7 +223,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "9SA" # 660 hangpole (15minstraining)
+        policy_name = "7JN" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 

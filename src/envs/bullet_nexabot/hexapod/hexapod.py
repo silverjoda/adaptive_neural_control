@@ -45,7 +45,7 @@ class HexapodBulletEnv(gym.Env):
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod.urdf"), physicsClientId=self.client_ID)
         self.generate_hybrid_env(self.n_envs, self.env_length)
 
-        self.obs_dim = 28 + int(step_counter)
+        self.obs_dim = 18 + 6 + 1 + int(step_counter)
         self.act_dim = 18
 
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
@@ -289,8 +289,6 @@ class HexapodBulletEnv(gym.Env):
             p.stepSimulation(physicsClientId=self.client_ID)
             if self.animate or render: time.sleep(0.004)
 
-
-
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
         qx, qy, qz, qw = torso_quat
@@ -318,7 +316,7 @@ class HexapodBulletEnv(gym.Env):
         r = np.clip(r_pos - r_neg, -3, 3)
 
         scaled_joint_angles = self.scale_joints(joint_angles)
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
+        env_obs = np.concatenate((scaled_joint_angles, [q_yaw], contacts))
 
         if self.step_counter:
             env_obs = np.concatenate((env_obs, [self.step_encoding]))
@@ -425,19 +423,24 @@ class HexapodBulletEnv(gym.Env):
         n_rep = 30
         for i in range(100):
             for j in range(n_rep):
-                self.step([0,0,0] * 6)
+                obs, _, _, _ = self.step([0,0,0] * 6)
+                print(obs[:18])
 
             for j in range(n_rep):
-                self.step([0,-1,-1] * 6)
+                obs, _, _, _ = self.step([0,-1,-1] * 6)
+                print(obs[:18])
 
             for j in range(n_rep):
-                self.step([0,1,1] * 6)
+                obs, _, _, _ = self.step([0,1,1] * 6)
+                print(obs[:18])
 
             for j in range(n_rep):
-                self.step([1,0,0] * 6)
+                obs, _, _, _ = self.step([1,0,0] * 6)
+                print(obs[:18])
 
             for j in range(n_rep):
-                self.step([-1,0,0] * 6)
+                obs, _, _, _ = self.step([-1,0,0] * 6)
+                print(obs[:18])
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
