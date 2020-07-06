@@ -192,6 +192,10 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
+    args = ["None", "flat", "straight"]
+    if len(sys.argv) > 1:
+        args = sys.argv
+
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000,
               "batchsize": 60,
@@ -203,7 +207,7 @@ if __name__=="__main__":
               "normalize_rewards": False,
               "animate" : True,
               "train" : False,
-              "note" : "Corrected yaw, yaw input",
+              "note" : "Training: {}, {}".format(args[1], args[2]),
               "ID" : ID}
 
     if socket.gethostname() == "goedel":
