@@ -36,14 +36,13 @@ class HexapodBulletEnv(gym.Env):
         self.env_list = env_list
         self.replace_envs = False
         self.n_envs = 1
-        self.env_width = 40
+        self.env_width = 60
         self.env_length = self.max_steps
         self.env_change_prob = 0.1
-        self.walls = True
+        self.walls = False
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
-        #p.setTimeStep(0.0049)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod.urdf"), physicsClientId=self.client_ID)
@@ -60,7 +59,7 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.max_joint_force = 1.4
-        self.target_vel = 0.2
+        self.target_vel = 0.15
         self.sim_steps_per_iter = 24
         self.step_ctr = 0
         self.xd_queue = []
@@ -74,8 +73,8 @@ class HexapodBulletEnv(gym.Env):
             terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[.05, .05, 1],
                                                   heightfieldTextureScaling=(self.env_width - 1) / 2,
                                                   heightfieldData=heightfieldData,
-                                                  numHeightfieldRows=self.env_width,
-                                                  numHeightfieldColumns=self.env_length)
+                                                  numHeightfieldRows=self.env_length,
+                                                  numHeightfieldColumns=self.env_width)
         else:
             heightfieldData = height_map.ravel()
             terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[.1, .1, 1],
@@ -134,8 +133,6 @@ class HexapodBulletEnv(gym.Env):
             total_hm[:, 0] = 255
             total_hm[-1, :] = 255
             total_hm[:, -1] = 255
-        else:
-            total_hm[0, 0] = 255
 
         total_hm = total_hm.astype(np.float32) / 255.
         self.terrain = self.make_heightfield(total_hm)
@@ -143,13 +140,13 @@ class HexapodBulletEnv(gym.Env):
 
     def generate_heightmap(self, env_name, env_length, current_height):
         if env_name == "flat":
-            hm = np.ones((self.env_width, env_length)) * current_height
+            hm = np.ones((env_length, self.env_width)) * current_height
 
         if env_name == "tiles":
-            sf = 3
-            hm = np.random.randint(0, 55,
-                                   size=(self.env_width // sf, env_length // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
-            hm_pad = np.zeros((self.env_width, env_length))
+            sf = 4
+            hm = np.random.randint(0, 35,
+                                   size=(env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
+            hm_pad = np.zeros((env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
             hm = hm_pad + current_height
 

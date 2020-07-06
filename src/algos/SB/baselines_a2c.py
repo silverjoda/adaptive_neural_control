@@ -15,7 +15,7 @@ import socket
 
 def make_env():
     def _init():
-        env = env_fun(animate=False, max_steps=150, step_counter=False)
+        env = env_fun(animate=False, max_steps=80, step_counter=False)
         return env
     return _init
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     if socket.gethostname() == "goedel":
         exit()
 
-    env = env_fun(True, max_steps=300)
+    env = env_fun(True, max_steps=80)
     # Load the trained agent
     model = A2C.load("agents/a2c_mdl")
     print(evaluate_policy(model, env, n_eval_episodes=3))

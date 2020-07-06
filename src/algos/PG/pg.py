@@ -189,19 +189,17 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    #T.set_num_threads(1)
-
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000,
               "batchsize": 60,
-              "max_steps": 150,
+              "max_steps": 80,
               "gamma": 0.97,
               "policy_lr": 0.0007,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "normalize_rewards": False,
               "animate" : True,
-              "train" : False,
+              "train" : True,
               "note" : "Corrected yaw, yaw input",
               "ID" : ID}
 
@@ -213,7 +211,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, env_list=None)
+    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, env_list=["flat"])
 
     # Test
     if params["train"]:
@@ -223,7 +221,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "2SK" # 660 hangpole (15minstraining)
+        policy_name = "BI4" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
