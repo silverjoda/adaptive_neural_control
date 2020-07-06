@@ -10,6 +10,8 @@ import gym
 from gym import spaces
 from opensimplex import OpenSimplex
 
+# To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]
+
 class HexapodBulletEnv(gym.Env):
     metadata = {
         'render.modes': ['human'],
@@ -22,6 +24,7 @@ class HexapodBulletEnv(gym.Env):
 
         if (animate):
             self.client_ID = p.connect(p.GUI)
+            print(" --Starting GUI mode-- ")
         else:
             self.client_ID = p.connect(p.DIRECT)
         assert self.client_ID != -1, "Physics client failed to connect"
@@ -40,6 +43,7 @@ class HexapodBulletEnv(gym.Env):
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        #p.setTimeStep(0.0049)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod.urdf"), physicsClientId=self.client_ID)
@@ -287,7 +291,7 @@ class HexapodBulletEnv(gym.Env):
 
         for i in range(self.sim_steps_per_iter):
             p.stepSimulation(physicsClientId=self.client_ID)
-            if self.animate or render: time.sleep(0.004)
+            if (self.animate or render) and True: time.sleep(0.004)
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
@@ -305,7 +309,7 @@ class HexapodBulletEnv(gym.Env):
         velocity_rew *= (0.3 / self.target_vel)
 
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
-        q_yaw = 2 * np.arccos(qw)
+        q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
 
         r_neg = np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.05 + \
@@ -419,6 +423,16 @@ class HexapodBulletEnv(gym.Env):
                 time.sleep(0.004)
 
     def demo_step(self):
+
+        # for i in range(1000):
+        #     p.resetBasePositionAndOrientation(self.robot, [0, 0, .25], [0.0, 0.16, -0.39, 0.91], physicsClientId=self.client_ID) # x,y,z,w
+        #     time.sleep(0.004)
+        #
+        # for i in range(1000):
+        #     p.resetBasePositionAndOrientation(self.robot, [0, 0, .25], [0.0, -0.16, -0.39, -0.91], physicsClientId=self.client_ID)
+        #     time.sleep(0.004)
+        # exit()
+
         self.reset()
         n_rep = 30
         for i in range(100):

@@ -13,7 +13,6 @@ import random
 import string
 import socket
 
-
 def make_env():
     def _init():
         env = env_fun(animate=False, max_steps=150, step_counter=False)
