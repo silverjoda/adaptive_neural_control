@@ -61,7 +61,7 @@ class HexapodBulletEnv(gym.Env):
 
         self.max_joint_force = 1.4
         self.target_vel = 0.2
-        self.sim_steps_per_iter = 10
+        self.sim_steps_per_iter = 24
         self.step_ctr = 0
         self.xd_queue = []
 
@@ -291,7 +291,7 @@ class HexapodBulletEnv(gym.Env):
 
         for i in range(self.sim_steps_per_iter):
             p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.animate or render) and True: time.sleep(0.004)
+            if (self.animate or render) and True: time.sleep(0.0038)
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel

@@ -202,7 +202,7 @@ if __name__=="__main__":
               "normalize_rewards": False,
               "animate" : True,
               "train" : False,
-              "note" : "...",
+              "note" : "Corrected yaw, yaw input",
               "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -223,7 +223,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "NZY" # 660 hangpole (15minstraining)
+        policy_name = "2SK" # 660 hangpole (15minstraining)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 
