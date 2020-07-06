@@ -294,8 +294,7 @@ class HexapodBulletEnv(gym.Env):
                     np.square(zd) * 0.5
             r_pos = velocity_rew * 7
             r = np.clip(r_pos - r_neg, -3, 3)
-
-        if self.training_mode == "straight_rough":
+        elif self.training_mode == "straight_rough":
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.1 + \
                     np.square(roll) * 0.1 + \
@@ -303,18 +302,15 @@ class HexapodBulletEnv(gym.Env):
                     np.square(zd) * 0.1
             r_pos = velocity_rew * 7
             r = np.clip(r_pos - r_neg, -3, 3)
-
-        if self.training_mode == "turn_left":
+        elif self.training_mode == "turn_left":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
             r_pos = torso_angular_vel[2] * 7
             r = np.clip(r_pos - r_neg, -3, 3)
-
-        if self.training_mode == "turn_right":
+        elif self.training_mode == "turn_right":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
             r_pos = -torso_angular_vel[2] * 7
             r = np.clip(r_pos - r_neg, -3, 3)
-
-        if self.training_mode == "stairs":
+        elif self.training_mode == "stairs":
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.0 + \
                     np.square(roll) * 0.0 + \
@@ -324,6 +320,10 @@ class HexapodBulletEnv(gym.Env):
             velocity_rew *= (0.3 / (self.target_vel * 0.6))
             r_pos = velocity_rew * 7
             r = np.clip(r_pos - r_neg, -3, 3)
+        else:
+            print("No mode selected")
+            exit()
+
 
         # TODO: Try reward which forces equal work with all legs
         # TODO: Make motor penalty which penalizes work, not torque
