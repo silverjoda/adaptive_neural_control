@@ -1,0 +1,17 @@
+Hexapod:
+
+# TODO: Try reward which forces equal work for left and right legs to enforce symmetry
+# TODO: Force bilateral symmetry by enforcing similar operating points for left and right leg joints
+# TODO: Make motor penalty which penalizes work, not torque
+# TODO: Add perlin terrain training to training_launch
+# TODO: Add turn reward instead of penalization
+# TODO: Add goal environment
+
+Adaptation:
+# TODO: Make model based sensitivity propagation as advantage estimator
+# TODO: Make RNN PG using new updated algo
+# TODO: Fix up an adaptation env (hangpole probably) for adaptation testing
+# TODO: Model based learning from a small amount of examples regularized by simulated examples
+
+Paper:
+# TODO: 1 per day

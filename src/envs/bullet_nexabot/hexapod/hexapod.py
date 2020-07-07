@@ -68,6 +68,7 @@ class HexapodBulletEnv(gym.Env):
         self.xd_queue = []
 
     def make_heightfield(self, height_map=None):
+        #return p.loadURDF("plane.urdf")
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, self.client_ID)
         if height_map is None:
@@ -324,8 +325,12 @@ class HexapodBulletEnv(gym.Env):
             print("No mode selected")
             exit()
 
-        # TODO: Try reward which forces equal work with all legs
+        # TODO: Try reward which forces equal work for left and right legs to enforce symmetry
+        # TODO: Force bilateral symmetry by enforcing similar operating points for left and right leg joints
         # TODO: Make motor penalty which penalizes work, not torque
+        # TODO: Add perlin terrain training to training_launch
+        # TODO: Add turn reward instead of penalization
+        # TODO: Add goal environment
 
         scaled_joint_angles = self.scale_joints(joint_angles)
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
