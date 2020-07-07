@@ -6,6 +6,7 @@ Hexapod:
 # TODO: Add perlin terrain training to training_launch
 # TODO: Add turn reward instead of penalization
 # TODO: Add goal environment
+# TODO: Tune training process for the whole policy suite
 
 Adaptation:
 # TODO: Make model based sensitivity propagation as advantage estimator
@@ -15,3 +16,13 @@ Adaptation:
 
 Paper:
 # TODO: 1 per day
+
+Quad:
+# TODO: Add feedforward reg to compensate yaw effect when pitching or rolling. Test Quad
+
+Hexapod HW:
+# TODO: Test a learned policy on hexapod
+# TODO: Integrate T265
+
+Car HW:
+# TODO: Start integrating hardware
