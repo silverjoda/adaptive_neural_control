@@ -200,7 +200,6 @@ class NN_PG(nn.Module):
                 if p.grad is None: continue
                 p.grad = (p.grad / maxval) * bnd
 
-
     def sample_action(self, s):
         return T.normal(self.forward(s), T.exp(self.log_std))
 

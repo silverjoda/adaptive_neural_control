@@ -100,7 +100,7 @@ def train(env, policy, params):
         if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
-            T.save(policy, sdir)
+            T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -205,8 +205,8 @@ if __name__=="__main__":
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "normalize_rewards": False,
-              "animate" : False,
-              "train" : True,
+              "animate" : True,
+              "train" : False,
               "note" : "Training: {}, {}".format(args[1], args[2]),
               "ID" : ID}
 
@@ -218,7 +218,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name="flat", training_mode="straight")
+    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2])
 
     # Test
     if params["train"]:
@@ -228,11 +228,12 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "4WQ" # 660 hangpole (15minstraining)
+        policy_name = "4MV" # 4B5 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
-        policy = T.load(policy_path)
-
-        env.test(policy)
+        policy = policies.NN_PG(env, 96)
+        T.load(policy_path)
+        #policy.load_state_dict(T.load(policy_path))
+        #env.test(policy)
         print(policy_path)
 
 

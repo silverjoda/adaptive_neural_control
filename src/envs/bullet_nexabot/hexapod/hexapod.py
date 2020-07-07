@@ -62,7 +62,7 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.max_joint_force = 1.4
-        self.target_vel = 0.2
+        self.target_vel = 0.15
         self.sim_steps_per_iter = 24
         self.step_ctr = 0
         self.xd_queue = []
@@ -287,7 +287,7 @@ class HexapodBulletEnv(gym.Env):
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
 
         if self.training_mode == "straight":
-            r_neg = np.square(q_yaw) * 0.5 + \
+            r_neg = np.square(q_yaw) * 0.7 + \
                     np.square(pitch) * 0.2 + \
                     np.square(roll) * 0.2 + \
                     torque_pen * 0.00001 + \
@@ -323,7 +323,6 @@ class HexapodBulletEnv(gym.Env):
         else:
             print("No mode selected")
             exit()
-
 
         # TODO: Try reward which forces equal work with all legs
         # TODO: Make motor penalty which penalizes work, not torque
@@ -454,23 +453,23 @@ class HexapodBulletEnv(gym.Env):
         for i in range(100):
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,0,0] * 6)
-                print(obs[:18])
+            print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,-1,-1] * 6)
-                print(obs[:18])
+            print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,1,1] * 6)
-                print(obs[:18])
+            print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([1,0,0] * 6)
-                print(obs[:18])
+            print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([-1,0,0] * 6)
-                print(obs[:18])
+            print(obs[:18])
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
