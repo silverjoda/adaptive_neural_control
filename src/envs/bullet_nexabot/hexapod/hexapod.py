@@ -62,7 +62,7 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.max_joint_force = 1.4
-        self.target_vel = 0.15
+        self.target_vel = 0.2
         self.sim_steps_per_iter = 24
         self.step_ctr = 0
         self.xd_queue = []
@@ -254,7 +254,7 @@ class HexapodBulletEnv(gym.Env):
 
     def step(self, ctrl, render=False):
         ctrl_clipped = np.clip(ctrl, -1, 1)
-        scaled_action = self.scale_action(ctrl)
+        scaled_action = self.scale_action(ctrl_clipped)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,
@@ -288,8 +288,8 @@ class HexapodBulletEnv(gym.Env):
 
         if self.training_mode == "straight":
             r_neg = np.square(q_yaw) * 0.7 + \
-                    np.square(pitch) * 0.2 + \
-                    np.square(roll) * 0.2 + \
+                    np.square(pitch) * 0.1 + \
+                    np.square(roll) * 0.1 + \
                     torque_pen * 0.00001 + \
                     np.square(zd) * 0.5
             r_pos = velocity_rew * 7
@@ -336,9 +336,6 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr += 1
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
         done = self.step_ctr > self.max_steps or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
-
-        if np.random.rand() < 0.0:
-            self.make_heightfield()
 
         return env_obs, r, done, {}
 

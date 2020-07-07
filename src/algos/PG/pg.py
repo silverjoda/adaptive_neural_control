@@ -118,7 +118,7 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
-        if True:
+        if False:
             # Symmetry loss
             batch_states_rev = batch_states.clone()
 
@@ -228,18 +228,9 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "4MV" # 4B5 straight (try on real hex)
+        policy_name = "JUB" # 4B5 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
-        T.load(policy_path)
-        #policy.load_state_dict(T.load(policy_path))
-        #env.test(policy)
+        policy.load_state_dict(T.load(policy_path))
+        env.test(policy)
         print(policy_path)
-
-
-
-
-
-
-
-
