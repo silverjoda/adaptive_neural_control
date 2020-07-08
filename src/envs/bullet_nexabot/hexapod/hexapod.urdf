@@ -33,6 +33,7 @@
       <mass value="1.8"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
+    <contact_coefficients mu="0.9" />
   </link>
 
     <!-- FL leg (1) /-->
@@ -107,6 +108,7 @@
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
+      <contact_coefficients mu="0.9" />
     </link>
 
     <joint name="femur_tibia_fl" type="revolute">
@@ -190,6 +192,7 @@
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
+      <contact_coefficients mu="0.9" />
     </link>
 
     <joint name="femur_tibia_fr" type="revolute">
@@ -274,6 +277,7 @@
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
+      <contact_coefficients mu="0.9" />
     </link>
 
     <joint name="femur_tibia_ml" type="revolute">
@@ -357,6 +361,7 @@
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
+      <contact_coefficients mu="0.9" />
     </link>
 
     <joint name="femur_tibia_mr" type="revolute">
@@ -441,6 +446,7 @@
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
+      <contact_coefficients mu="0.9" />
     </link>
 
     <joint name="femur_tibia_rl" type="revolute">
@@ -524,6 +530,7 @@
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
+      <contact_coefficients mu="0.9" />
     </link>
 
     <joint name="femur_tibia_rr" type="revolute">
@@ -534,7 +541,4 @@
       <limit effort="1.4" lower="-3" upper="3" velocity="1"/>
       <dynamics damping="0.01" friction="0.01"/>
     </joint>
-
-  <contact_coefficients mu="0.9" />
-
 </robot>

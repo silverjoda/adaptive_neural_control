@@ -267,7 +267,7 @@ class HexapodBulletEnv(gym.Env):
 
         for i in range(self.sim_steps_per_iter):
             p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.animate or render) and True: time.sleep(0.0038)
+            if (self.animate or render) and True: time.sleep(0.0038); print("SLEEPING")
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
@@ -277,7 +277,7 @@ class HexapodBulletEnv(gym.Env):
         torque_pen = np.mean(np.square(joint_torques))
 
         self.xd_queue.append(xd)
-        if len(self.xd_queue) > 12:
+        if len(self.xd_queue) > 7:
             self.xd_queue.pop(0)
         xd_av = sum(self.xd_queue) / len(self.xd_queue)
 
@@ -288,20 +288,20 @@ class HexapodBulletEnv(gym.Env):
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
 
         if self.training_mode == "straight":
-            r_neg = np.square(q_yaw) * 0.7 + \
+            r_neg = np.square(q_yaw) * 0.6 + \
                     np.square(pitch) * 0.1 + \
                     np.square(roll) * 0.1 + \
-                    torque_pen * 0.00001 + \
-                    np.square(zd) * 0.5
-            r_pos = velocity_rew * 7
+                    torque_pen * 0.0 + \
+                    np.square(zd) * 0.4
+            r_pos = velocity_rew * 10
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
             r_neg = np.square(q_yaw) * 0.5 + \
-                    np.square(pitch) * 0.1 + \
-                    np.square(roll) * 0.1 + \
-                    torque_pen * 0.000 + \
+                    np.square(pitch) * 0.05 + \
+                    np.square(roll) * 0.05 + \
+                    torque_pen * 0.0 + \
                     np.square(zd) * 0.1
-            r_pos = velocity_rew * 7
+            r_pos = velocity_rew * 10
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "turn_left":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
@@ -315,11 +315,11 @@ class HexapodBulletEnv(gym.Env):
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.0 + \
                     np.square(roll) * 0.0 + \
-                    torque_pen * 0.00001 + \
+                    torque_pen * 0.00000 + \
                     np.square(zd) * 0.0
             velocity_rew = 1. / (abs(xd_av - self.target_vel * 0.6) + 1.) - 1. / (self.target_vel * 0.6 + 1.)
             velocity_rew *= (0.3 / (self.target_vel * 0.6))
-            r_pos = velocity_rew * 7
+            r_pos = velocity_rew * 10
             r = np.clip(r_pos - r_neg, -3, 3)
         else:
             print("No mode selected")
@@ -359,9 +359,11 @@ class HexapodBulletEnv(gym.Env):
         else:
             spawn_height = 0.5 * np.max(self.terrain_hm[self.env_length // 2 - 3:self.env_length // 2 + 3, self.env_width // 2 - 3 : self.env_width // 2 + 3]) * self.mesh_scale_vert
 
+        rnd_quat = p.getQuaternionFromAxisAngle([0,0,1], np.random.rand() - 0.5)
+
         joint_init_pos_list = self.scale_action([0] * 18)
         [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(18)]
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, spawn_height + 0.15], [0, 0, 0, 1], physicsClientId=self.client_ID)
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, spawn_height + 0.15], rnd_quat, physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,

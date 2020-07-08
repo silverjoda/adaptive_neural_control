@@ -202,8 +202,8 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000,
               "batchsize": 60,
-              "max_steps": 80,
-              "gamma": 0.97,
+              "max_steps": 70,
+              "gamma": 0.98,
               "policy_lr": 0.0007,
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
@@ -234,7 +234,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "JUB" # 4B5 straight (try on real hex)
+        policy_name = "U4J" # 4B5 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))
