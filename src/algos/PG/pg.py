@@ -1,6 +1,6 @@
 import os
 import sys
-
+import time
 import numpy as np
 import torch as T
 import src.my_utils as my_utils
@@ -24,6 +24,8 @@ def train(env, policy, params):
     batch_ctr = 0
     batch_rew = 0
     global_step_ctr = 0
+
+    t1 = time.time()
 
     for i in range(params["iters"]):
         s_0 = env.reset()
@@ -82,9 +84,10 @@ def train(env, policy, params):
                 loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             else:
                 loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
-
-            print("Episode {}/{}, n_steps: {}, loss_policy: {}, mean ep_rew: {}".
-                  format(i, params["iters"], global_step_ctr, loss_policy, batch_rew / params["batchsize"]))
+            t2 = time.time()
+            print("Episode {}/{}, n_steps: {}, loss_policy: {}, mean ep_rew: {}, time per batch: {}".
+                  format(i, params["iters"], global_step_ctr, loss_policy, batch_rew / params["batchsize"], t2-t1))
+            t1 = t2
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -118,7 +121,7 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
-        if params["symmetry_pen"] == "symmetry_pen":
+        if False:
             # Symmetry loss
             batch_states_rev = batch_states.clone()
 
@@ -192,7 +195,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    args = ["None", "stairs_up", "straight", "symmetry_pen"]
+    args = ["None", "flat", "straight"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -205,10 +208,9 @@ if __name__=="__main__":
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "normalize_rewards": False,
-              "symmetry_pen" : args[3],
-              "animate" : True,
-              "train" : False,
-              "note" : "Training: {}, {}".format(args[1], args[2], args[2]),
+              "animate" : False,
+              "train" : True,
+              "note" : "Training: {}, {}".format(args[1], args[2]),
               "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -216,8 +218,10 @@ if __name__=="__main__":
         params["train"] = True
 
     #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
+    #env = env_fun(animate=params["animate"])
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
+
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2])
 
@@ -229,7 +233,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "DL1" # 4B5 straight (try on real hex)
+        policy_name = "JUB" # 4B5 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))
