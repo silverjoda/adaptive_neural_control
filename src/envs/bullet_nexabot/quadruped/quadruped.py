@@ -46,7 +46,7 @@ class QuadrupedBulletEnv(gym.Env):
 
         self.max_joint_force = 1.4
         self.target_vel = 0.4
-        self.sim_steps_per_iter = 10
+        self.sim_steps_per_iter = 24
         self.step_ctr = 0
         self.xd_queue = []
 

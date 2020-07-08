@@ -288,15 +288,15 @@ class HexapodBulletEnv(gym.Env):
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
 
         if self.training_mode == "straight":
-            r_neg = np.square(q_yaw) * 0.3 + \
-                    np.square(pitch) * 0.1 + \
-                    np.square(roll) * 0.1 + \
+            r_neg = np.square(q_yaw) * 0.6 + \
+                    np.square(pitch) * 0.05 + \
+                    np.square(roll) * 0.05 + \
                     torque_pen * 0.0 + \
-                    np.square(zd) * 0.3
+                    np.square(zd) * 0.2
             r_pos = velocity_rew * 10
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
-            r_neg = np.square(q_yaw) * 0.3 + \
+            r_neg = np.square(q_yaw) * 0.4 + \
                     np.square(pitch) * 0.01 + \
                     np.square(roll) * 0.01 + \
                     torque_pen * 0.0 + \

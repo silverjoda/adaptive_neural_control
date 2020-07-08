@@ -195,7 +195,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    args = ["None", "flat", "straight", "symmetry_pen"]
+    args = ["None", "flat", "straight", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -225,6 +225,9 @@ if __name__=="__main__":
 
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2])
+
+    # from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    # env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
 
     # Test
     if params["train"]:
