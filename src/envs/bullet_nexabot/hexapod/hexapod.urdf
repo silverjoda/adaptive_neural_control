@@ -535,6 +535,6 @@
       <dynamics damping="0.01" friction="0.01"/>
     </joint>
 
-  <contact_coefficients mu="0.5" />
+  <contact_coefficients mu="0.9" />
 
 </robot>

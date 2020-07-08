@@ -118,7 +118,7 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
-        if False:
+        if params["symmetry_pen"] == "symmetry_pen":
             # Symmetry loss
             batch_states_rev = batch_states.clone()
 
@@ -192,7 +192,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    args = ["None", "flat", "straight"]
+    args = ["None", "stairs_up", "straight", "symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -205,9 +205,10 @@ if __name__=="__main__":
               "weight_decay" : 0.0001,
               "ppo_update_iters" : 1,
               "normalize_rewards": False,
+              "symmetry_pen" : args[3],
               "animate" : True,
               "train" : False,
-              "note" : "Training: {}, {}".format(args[1], args[2]),
+              "note" : "Training: {}, {}".format(args[1], args[2], args[2]),
               "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -228,7 +229,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "JUB" # 4B5 straight (try on real hex)
+        policy_name = "DL1" # 4B5 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

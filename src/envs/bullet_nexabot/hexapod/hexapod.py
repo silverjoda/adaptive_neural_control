@@ -109,8 +109,8 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "stairs_up":
             hm = np.ones((self.env_length, self.env_width)) * current_height
-            stair_height = 15
-            stair_width = 3
+            stair_height = 12
+            stair_width = 2
 
             initial_offset = self.env_length // 2 - self.env_length // 8
             n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
@@ -122,8 +122,8 @@ class HexapodBulletEnv(gym.Env):
             hm[n_steps * stair_width + initial_offset:, :] = current_height
 
         if env_name == "stairs_down":
-            stair_height = 15
-            stair_width = 3
+            stair_height = 12
+            stair_width = 2
 
             initial_offset = self.env_length // 2 - self.env_length // 8
             n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
