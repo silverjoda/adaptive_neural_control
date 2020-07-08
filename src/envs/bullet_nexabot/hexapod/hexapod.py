@@ -57,8 +57,8 @@ class HexapodBulletEnv(gym.Env):
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
-        self.joints_rads_low = np.array([-0.3, -1.6, 0.7] * 6)
-        self.joints_rads_high = np.array([0.3, 0.0, 1.9] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.6, 0.9] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 1.7] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.max_joint_force = 1.4
@@ -288,19 +288,19 @@ class HexapodBulletEnv(gym.Env):
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
 
         if self.training_mode == "straight":
-            r_neg = np.square(q_yaw) * 0.6 + \
+            r_neg = np.square(q_yaw) * 0.3 + \
                     np.square(pitch) * 0.1 + \
                     np.square(roll) * 0.1 + \
                     torque_pen * 0.0 + \
-                    np.square(zd) * 0.4
+                    np.square(zd) * 0.3
             r_pos = velocity_rew * 10
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
-            r_neg = np.square(q_yaw) * 0.5 + \
-                    np.square(pitch) * 0.05 + \
-                    np.square(roll) * 0.05 + \
+            r_neg = np.square(q_yaw) * 0.3 + \
+                    np.square(pitch) * 0.01 + \
+                    np.square(roll) * 0.01 + \
                     torque_pen * 0.0 + \
-                    np.square(zd) * 0.1
+                    np.square(zd) * 0.05
             r_pos = velocity_rew * 10
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "turn_left":
@@ -315,7 +315,7 @@ class HexapodBulletEnv(gym.Env):
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.0 + \
                     np.square(roll) * 0.0 + \
-                    torque_pen * 0.00000 + \
+                    torque_pen * 0.0 + \
                     np.square(zd) * 0.0
             velocity_rew = 1. / (abs(xd_av - self.target_vel * 0.6) + 1.) - 1. / (self.target_vel * 0.6 + 1.)
             velocity_rew *= (0.3 / (self.target_vel * 0.6))
