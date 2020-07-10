@@ -81,6 +81,7 @@ class HexapodBulletEnv(gym.Env):
         # Episodal parameters
         self.xd_queue = []
         self.joint_work_done_arr_list = []
+        self.joint_angle_arr_list = []
 
     def make_heightfield(self, height_map=None):
         if hasattr(self, 'terrain'):
@@ -304,6 +305,13 @@ class HexapodBulletEnv(gym.Env):
         xd, yd, zd = torso_vel
         qx, qy, qz, qw = torso_quat
 
+        self.joint_angle_arr_list.append(joint_angles)
+        joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-30:])
+        joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
+        left_quantiles = joint_angle_arr_quantiles[:, self.left_joints_ids]
+        right_quantiles = joint_angle_arr_quantiles[:, self.right_joints_ids]
+        quantile_penalty = np.mean(np.square(left_quantiles - right_quantiles))
+
         # Calculate work done by each motor
         joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
         self.joint_work_done_arr_list.append(joint_work_done_arr)
@@ -315,8 +323,8 @@ class HexapodBulletEnv(gym.Env):
         total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Cumulative mean work done per joint
-        joint_work_done_arr_selected = np.array(self.joint_work_done_arr_list[-30:])
-        joint_work_done_floating_avg = np.mean(joint_work_done_arr_selected, axis=0)
+        joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-30:])
+        joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
 
         # Symmetry penalty
         left_torque_mean = joint_work_done_floating_avg[self.left_joints_ids]
@@ -391,6 +399,7 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.xd_queue = []
         self.joint_work_done_arr_list = []
+        self.joint_angle_arr_list = []
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
         if np.random.rand() < self.env_change_prob:
@@ -529,7 +538,7 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="ramp_up")
+    env = HexapodBulletEnv(animate=False, terrain_name="ramp_up")
     env.demo_step()
 
     # TODO: Fix hexapod simulation forces and speed and compare to real platform to have correct everything
