@@ -2,16 +2,14 @@ Hexapod:
 
 # TODO: Try reward which forces equal work for left and right legs to enforce symmetry
 # TODO: Force bilateral symmetry by enforcing similar operating points for left and right leg joints
-# TODO: Make motor penalty which penalizes work, not torque
+# TODO: Make motor penalty which penalizes work, not torque <- IP
 # TODO: Add turn reward instead of penalization
 # TODO: Add goal environment
 # TODO: Tune training process for the whole policy suite
 # TODO: Add difficulty curriculum to rough= and stairs envs
 # TODO: Add joint range increase as difficulty increases to regularize the movements
-# TODO: Add joint read latency to simulation
 # TODO: Fit contacts using simple function
 # TODO: Penalize slippage
-# TODO: Sort out contact friction
 
 Adaptation research:
 # TODO: Make model based sensitivity propagation as advantage estimator

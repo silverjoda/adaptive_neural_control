@@ -45,11 +45,18 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
 
+        self.coxa_joint_ids = range(0, 18, 3)
+        self.femur_joint_ids = range(1, 18, 3)
+        self.tibia_joint_ids = range(2, 18, 3)
+        self.left_joints_ids = [0,1,2,6,7,8,12,13,14]
+        self.right_joints_ids = [3,4,5,9,10,11,15,16,17]
+
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
+        #p.setPhysicsEngineParameter(numSubSteps=1 ,physicsClientId=self.client_ID)
 
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod.urdf"), physicsClientId=self.client_ID)
+        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod_wip.urdf"), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
         for i in range(6):
@@ -70,10 +77,12 @@ class HexapodBulletEnv(gym.Env):
         self.target_vel = 0.2
         self.sim_steps_per_iter = 24
         self.step_ctr = 0
+
+        # Episodal parameters
         self.xd_queue = []
+        self.joint_work_done_arr_list = []
 
     def make_heightfield(self, height_map=None):
-        #return p.loadURDF("plane.urdf")
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, self.client_ID)
         if height_map is None:
@@ -243,7 +252,6 @@ class HexapodBulletEnv(gym.Env):
         ctct_leg_6 = int(len(p.getContactPoints(self.robot, self.terrain, 17, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
         contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4, ctct_leg_5, ctct_leg_6]
-        #contacts = np.zeros(6)
 
         # Joints
         obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
@@ -279,13 +287,41 @@ class HexapodBulletEnv(gym.Env):
                                     velocityGains=[0.03] * 18,
                                     physicsClientId=self.client_ID)
 
+        leg_ctr = 0
+        obs_sequential = []
         for i in range(self.sim_steps_per_iter):
+            if leg_ctr < 6:
+                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+                leg_ctr += 1
             p.stepSimulation(physicsClientId=self.client_ID)
             if (self.animate or render) and True: time.sleep(0.0038)
+
+        joint_angles_skewed = []
+        for o in obs_sequential:
+            joint_angles_skewed.append(o[0])
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
         qx, qy, qz, qw = torso_quat
+
+        # Calculate work done by each motor
+        joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
+        self.joint_work_done_arr_list.append(joint_work_done_arr)
+
+        # Instantaneous work penalties
+        coxa_work_pen = np.mean(np.square(joint_work_done_arr[self.coxa_joint_ids]))
+        femur_work_pen = np.mean(np.square(joint_work_done_arr[self.femur_joint_ids]))
+        tibia_work_pen = np.mean(np.square(joint_work_done_arr[self.tibia_joint_ids]))
+        total_work_pen = np.mean(np.square(joint_work_done_arr))
+
+        # Cumulative mean work done per joint
+        joint_work_done_arr_selected = np.array(self.joint_work_done_arr_list[-30:])
+        joint_work_done_floating_avg = np.mean(joint_work_done_arr_selected, axis=0)
+
+        # Symmetry penalty
+        left_torque_mean = joint_work_done_floating_avg[self.left_joints_ids]
+        right_torque_mean = joint_work_done_floating_avg[self.right_joints_ids]
+        symmetry_torque_pen = np.mean(np.square(left_torque_mean - right_torque_mean))
 
         # Reward shaping
         torque_pen = np.mean(np.square(joint_torques))
@@ -339,14 +375,7 @@ class HexapodBulletEnv(gym.Env):
             print("No mode selected")
             exit()
 
-        # TODO: Try reward which forces equal work for left and right legs to enforce symmetry
-        # TODO: Force bilateral symmetry by enforcing similar operating points for left and right leg joints
-        # TODO: Make motor penalty which penalizes work, not torque
-        # TODO: Add perlin terrain training to training_launch
-        # TODO: Add turn reward instead of penalization
-        # TODO: Add goal environment
-
-        scaled_joint_angles = self.scale_joints(joint_angles)
+        scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
 
         if self.step_counter:
@@ -360,9 +389,9 @@ class HexapodBulletEnv(gym.Env):
 
     def reset(self):
         self.step_ctr = 0
+        self.xd_queue = []
+        self.joint_work_done_arr_list = []
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
-        # p.changeDynamics(self.robot, linkIndex=-1, lateralFriction=1)
-        # p.changeDynamics(self.robot, linkIndex=3, lateralFriction=1)
 
         if np.random.rand() < self.env_change_prob:
             self.generate_rnd_env()
@@ -409,9 +438,11 @@ class HexapodBulletEnv(gym.Env):
 
     def demo(self):
         self.reset()
+
         n_rep = 600
         force = 2
         for i in range(100):
+
             for j in range(n_rep):
                 p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                             jointIndices=range(18),
@@ -455,6 +486,8 @@ class HexapodBulletEnv(gym.Env):
                 p.stepSimulation(physicsClientId=self.client_ID)
                 time.sleep(0.004)
 
+
+
     def demo_step(self):
 
         # for i in range(1000):
@@ -469,6 +502,7 @@ class HexapodBulletEnv(gym.Env):
         self.reset()
         n_rep = 30
         for i in range(100):
+            t1 = time.time()
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,0,0] * 6)
             print(obs[:18])
@@ -488,6 +522,8 @@ class HexapodBulletEnv(gym.Env):
             for j in range(n_rep):
                 obs, _, _, _ = self.step([-1,0,0] * 6)
             print(obs[:18])
+            t2 = time.time()
+            print("Time taken for iteration: {}".format(t2 - t1))
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
