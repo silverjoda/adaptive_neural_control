@@ -43,6 +43,7 @@ class HexapodBulletEnv(gym.Env):
         self.walls = False
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
+        self.lateral_friction = 1.2
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
@@ -50,6 +51,10 @@ class HexapodBulletEnv(gym.Env):
 
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod.urdf"), physicsClientId=self.client_ID)
         self.generate_rnd_env()
+
+        for i in range(6):
+            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
+        p.changeDynamics(self.robot, -1, lateralFriction=self.lateral_friction)
 
         self.obs_dim = 18 + 6 + 4 + int(step_counter)
         self.act_dim = 18
@@ -121,6 +126,14 @@ class HexapodBulletEnv(gym.Env):
                 current_height += stair_height
 
             hm[n_steps * stair_width + initial_offset:, :] = current_height
+
+        if env_name == "ramp_up":
+            max_height = 200
+            hm = np.ones((self.env_length, self.env_width)) * current_height
+            initial_offset = self.env_length // 2 - self.env_length // 8
+            hm[initial_offset:initial_offset + self.env_length // 4, :] = np.tile(np.linspace(current_height, current_height + max_height, self.env_length // 4)[:, np.newaxis], (1, self.env_width))
+            current_height += max_height
+            hm[initial_offset + self.env_length // 4:, :] = current_height
 
         if env_name == "stairs_down":
             stair_height = 12
@@ -480,7 +493,7 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True)
+    env = HexapodBulletEnv(animate=True, terrain_name="ramp_up")
     env.demo_step()
 
     # TODO: Fix hexapod simulation forces and speed and compare to real platform to have correct everything

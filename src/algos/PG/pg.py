@@ -223,7 +223,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
 
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2])
 
     # from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
