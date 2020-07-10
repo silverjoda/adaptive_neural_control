@@ -41,9 +41,23 @@ class HexapodBulletEnv(gym.Env):
         self.env_length = self.max_steps
         self.env_change_prob = 0.1
         self.walls = False
+
+        # Simulation parameters
+        self.max_joint_force = 1.4
+        self.target_vel = 0.2
+        self.sim_steps_per_iter = 24
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
+
+        # Environment parameters
+        self.obs_dim = 18 + 6 + 4 + int(step_counter)
+        self.act_dim = 18
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
+        self.joints_rads_low = np.array([-0.3, -1.6, 0.9] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 1.7] * 6)
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
         self.femur_joint_ids = range(1, 18, 3)
@@ -54,34 +68,22 @@ class HexapodBulletEnv(gym.Env):
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
-        #p.setPhysicsEngineParameter(numSubSteps=1 ,physicsClientId=self.client_ID)
 
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod_wip.urdf"), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
+        # Change contact friction for legs and torso
         for i in range(6):
             p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
         p.changeDynamics(self.robot, -1, lateralFriction=self.lateral_friction)
 
-        self.obs_dim = 18 + 6 + 4 + int(step_counter)
-        self.act_dim = 18
-
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
-        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
-
-        self.joints_rads_low = np.array([-0.3, -1.6, 0.9] * 6)
-        self.joints_rads_high = np.array([0.3, 0.0, 1.7] * 6)
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
-        self.max_joint_force = 1.4
-        self.target_vel = 0.2
-        self.sim_steps_per_iter = 24
-        self.step_ctr = 0
 
         # Episodal parameters
+        self.step_ctr = 0
         self.xd_queue = []
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
+        self.prev_yaw_dev = 0
 
     def make_heightfield(self, height_map=None):
         if hasattr(self, 'terrain'):
@@ -396,12 +398,17 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self):
+        # Reset episodal vars
         self.step_ctr = 0
         self.xd_queue = []
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
+        self.prev_yaw_dev = 0
+
+        # Calculate encoding for current step
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
+        # Change heightmap with small probability
         if np.random.rand() < self.env_change_prob:
             self.generate_rnd_env()
 
@@ -411,6 +418,7 @@ class HexapodBulletEnv(gym.Env):
         else:
             spawn_height = 0.5 * np.max(self.terrain_hm[self.env_length // 2 - 3:self.env_length // 2 + 3, self.env_width // 2 - 3 : self.env_width // 2 + 3]) * self.mesh_scale_vert
 
+        # Random initial rotation
         rnd_quat = p.getQuaternionFromAxisAngle([0,0,1], np.random.rand() - 0.5)
 
         joint_init_pos_list = self.scale_action([0] * 18)

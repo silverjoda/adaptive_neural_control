@@ -1,8 +1,5 @@
 Hexapod:
 
-# TODO: Try reward which forces equal work for left and right legs to enforce symmetry
-# TODO: Force bilateral symmetry by enforcing similar operating points for left and right leg joints
-# TODO: Make motor penalty which penalizes work, not torque <- IP
 # TODO: Add turn reward instead of penalization
 # TODO: Add goal environment
 # TODO: Tune training process for the whole policy suite
