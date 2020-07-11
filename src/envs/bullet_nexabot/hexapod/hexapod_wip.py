@@ -49,7 +49,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.2
+        self.training_difficulty = 0.3
         self.training_difficulty_increment = 0.0001
 
         # Environment parameters
@@ -359,13 +359,11 @@ class HexapodBulletEnv(gym.Env):
         if self.training_mode == "straight":
             r_neg = np.square(pitch) * 0.2 * self.training_difficulty + \
                     np.square(roll) * 0.2 * self.training_difficulty + \
-                    np.square(zd) * 0.5 * self.training_difficulty + \
-                    quantile_pen * 0.5 * self.training_difficulty + \
-                    total_work_pen * 0.5 * self.training_difficulty + \
-                    symmetry_torque_pen * 0.5 * self.training_difficulty + \
-                    yaw_improvement_reward * 0.7
-
-            r_pos = velocity_rew * 10
+                    np.square(zd) * 0.3 * self.training_difficulty + \
+                    quantile_pen * 0.0 * self.training_difficulty + \
+                    total_work_pen * 0.0 * self.training_difficulty + \
+                    symmetry_torque_pen * 0.0 * self.training_difficulty
+            r_pos = velocity_rew * 10 + yaw_improvement_reward * 0.7
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
             r_neg = np.square(q_yaw) * 0.4 * self.training_difficulty + \
@@ -387,7 +385,6 @@ class HexapodBulletEnv(gym.Env):
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.0 + \
                     np.square(roll) * 0.0 + \
-                    torque_pen * 0.0 + \
                     np.square(zd) * 0.0
             velocity_rew = 1. / (abs(xd_av - self.target_vel * 0.6) + 1.) - 1. / (self.target_vel * 0.6 + 1.)
             velocity_rew *= (0.3 / (self.target_vel * 0.6))
@@ -418,12 +415,15 @@ class HexapodBulletEnv(gym.Env):
         self.prev_yaw_dev = 0
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1)
 
-        # Set new joint limits
-        self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
-                    1 - self.training_difficulty)
-        self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
-                    1 - self.training_difficulty)
-        self.joints_rads_midpoint = 0.5 * (self.joints_rads_high_lim + self.joints_rads_low_lim)
+        # self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
+        #             1 - self.training_difficulty)
+        # self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
+        #             1 - self.training_difficulty)
+        # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.joints_rads_low = self.joints_rads_low_lim
+        self.joints_rads_high = self.joints_rads_high_lim
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         #print("Training difficulty: {}, joints_low: {}, joints_high: {}".format(self.training_difficulty, self.joints_rads_low, self.joints_rads_high))
 

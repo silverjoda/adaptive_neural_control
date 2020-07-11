@@ -209,7 +209,7 @@ if __name__=="__main__":
               "ppo_update_iters" : 1,
               "normalize_rewards": False,
               "symmetry_pen" : args[3],
-              "animate" : True,
+              "animate" : False,
               "train" : True,
               "note" : "Training: {}, {}, {}".format(args[1], args[2], args[3]),
               "ID" : ID}
@@ -237,7 +237,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "TS7" # TS7 straight (try on real hex)
+        policy_name = "2PU" # TS7 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

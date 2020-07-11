@@ -1,5 +1,5 @@
 import gym
-
+import sys
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2, DQN, A2C
@@ -13,32 +13,50 @@ import random
 import string
 import socket
 
-def make_env():
+def make_env(params):
     def _init():
-        env = env_fun(animate=False, max_steps=80, step_counter=False)
+        env = env_fun(animate=params["animate"],
+                      max_steps=params["max_steps"],
+                      step_counter=True,
+                      terrain_name=params["terrain"],
+                      training_mode=params["r_type"])
         return env
     return _init
 
 if __name__ == "__main__":
-    # from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
-    # from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    # from src.envs.bullet_cartpole.cartpole_swingup.cartpole_swingup import CartPoleSwingUpBulletEnv as env_fun
-    # from src.envs.bullet_cartpole.double_cartpole_swingup_goal_variable.double_cartpole_swingup_goal_variable import DoubleCartpoleSwingupGoalVariable as env_fun
-    #from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
-    #from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    if len(sys.argv) > 1:
+        args = sys.argv
 
-    TRAIN = False
+    from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
+
+    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    params = {"iters": 500000,
+              "batchsize": 60,
+              "max_steps": 60,
+              "gamma": 0.98,
+              "policy_lr": 0.0007,
+              "weight_decay": 0.0001,
+              "ppo_update_iters": 1,
+              "normalize_rewards": False,
+              "symmetry_pen": args[3],
+              "animate": False,
+              "train": True,
+              "terrain" : args[1],
+              "r_type": args[2],
+              "note": "Training: {}, {}".format(args[1], args[2]),
+              "ID": ID}
+
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-        env = SubprocVecEnv([make_env() for _ in range(10)], start_method='fork')
+        env = SubprocVecEnv([make_env(params) for _ in range(8)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
-        model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=70, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
+        model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=params["max_steps"], tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(3000000))
+        model.learn(total_timesteps=int(300000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("agents/a2c_mdl")
@@ -48,7 +66,11 @@ if __name__ == "__main__":
     if socket.gethostname() == "goedel":
         exit()
 
-    env = env_fun(True, max_steps=80)
+    env = env_fun(animate=True,
+                  max_steps=params["max_steps"],
+                  step_counter=True,
+                  terrain_name=params["terrain"],
+                  training_mode=params["r_type"])
     # Load the trained agent
     model = A2C.load("agents/a2c_mdl")
     print(evaluate_policy(model, env, n_eval_episodes=3))
