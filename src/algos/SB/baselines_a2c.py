@@ -47,7 +47,7 @@ if __name__ == "__main__":
               "note": "Training: {}, {}".format(args[1], args[2]),
               "ID": ID}
 
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))

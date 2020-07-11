@@ -50,7 +50,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
         self.training_difficulty = 0.3
-        self.training_difficulty_increment = 0.0001
+        self.training_difficulty_increment = 0.00003
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter)
@@ -359,7 +359,6 @@ class HexapodBulletEnv(gym.Env):
 
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
-
 
         if self.training_mode == "straight":
             r_neg = np.square(pitch) * 0.1 * self.training_difficulty + \
