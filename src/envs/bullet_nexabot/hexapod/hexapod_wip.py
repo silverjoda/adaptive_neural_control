@@ -61,8 +61,12 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_high_lim = np.array([0.3, 0.0, 1.7] * 6)
         self.joints_rads_midpoint = 0.5 * (self.joints_rads_high_lim + self.joints_rads_low_lim)
 
-        self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
-        self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
+        # self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
+        # self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
+        # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.joints_rads_low = self.joints_rads_low_lim
+        self.joints_rads_high = self.joints_rads_high_lim
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
@@ -351,7 +355,7 @@ class HexapodBulletEnv(gym.Env):
 
         velocity_rew = 1. / (abs(xd_av - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
         velocity_rew *= (0.3 / self.target_vel)
-        velocity_rew /= (1 + abs(q_yaw) * 3) # scale velocity reward by yaw deviation
+        velocity_rew = velocity_rew / (1 + abs(q_yaw) * 15.) # scale velocity reward by yaw deviation
 
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
@@ -363,7 +367,8 @@ class HexapodBulletEnv(gym.Env):
                     quantile_pen * 0.0 * self.training_difficulty + \
                     total_work_pen * 0.0 * self.training_difficulty + \
                     symmetry_torque_pen * 0.0 * self.training_difficulty
-            r_pos = velocity_rew * 10 + yaw_improvement_reward * 0.7
+            r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
+            print(velocity_rew * 10, yaw_improvement_reward * 10., q_yaw)
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
             r_neg = np.square(q_yaw) * 0.4 * self.training_difficulty + \
@@ -421,9 +426,9 @@ class HexapodBulletEnv(gym.Env):
         #             1 - self.training_difficulty)
         # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.joints_rads_low = self.joints_rads_low_lim
-        self.joints_rads_high = self.joints_rads_high_lim
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+        # self.joints_rads_low = self.joints_rads_low_lim
+        # self.joints_rads_high = self.joints_rads_high_lim
+        # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         #print("Training difficulty: {}, joints_low: {}, joints_high: {}".format(self.training_difficulty, self.joints_rads_low, self.joints_rads_high))
 

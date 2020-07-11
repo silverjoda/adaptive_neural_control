@@ -63,11 +63,10 @@ def train(env, policy, params):
 
         # Just completed an episode
         batch_ctr += 1
+        global_step_ctr += step_ctr
 
         # If enough data gathered, then perform update
         if batch_ctr == params["batchsize"]:
-            global_step_ctr += step_ctr
-
             batch_states = T.cat(batch_states)
             batch_new_states = T.cat(batch_new_states)
             batch_actions = T.cat(batch_actions)
@@ -209,8 +208,8 @@ if __name__=="__main__":
               "ppo_update_iters" : 1,
               "normalize_rewards": False,
               "symmetry_pen" : args[3],
-              "animate" : False,
-              "train" : True,
+              "animate" : True,
+              "train" : False,
               "note" : "Training: {}, {}, {}".format(args[1], args[2], args[3]),
               "ID" : ID}
 
@@ -237,7 +236,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "2PU" # TS7 straight (try on real hex)
+        policy_name = "UKK" # TS7 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))
