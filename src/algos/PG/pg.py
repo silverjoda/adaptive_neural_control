@@ -210,7 +210,7 @@ if __name__=="__main__":
               "normalize_rewards": False,
               "symmetry_pen" : args[3],
               "animate" : True,
-              "train" : False,
+              "train" : True,
               "note" : "Training: {}, {}, {}".format(args[1], args[2], args[3]),
               "ID" : ID}
 
