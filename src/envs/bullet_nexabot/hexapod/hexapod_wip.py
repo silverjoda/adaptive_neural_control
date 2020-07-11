@@ -364,19 +364,19 @@ class HexapodBulletEnv(gym.Env):
             r_neg = np.square(pitch) * 0.1 * self.training_difficulty + \
                     np.square(roll) * 0.1 * self.training_difficulty + \
                     np.square(zd) * 0.2 * self.training_difficulty + \
-                    quantile_pen * 0.0 * self.training_difficulty + \
-                    total_work_pen * 0.5 * self.training_difficulty + \
-                    symmetry_torque_pen * 0.0 * self.training_difficulty
+                    quantile_pen * 0.1 * self.training_difficulty + \
+                    total_work_pen * 0.3 * self.training_difficulty + \
+                    symmetry_torque_pen * 0.3 * self.training_difficulty
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
-            #print(velocity_rew * 10, yaw_improvement_reward * 10., q_yaw)
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
-            r_neg = np.square(q_yaw) * 0.4 * self.training_difficulty + \
-                    np.square(thd) * 0.1 * self.training_difficulty + \
-                    np.square(phid) * 0.1 * self.training_difficulty + \
-                    np.square(psid) * 0.1 * self.training_difficulty + \
-                    np.square(zd) * 0.03 * self.training_difficulty
-            r_pos = velocity_rew * 10
+            r_neg = np.square(pitch) * 0.0 * self.training_difficulty + \
+                    np.square(roll) * 0.0 * self.training_difficulty + \
+                    np.square(zd) * 0.2 * self.training_difficulty + \
+                    quantile_pen * 0.1 * self.training_difficulty + \
+                    total_work_pen * 0.3 * self.training_difficulty + \
+                    symmetry_torque_pen * 0.3 * self.training_difficulty
+            r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "turn_left":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3

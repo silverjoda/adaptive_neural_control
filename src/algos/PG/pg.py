@@ -194,7 +194,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -209,7 +209,7 @@ if __name__=="__main__":
               "normalize_rewards": False,
               "symmetry_pen" : args[3],
               "animate" : True,
-              "train" : False,
+              "train" : True,
               "note" : "Training: {}, {}, {}".format(args[1], args[2], args[3]),
               "ID" : ID}
 

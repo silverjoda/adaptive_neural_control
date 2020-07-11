@@ -56,7 +56,7 @@ if __name__ == "__main__":
         model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=30, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(800000))
+        model.learn(total_timesteps=int(1200000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("agents/a2c_mdl")
