@@ -53,10 +53,10 @@ if __name__ == "__main__":
         ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         env = SubprocVecEnv([make_env(params) for _ in range(8)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
-        model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=params["max_steps"], tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
+        model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=30, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(300000))
+        model.learn(total_timesteps=int(800000))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         model.save("agents/a2c_mdl")

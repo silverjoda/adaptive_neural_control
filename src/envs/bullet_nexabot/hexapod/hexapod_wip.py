@@ -318,7 +318,7 @@ class HexapodBulletEnv(gym.Env):
         qx, qy, qz, qw = torso_quat
 
         self.joint_angle_arr_list.append(joint_angles)
-        joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-30:])
+        joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
         joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
         left_quantiles = joint_angle_arr_quantiles[:, self.left_joints_ids]
         right_quantiles = joint_angle_arr_quantiles[:, self.right_joints_ids]
@@ -335,7 +335,7 @@ class HexapodBulletEnv(gym.Env):
         total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Cumulative mean work done per joint
-        joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-30:])
+        joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-15 - np.random.randint(0,20):])
         joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
 
         # Symmetry penalty
@@ -360,15 +360,16 @@ class HexapodBulletEnv(gym.Env):
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
 
+
         if self.training_mode == "straight":
-            r_neg = np.square(pitch) * 0.2 * self.training_difficulty + \
-                    np.square(roll) * 0.2 * self.training_difficulty + \
-                    np.square(zd) * 0.3 * self.training_difficulty + \
+            r_neg = np.square(pitch) * 0.1 * self.training_difficulty + \
+                    np.square(roll) * 0.1 * self.training_difficulty + \
+                    np.square(zd) * 0.2 * self.training_difficulty + \
                     quantile_pen * 0.0 * self.training_difficulty + \
-                    total_work_pen * 0.0 * self.training_difficulty + \
+                    total_work_pen * 0.5 * self.training_difficulty + \
                     symmetry_torque_pen * 0.0 * self.training_difficulty
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
-            print(velocity_rew * 10, yaw_improvement_reward * 10., q_yaw)
+            #print(velocity_rew * 10, yaw_improvement_reward * 10., q_yaw)
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
             r_neg = np.square(q_yaw) * 0.4 * self.training_difficulty + \
@@ -460,7 +461,7 @@ class HexapodBulletEnv(gym.Env):
                                     forces=[self.max_joint_force] * 18,
                                     physicsClientId=self.client_ID)
 
-        for i in range(10):
+        for i in range(30):
             p.stepSimulation(physicsClientId=self.client_ID)
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
