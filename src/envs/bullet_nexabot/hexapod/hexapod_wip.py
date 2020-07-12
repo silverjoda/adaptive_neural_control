@@ -44,12 +44,12 @@ class HexapodBulletEnv(gym.Env):
 
         # Simulation parameters
         self.max_joint_force = 1.4
-        self.target_vel = 0.2
+        self.target_vel = 0.15
         self.sim_steps_per_iter = 24
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.3
+        self.training_difficulty = 0.2
         self.training_difficulty_increment = 0.00003
 
         # Environment parameters
@@ -89,6 +89,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Episodal parameters
         self.step_ctr = 0
+        self.episode_ctr = 0
         self.xd_queue = []
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
@@ -215,14 +216,14 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 50 * self.training_difficulty
+            height = 40 * self.training_difficulty
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
             hm = np.zeros((N, M), dtype=np.float32)
 
-            scale_x = 20
-            scale_y = 20
+            scale_x = 15
+            scale_y = 15
             octaves = 4  # np.random.randint(1, 5)
             persistence = 1
             lacunarity = 2
@@ -317,6 +318,7 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
+
         self.joint_angle_arr_list.append(joint_angles)
         joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
         joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
@@ -364,18 +366,19 @@ class HexapodBulletEnv(gym.Env):
             r_neg = np.square(pitch) * 0.1 * self.training_difficulty + \
                     np.square(roll) * 0.1 * self.training_difficulty + \
                     np.square(zd) * 0.2 * self.training_difficulty + \
-                    quantile_pen * 0.1 * self.training_difficulty + \
-                    total_work_pen * 0.3 * self.training_difficulty + \
-                    symmetry_torque_pen * 0.3 * self.training_difficulty
+                    quantile_pen * 0.05 * self.training_difficulty * (self.step_ctr > 10) + \
+                    symmetry_torque_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10) + \
+                    total_work_pen * 0.2 * self.training_difficulty
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "straight_rough":
             r_neg = np.square(pitch) * 0.0 * self.training_difficulty + \
                     np.square(roll) * 0.0 * self.training_difficulty + \
-                    np.square(zd) * 0.2 * self.training_difficulty + \
-                    quantile_pen * 0.1 * self.training_difficulty + \
-                    total_work_pen * 0.3 * self.training_difficulty + \
-                    symmetry_torque_pen * 0.3 * self.training_difficulty
+                    np.square(zd) * 0.1 * self.training_difficulty + \
+                    quantile_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10) + \
+                    symmetry_torque_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10) + \
+                    total_work_pen * 0.1 * self.training_difficulty
+
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "turn_left":
@@ -414,11 +417,15 @@ class HexapodBulletEnv(gym.Env):
     def reset(self):
         # Reset episodal vars
         self.step_ctr = 0
+        self.episode_ctr += 0
         self.xd_queue = []
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1)
+
+        if self.episode_ctr % 1000 == 0:
+            print("--------- CURRENT TRAINING DIFFICULTY: {}".format(self.training_difficulty))
 
         # self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
         #             1 - self.training_difficulty)
@@ -575,7 +582,7 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=False, terrain_name="ramp_up")
+    env = HexapodBulletEnv(animate=True, terrain_name="perlin")
     env.demo_step()
 
     # TODO: Fix hexapod simulation forces and speed and compare to real platform to have correct everything

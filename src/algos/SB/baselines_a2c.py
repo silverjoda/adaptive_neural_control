@@ -24,18 +24,18 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000,
+    params = {"iters": 1500000,
               "batchsize": 60,
               "max_steps": 60,
               "gamma": 0.98,
-              "policy_lr": 0.0007,
+              "policy_lr": 0.003,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
@@ -44,22 +44,24 @@ if __name__ == "__main__":
               "train": True,
               "terrain" : args[1],
               "r_type": args[2],
-              "note": "Training: {}, {}".format(args[1], args[2]),
+              "note": "Training: {}, {}, |Straight, just range difficulty increase| ".format(args[1], args[2]),
               "ID": ID}
 
-    TRAIN = False
+    print(params)
+
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         env = SubprocVecEnv([make_env(params) for _ in range(8)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
-        model = A2C('MlpPolicy', env, learning_rate=0.003, verbose=1, n_steps=30, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
+        model = A2C('MlpPolicy', env, learning_rate=params["policy_lr"], verbose=1, n_steps=30, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(1200000))
+        model.learn(total_timesteps=int(params["iters"]))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
-        model.save("agents/a2c_mdl")
+        model.save("agents/{}_SB_policy".format(ID))
         del model
         env.close()
 
@@ -72,7 +74,7 @@ if __name__ == "__main__":
                   terrain_name=params["terrain"],
                   training_mode=params["r_type"])
     # Load the trained agent
-    model = A2C.load("agents/a2c_mdl")
+    model = A2C.load("agents/WAQ_SB_policy.zip")
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
