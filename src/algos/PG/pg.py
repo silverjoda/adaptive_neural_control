@@ -194,24 +194,27 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
+    args = ["None", "flat", "straight", "symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000,
+    params = {"iters": 8000000,
               "batchsize": 60,
-              "max_steps": 60,
-              "gamma": 0.98,
-              "policy_lr": 0.0007,
-              "weight_decay" : 0.0001,
-              "ppo_update_iters" : 1,
+              "max_steps": 100,
+              "gamma": 0.99,
+              "policy_lr": 0.003,
+              "weight_decay": 0.0001,
+              "ppo_update_iters": 1,
               "normalize_rewards": False,
-              "symmetry_pen" : args[3],
-              "animate" : True,
-              "train" : False,
-              "note" : "Training: {}, {}, {}".format(args[1], args[2], args[3]),
-              "ID" : ID}
+              "symmetry_pen": args[3],
+              "animate": False,
+              "variable_velocity": True,
+              "train": True,
+              "terrain": args[1],
+              "r_type": args[2],
+              "note": "Training: {}, {}, |Straight, just range difficulty increase| ".format(args[1], args[2]),
+              "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -223,7 +226,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2])
+    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2], variable_velocity=params["variable_velocity"])
 
     # from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     # env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
