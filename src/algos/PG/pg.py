@@ -208,9 +208,9 @@ if __name__=="__main__":
               "ppo_update_iters": 1,
               "normalize_rewards": False,
               "symmetry_pen": args[3],
-              "animate": False,
+              "animate": True,
               "variable_velocity": True,
-              "train": True,
+              "train": False,
               "terrain": args[1],
               "r_type": args[2],
               "note": "Training: {}, {}, |Straight, just range difficulty increase| ".format(args[1], args[2]),
@@ -226,10 +226,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=False, terrain_name=args[1], training_mode=args[2], variable_velocity=params["variable_velocity"])
-
-    # from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    # env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
+    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=True, terrain_name=args[1], training_mode=args[2], variable_velocity=params["variable_velocity"])
 
     # Test
     if params["train"]:
@@ -239,9 +236,10 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "0DN" # TS7 straight (try on real hex)
+        policy_name = "356" # TS7 straight (try on real hex)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
-        policy = policies.NN_PG(env, 96)
+        #policy = policies.NN_PG(env, 96)
+        policy = policies.PyTorchMlp(30, 18)
         policy.load_state_dict(T.load(policy_path))
         env.test(policy)
         print(policy_path)

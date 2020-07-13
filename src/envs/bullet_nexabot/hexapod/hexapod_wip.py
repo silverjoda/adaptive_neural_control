@@ -322,7 +322,6 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
-
         self.joint_angle_arr_list.append(joint_angles)
         joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
         joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
@@ -370,12 +369,12 @@ class HexapodBulletEnv(gym.Env):
             r_neg = np.square(pitch) * 0.2 * self.training_difficulty + \
                     np.square(roll) * 0.2 * self.training_difficulty + \
                     np.square(zd) * 0.2 * self.training_difficulty + \
-                    np.square(yd) * 0.2 * self.training_difficulty + \
+                    np.square(yd) * 0.5 * self.training_difficulty + \
                     quantile_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
                     symmetry_torque_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
                     total_work_pen * 0.3 * self.training_difficulty * (self.step_ctr > 10)
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
-            r = np.clip(r_pos - r_neg, -3, 3)
+            r = r_pos - r_neg
         elif self.training_mode == "straight_rough":
             r_neg = np.square(pitch) * 0.1 * self.training_difficulty + \
                     np.square(roll) * 0.1 * self.training_difficulty + \
@@ -386,15 +385,15 @@ class HexapodBulletEnv(gym.Env):
                     symmetry_torque_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10) + \
                     total_work_pen * 0.02 * self.training_difficulty
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
-            r = np.clip(r_pos - r_neg, -3, 3)
+            r = r_pos - r_neg
         elif self.training_mode == "turn_left":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
             r_pos = torso_angular_vel[2] * 7
-            r = np.clip(r_pos - r_neg, -3, 3)
+            r = r_pos - r_neg
         elif self.training_mode == "turn_right":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
             r_pos = -torso_angular_vel[2] * 7
-            r = np.clip(r_pos - r_neg, -3, 3)
+            r = r_pos - r_neg
         elif self.training_mode == "stairs":
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.0 + \
@@ -403,10 +402,14 @@ class HexapodBulletEnv(gym.Env):
             velocity_rew = 1. / (abs(xd_av - self.target_vel * 0.6) + 1.) - 1. / (self.target_vel * 0.6 + 1.)
             velocity_rew *= (0.3 / (self.target_vel * 0.6))
             r_pos = velocity_rew * 10
-            r = np.clip(r_pos - r_neg, -3, 3)
+            r = r_pos - r_neg
         else:
             print("No mode selected")
             exit()
+
+        if abs(r) > 3:
+            print("!!WARNING!! REWARD IS ABOVE |3|,  r = {}".format(r))
+        r = np.clip(r, -3, 3)
 
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
@@ -438,7 +441,7 @@ class HexapodBulletEnv(gym.Env):
             self.target_vel_nn_input = np.random.rand() * 2 - 1
             self.target_vel = 0.5 * (self.target_vel_nn_input + 1) * (max(self.target_vel_range) - min(self.target_vel_range)) + min(self.target_vel_range)
 
-        if self.force_target_velocity:
+        if self.force_target_velocity or True:
             self.target_vel = self.forced_target_vel
             self.target_vel_nn_input = 2 * ((self.target_vel - min(self.target_vel_range)) / (max(self.target_vel_range) - min(self.target_vel_range))) - 1
 

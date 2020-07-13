@@ -50,7 +50,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
@@ -62,6 +62,7 @@ if __name__ == "__main__":
         model.learn(total_timesteps=int(params["iters"]))
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
+        print(params)
         model.save("agents/{}_SB_policy".format(ID))
         del model
         env.close()
@@ -74,10 +75,10 @@ if __name__ == "__main__":
                   step_counter=True,
                   terrain_name=params["terrain"],
                   training_mode=params["r_type"],
-                  variable_velocity=False)
+                  variable_velocity=True)
 
     # Load the trained agent
-    model = A2C.load("agents/N4L_SB_policy.zip")
+    model = A2C.load("agents/356_SB_policy.zip") # 356, SFY
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

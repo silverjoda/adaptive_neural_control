@@ -239,3 +239,20 @@ class NN_PG_VF(nn.Module):
         x = self.fc3(x)
         return x
 
+class PyTorchMlp(nn.Module):
+
+    def __init__(self, n_inputs=30, n_actions=18):
+        nn.Module.__init__(self)
+
+        self.fc1 = nn.Linear(n_inputs, 96)
+        self.fc2 = nn.Linear(96, 96)
+        self.fc3 = nn.Linear(96, n_actions)
+        self.activ_fn = nn.Tanh()
+        self.out_activ = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        x = self.activ_fn(self.fc1(x))
+        x = self.activ_fn(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
