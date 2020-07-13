@@ -344,9 +344,9 @@ class HexapodBulletEnv(gym.Env):
         joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
 
         # Symmetry penalty
-        left_torque_mean = joint_work_done_floating_avg[self.left_joints_ids]
-        right_torque_mean = joint_work_done_floating_avg[self.right_joints_ids]
-        symmetry_torque_pen = np.mean(np.square(left_torque_mean - right_torque_mean))
+        left_work_mean = joint_work_done_floating_avg[self.left_joints_ids]
+        right_work_mean = joint_work_done_floating_avg[self.right_joints_ids]
+        symmetry_work_pen = np.mean(np.square(left_work_mean - right_work_mean))
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
@@ -371,7 +371,7 @@ class HexapodBulletEnv(gym.Env):
                     np.square(zd) * 0.2 * self.training_difficulty + \
                     np.square(yd) * 0.5 * self.training_difficulty + \
                     quantile_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
-                    symmetry_torque_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
+                    symmetry_work_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
                     total_work_pen * 0.3 * self.training_difficulty * (self.step_ctr > 10)
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
             r = r_pos - r_neg
