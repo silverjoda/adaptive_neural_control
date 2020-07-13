@@ -322,6 +322,12 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
+        scaled_joint_angles = self.scale_joints(joint_angles_skewed)
+        scaled_joint_angles_true = self.scale_joints(joint_angles)
+        print(joint_angles)
+
+        # TODO: CHECK JOINT ANGLES AND ACTIONS FOR SCALING, SOMETHING IS WRONG
+
         self.joint_angle_arr_list.append(joint_angles)
         joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
         joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
@@ -348,6 +354,17 @@ class HexapodBulletEnv(gym.Env):
         right_work_mean = joint_work_done_floating_avg[self.right_joints_ids]
         symmetry_work_pen = np.mean(np.square(left_work_mean - right_work_mean))
 
+        # Unsuitable position penalty
+        unsuitable_position_pen = 0
+        leg_pen = []
+        for i in range(6):
+            _, a1, a2 = scaled_joint_angles_true[i * 3: i * 3 + 3]
+            pen = np.maximum((np.sign(a1) * (a1 ** 2)) * (np.sign(a2) * (a2 ** 2)), 0)
+            unsuitable_position_pen += pen
+            leg_pen.append(pen)
+        #print(leg_pen)
+        #print(scaled_joint_angles)
+
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
@@ -370,20 +387,21 @@ class HexapodBulletEnv(gym.Env):
                     np.square(roll) * 0.2 * self.training_difficulty + \
                     np.square(zd) * 0.2 * self.training_difficulty + \
                     np.square(yd) * 0.5 * self.training_difficulty + \
-                    quantile_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
-                    symmetry_work_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10) + \
+                    quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10) + \
+                    symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10) + \
                     total_work_pen * 0.3 * self.training_difficulty * (self.step_ctr > 10)
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
             r = r_pos - r_neg
         elif self.training_mode == "straight_rough":
-            r_neg = np.square(pitch) * 0.1 * self.training_difficulty + \
-                    np.square(roll) * 0.1 * self.training_difficulty + \
-                    np.square(phid) * 0.1 * self.training_difficulty + \
-                    np.square(thd) * 0.1 * self.training_difficulty + \
+            r_neg = np.square(pitch) * 0.05 * self.training_difficulty + \
+                    np.square(roll) * 0.05 * self.training_difficulty + \
+                    np.square(phid) * 0.2 * self.training_difficulty + \
+                    np.square(thd) * 0.2 * self.training_difficulty + \
                     np.square(zd) * 0.1 * self.training_difficulty + \
-                    quantile_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10) + \
-                    symmetry_torque_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10) + \
-                    total_work_pen * 0.02 * self.training_difficulty
+                    np.square(yd) * 0.05 * self.training_difficulty + \
+                    quantile_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10) + \
+                    symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10) + \
+                    total_work_pen * 0.07 * self.training_difficulty
             r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
             r = r_pos - r_neg
         elif self.training_mode == "turn_left":
@@ -411,7 +429,6 @@ class HexapodBulletEnv(gym.Env):
             print("!!WARNING!! REWARD IS ABOVE |3|,  r = {}".format(r))
         r = np.clip(r, -3, 3)
 
-        scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
 
         if self.step_counter:
@@ -573,23 +590,23 @@ class HexapodBulletEnv(gym.Env):
             t1 = time.time()
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,0,0] * 6)
-            print(obs[:18])
+            #print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,-1,-1] * 6)
-            print(obs[:18])
+            #print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([0,1,1] * 6)
-            print(obs[:18])
+            #print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([1,0,0] * 6)
-            print(obs[:18])
+            #print(obs[:18])
 
             for j in range(n_rep):
                 obs, _, _, _ = self.step([-1,0,0] * 6)
-            print(obs[:18])
+            #print(obs[:18])
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))
 

@@ -25,14 +25,14 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 8000000,
+    params = {"iters": 14000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -78,7 +78,7 @@ if __name__ == "__main__":
                   variable_velocity=True)
 
     # Load the trained agent
-    model = A2C.load("agents/356_SB_policy.zip") # 356, SFY
+    model = A2C.load("agents/VZT_SB_policy.zip") # 356, SFY, VZT
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
