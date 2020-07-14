@@ -53,7 +53,6 @@ if __name__ == "__main__":
     TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
-        ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
         env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
         model = A2C('MlpPolicy', env, learning_rate=params["policy_lr"], verbose=1, n_steps=30, tensorboard_log="/tmp", gamma=params["gamma"], policy_kwargs=policy_kwargs)
@@ -63,7 +62,7 @@ if __name__ == "__main__":
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         print(params)
-        model.save("agents/{}_SB_policy".format(ID))
+        model.save("agents/{}_SB_policy".format(params["ID"]))
         del model
         env.close()
 
@@ -78,7 +77,7 @@ if __name__ == "__main__":
                   variable_velocity=True)
 
     # Load the trained agent
-    model = A2C.load("agents/VZT_SB_policy.zip") # 356, SFY, VZT
+    model = A2C.load("agents/U4M_SB_policy.zip") # 356, SFY, VZT
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
