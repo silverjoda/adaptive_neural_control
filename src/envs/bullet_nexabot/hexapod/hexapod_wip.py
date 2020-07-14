@@ -43,6 +43,8 @@ class HexapodBulletEnv(gym.Env):
         self.env_change_prob = 0.1
         self.walls = False
 
+        #TODO: Find out why variable velocity is being ignored!!
+
         # Simulation parameters
         self.max_joint_force = 1.4
         self.forced_target_vel = 0.30
@@ -428,7 +430,7 @@ class HexapodBulletEnv(gym.Env):
                      "total_work_pen": np.minimum(
                          total_work_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10), 1),
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0}
-            r_pos = {"velocity_rew": np.clip(velocity_rew * 4, 1, 1),
+            r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 7., -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())

@@ -32,7 +32,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 900000,
+    params = {"iters": 9000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -42,7 +42,7 @@ if __name__ == "__main__":
               "normalize_rewards": False,
               "symmetry_pen": args[3],
               "animate": False,
-              "variable_velocity": True,
+              "variable_velocity": False,
               "train": True,
               "terrain" : args[1],
               "r_type": args[2],
@@ -50,7 +50,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
