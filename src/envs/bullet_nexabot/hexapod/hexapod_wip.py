@@ -417,8 +417,8 @@ class HexapodBulletEnv(gym.Env):
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
         elif self.training_mode == "straight_rough":
-            r_neg = {"pitch": np.square(pitch) * 0.02 * self.training_difficulty,
-                     "roll": np.square(roll) * 0.02 * self.training_difficulty,
+            r_neg = {"pitch": np.square(pitch) * 0.01 * self.training_difficulty,
+                     "roll": np.square(roll) * 0.01 * self.training_difficulty,
                      "zd": np.square(zd) * 0.1 * self.training_difficulty,
                      "yd": np.square(yd) * 0.1 * self.training_difficulty,
                      "phid": np.square(phid) * 0.1 * self.training_difficulty,
