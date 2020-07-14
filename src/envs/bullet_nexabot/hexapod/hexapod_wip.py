@@ -407,11 +407,12 @@ class HexapodBulletEnv(gym.Env):
                     "ud" : np.square(yd) * 0.3 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10),
-                    "total_work_pen" : np.minimum(total_work_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10), 1),
-                    "unsuitable_position_pen" : unsuitable_position_pen * 0.5}
-            r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, 1, 1), "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 7., -1, 1)}
+                    "total_work_pen" : np.minimum(total_work_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "unsuitable_position_pen" : unsuitable_position_pen * 0.3}
+            r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1), "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 5., -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
+            #print(r_pos, r_neg)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))

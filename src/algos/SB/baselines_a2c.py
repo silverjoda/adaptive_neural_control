@@ -32,7 +32,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 700000,
+    params = {"iters": 7000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -77,7 +77,7 @@ if __name__ == "__main__":
                   variable_velocity=True)
 
     # Load the trained agent
-    model = A2C.load("agents/U4M_SB_policy.zip") # 356, SFY, VZT
+    model = A2C.load("agents/74S_SB_policy.zip") # 356, SFY, VZT
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
