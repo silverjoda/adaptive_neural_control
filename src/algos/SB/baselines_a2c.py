@@ -32,7 +32,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 12000000,
+    params = {"iters": 900000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -50,7 +50,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
@@ -63,7 +63,6 @@ if __name__ == "__main__":
         print("Training time: {}".format(t2-t1))
         print(params)
         model.save("agents/{}_SB_policy".format(params["ID"]))
-        del model
         env.close()
 
     if socket.gethostname() == "goedel":
@@ -76,8 +75,9 @@ if __name__ == "__main__":
                   training_mode=params["r_type"],
                   variable_velocity=True)
 
-    # Load the trained agent
-    model = A2C.load("agents/74S_SB_policy.zip") # 356, SFY, VZT
+    if not TRAIN:
+        model = A2C.load("agents/T92_SB_policy.zip")  # 356, SFY, VZT
+
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
