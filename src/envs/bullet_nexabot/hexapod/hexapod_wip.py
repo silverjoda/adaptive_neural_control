@@ -61,16 +61,16 @@ class HexapodBulletEnv(gym.Env):
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
-        self.joints_rads_low_lim = np.array([-0.3, -1.4, 0.7] * 6)
-        self.joints_rads_high_lim = np.array([0.3, 0.0, 1.2] * 6)
-        self.joints_rads_midpoint = 0.5 * (self.joints_rads_high_lim + self.joints_rads_low_lim)
+        #self.joints_rads_low_lim = np.array([-0.3, -1.4, 0.7] * 6)
+        #self.joints_rads_high_lim = np.array([0.3, 0.0, 1.2] * 6)
+        #self.joints_rads_midpoint = 0.5 * (self.joints_rads_high_lim + self.joints_rads_low_lim)
 
         # self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
         # self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
         # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.joints_rads_low = self.joints_rads_low_lim
-        self.joints_rads_high = self.joints_rads_high_lim
+        self.joints_rads_low = np.array([-0.4, -1.2, 0.8] * 6)
+        self.joints_rads_high = np.array([0.4, -0.2, 1.4] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
@@ -79,11 +79,14 @@ class HexapodBulletEnv(gym.Env):
         self.left_joints_ids = [0,1,2,6,7,8,12,13,14]
         self.right_joints_ids = [3,4,5,9,10,11,15,16,17]
 
+        # TODO: Make absolute joint limits script for URDF modification
+        # TODO: See what the overhead is if setting the motors individually with velocity limit
+
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod_wip.urdf"), physicsClientId=self.client_ID)
+        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod_wip_scaled.urdf"), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
         # Change contact friction for legs and torso
@@ -98,6 +101,15 @@ class HexapodBulletEnv(gym.Env):
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
+
+        # Check joint limits
+        read_joint_limits = [p.getJointInfo(self.robot, i, self.client_ID)[8:10] for i in range(18)]
+        for i in range(6):
+            triplet = read_joint_limits[i*3:i*3+3]
+            assert triplet[0] == (self.joints_rads_low[0],self.joints_rads_high[0])
+            assert triplet[1] == (self.joints_rads_low[1], self.joints_rads_high[1])
+            assert triplet[2] == (self.joints_rads_low[2], self.joints_rads_high[2])
+        print("Read joint limits: {}".format(read_joint_limits))
 
     def make_heightfield(self, height_map=None):
         if hasattr(self, 'terrain'):
@@ -300,8 +312,8 @@ class HexapodBulletEnv(gym.Env):
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
                                     forces=[self.max_joint_force] * 18,
-                                    positionGains=[0.003] * 18,
-                                    velocityGains=[0.03] * 18,
+                                    positionGains=[0.007] * 18,
+                                    velocityGains=[0.1] * 18,
                                     physicsClientId=self.client_ID)
 
         leg_ctr = 0
@@ -324,9 +336,6 @@ class HexapodBulletEnv(gym.Env):
 
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
-        print(joint_angles)
-
-        # TODO: CHECK JOINT ANGLES AND ACTIONS FOR SCALING, SOMETHING IS WRONG
 
         self.joint_angle_arr_list.append(joint_angles)
         joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
@@ -362,8 +371,6 @@ class HexapodBulletEnv(gym.Env):
             pen = np.maximum((np.sign(a1) * (a1 ** 2)) * (np.sign(a2) * (a2 ** 2)), 0)
             unsuitable_position_pen += pen
             leg_pen.append(pen)
-        #print(leg_pen)
-        #print(scaled_joint_angles)
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
@@ -572,41 +579,74 @@ class HexapodBulletEnv(gym.Env):
                 time.sleep(0.004)
 
 
-
     def demo_step(self):
-
-        # for i in range(1000):
-        #     p.resetBasePositionAndOrientation(self.robot, [0, 0, .25], [0.0, 0.16, -0.39, 0.91], physicsClientId=self.client_ID) # x,y,z,w
-        #     time.sleep(0.004)
-        #
-        # for i in range(1000):
-        #     p.resetBasePositionAndOrientation(self.robot, [0, 0, .25], [0.0, -0.16, -0.39, -0.91], physicsClientId=self.client_ID)
-        #     time.sleep(0.004)
-        # exit()
-
         self.reset()
-        n_rep = 30
+        n_rep = 20
         for i in range(100):
             t1 = time.time()
             for j in range(n_rep):
-                obs, _, _, _ = self.step([0,0,0] * 6)
-            #print(obs[:18])
+                scaled_obs, _, _, _ = self.step([0,0,0] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [0,0,0] * 6)
+            print("scaled action: ", self.scale_action([0,0,0] * 6))
+            #input()
 
             for j in range(n_rep):
-                obs, _, _, _ = self.step([0,-1,-1] * 6)
-            #print(obs[:18])
+                scaled_obs, _, _, _ = self.step([0,-1,-1] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [0,-1,-1] * 6)
+            print("scaled action: ", self.scale_action([0,-1,-1] * 6))
+            #input()
 
             for j in range(n_rep):
-                obs, _, _, _ = self.step([0,1,1] * 6)
-            #print(obs[:18])
+                scaled_obs, _, _, _ = self.step([0,1,1] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [0,1,1] * 6)
+            print("scaled action: ", self.scale_action([0,1,1] * 6))
+            #input()
 
             for j in range(n_rep):
-                obs, _, _, _ = self.step([1,0,0] * 6)
-            #print(obs[:18])
+                scaled_obs, _, _, _ = self.step([1,0,0] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [1,0,0] * 6)
+            print("scaled action: ", self.scale_action([1,0,0] * 6))
+            #input()
 
             for j in range(n_rep):
-                obs, _, _, _ = self.step([-1,0,0] * 6)
-            #print(obs[:18])
+                scaled_obs, _, _, _ = self.step([-1,0,0] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [-1,0,0] * 6)
+            print("scaled action: ", self.scale_action([-1,0,0] * 6))
+            #input()
+
+            for j in range(n_rep):
+                scaled_obs, _, _, _ = self.step([0,-1,1] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [0,-1,-1] * 6)
+            print("scaled action: ", self.scale_action([0,-1,-1] * 6))
+            #input()
+
+            for j in range(n_rep):
+                scaled_obs, _, _, _ = self.step([0,1,-1] * 6)
+            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+            print("Obs: ", joint_angles)
+            print("Scaled obs: ", self.scale_joints(joint_angles))
+            print("For action: ", [0,1,1] * 6)
+            print("scaled action: ", self.scale_action([0,1,1] * 6))
+            #input()
+
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))
 
@@ -616,5 +656,3 @@ class HexapodBulletEnv(gym.Env):
 if __name__ == "__main__":
     env = HexapodBulletEnv(animate=True, terrain_name="flat")
     env.demo_step()
-
-    # TODO: Fix hexapod simulation forces and speed and compare to real platform to have correct everything
