@@ -45,7 +45,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Simulation parameters
         self.max_joint_force = 1.4
-        self.forced_target_vel = 0.15
+        self.forced_target_vel = 0.30
         self.target_vel = 0.15
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
