@@ -401,16 +401,21 @@ class HexapodBulletEnv(gym.Env):
         self.prev_yaw_dev = q_yaw
 
         if self.training_mode == "straight":
-            r_neg = np.square(pitch) * 0.2 * self.training_difficulty + \
-                    np.square(roll) * 0.2 * self.training_difficulty + \
-                    np.square(zd) * 0.2 * self.training_difficulty + \
-                    np.square(yd) * 0.5 * self.training_difficulty + \
-                    quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10) + \
-                    symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10) + \
-                    total_work_pen * 0.3 * self.training_difficulty * (self.step_ctr > 10) + \
-                    unsuitable_position_pen * 0.0
-            r_pos = velocity_rew * 10 + yaw_improvement_reward * 7.
-            r = r_pos - r_neg
+            r_neg = {"pitch" : np.square(pitch) * 0.2 * self.training_difficulty,
+                    "roll" : np.square(roll) * 0.2 * self.training_difficulty,
+                    "zd" : np.square(zd) * 0.2 * self.training_difficulty,
+                    "ud" : np.square(yd) * 0.5 * self.training_difficulty,
+                    "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
+                    "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
+                    "total_work_pen" : total_work_pen * 0.3 * self.training_difficulty * (self.step_ctr > 10),
+                    "unsuitable_position_pen" : unsuitable_position_pen * 0.0}
+            r_pos = {"velocity_rew" : velocity_rew * 10, "yaw_improvement_reward" :  yaw_improvement_reward * 7.}
+            r_pos_sum = sum(r_pos.values())
+            r_neg_sum = sum(r_neg.values())
+            r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
+            if abs(r_pos_sum) > 3 or abs(r_neg_sum):
+                print("!!WARNING!! REWARD IS ABOVE |3|,  rpos = {}, rneg = {}".format(r_pos, r_neg))
+
         elif self.training_mode == "straight_rough":
             r_neg = np.square(pitch) * 0.05 * self.training_difficulty + \
                     np.square(roll) * 0.05 * self.training_difficulty + \
@@ -444,9 +449,7 @@ class HexapodBulletEnv(gym.Env):
             print("No mode selected")
             exit()
 
-        if abs(r) > 3:
-            print("!!WARNING!! REWARD IS ABOVE |3|,  r = {}".format(r))
-        r = np.clip(r, -3, 3)
+
 
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
 
