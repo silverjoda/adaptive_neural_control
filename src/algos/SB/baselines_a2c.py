@@ -76,9 +76,9 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/62W_SB_policy.zip")  # 356, SFY, VZT
+        model = A2C.load("agents/XSF_SB_policy.zip")  # 356, SFY, VZT
 
-    print(evaluate_policy(model, env, n_eval_episodes=3))
+    #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
     for _ in range(100):
