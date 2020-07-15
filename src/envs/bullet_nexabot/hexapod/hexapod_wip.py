@@ -326,7 +326,7 @@ class HexapodBulletEnv(gym.Env):
                                     force=self.max_joint_force,
                                     positionGain=0.1,
                                     velocityGain=0.1,
-                                    maxVelocity=3.0,
+                                    maxVelocity=2.0,
                                     physicsClientId=self.client_ID)
 
         leg_ctr = 0
@@ -346,6 +346,7 @@ class HexapodBulletEnv(gym.Env):
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
+
 
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
@@ -409,7 +410,7 @@ class HexapodBulletEnv(gym.Env):
                     "yd" : np.square(yd) * 0.3 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                    "total_work_pen" : np.minimum(total_work_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "total_work_pen" : np.minimum(total_work_pen * 0.07 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.1 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1), "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 5., -1, 1)}
             r_pos_sum = sum(r_pos.values())
@@ -419,21 +420,22 @@ class HexapodBulletEnv(gym.Env):
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
         elif self.training_mode == "straight_rough":
-            r_neg = {"pitch": np.square(pitch) * 0.01 * self.training_difficulty,
-                     "roll": np.square(roll) * 0.01 * self.training_difficulty,
-                     "zd": np.square(zd) * 0.1 * self.training_difficulty,
-                     "yd": np.square(yd) * 0.1 * self.training_difficulty,
-                     "phid": np.square(phid) * 0.1 * self.training_difficulty,
-                     "thd": np.square(thd) * 0.1 * self.training_difficulty,
+            r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
+                     "roll": np.square(roll) * 0.0 * self.training_difficulty,
+                     "zd": np.square(zd) * 0.05 * self.training_difficulty,
+                     "yd": np.square(yd) * 0.05 * self.training_difficulty,
+                     "phid": np.square(phid) * 0.03 * self.training_difficulty,
+                     "thd": np.square(thd) * 0.03 * self.training_difficulty,
                      "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                      "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.05 * self.training_difficulty * (self.step_ctr > 10), 1),
+                         total_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10), 1),
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 7., -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
+            #print(r_pos, r_neg)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos,
@@ -469,7 +471,12 @@ class HexapodBulletEnv(gym.Env):
 
         self.step_ctr += 1
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
+
         done = self.step_ctr > self.max_steps or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+
+        if abs(torso_pos[0]) > 3 or abs(torso_pos[1]) > 2.5:
+            print("WARNING: TORSO OUT OF RANGE!!")
+            done = True
 
         return env_obs, r, done, {}
 

@@ -50,7 +50,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
@@ -73,10 +73,10 @@ if __name__ == "__main__":
                   step_counter=True,
                   terrain_name=params["terrain"],
                   training_mode=params["r_type"],
-                  variable_velocity=True)
+                  variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/T92_SB_policy.zip")  # 356, SFY, VZT
+        model = A2C.load("agents/62W_SB_policy.zip")  # 356, SFY, VZT
 
     print(evaluate_policy(model, env, n_eval_episodes=3))
 
