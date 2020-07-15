@@ -408,6 +408,8 @@ class HexapodBulletEnv(gym.Env):
                     "roll" : np.square(roll) * 0.1 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.1 * self.training_difficulty,
                     "yd" : np.square(yd) * 0.3 * self.training_difficulty,
+                    "phid": np.square(phid) * 0.1 * self.training_difficulty,
+                    "thd": np.square(thd) * 0.1 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "total_work_pen" : np.minimum(total_work_pen * 0.07 * self.training_difficulty * (self.step_ctr > 10), 1),
