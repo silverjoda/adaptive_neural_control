@@ -25,7 +25,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    args = ["None", "flat", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -50,12 +50,12 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
-        model = A2C('MlpPolicy', env, learning_rate=params["policy_lr"], verbose=1, n_steps=30, tensorboard_log="/tmp", gamma=params["gamma"], policy_kwargs=policy_kwargs)
+        model = A2C('MlpPolicy', env, learning_rate=params["policy_lr"], verbose=1, n_steps=30, tensorboard_log="/tmp", full_tensorboard_log=True, gamma=params["gamma"], policy_kwargs=policy_kwargs)
         # Train the agent
         t1 = time.time()
         model.learn(total_timesteps=int(params["iters"]))
