@@ -5,6 +5,7 @@ Hexapod:
 # TODO: Add joint range increase as difficulty increases to regularize the movements <- IP
 # TODO: Fit contacts using simple function
 # TODO: Penalize slippage
+# TODO: Check that velocity is properly normalized across all target_velociteis
 
 Adaptation research:
 # TODO: Make model based sensitivity propagation as advantage estimator

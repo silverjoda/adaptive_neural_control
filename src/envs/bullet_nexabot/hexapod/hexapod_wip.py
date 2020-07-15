@@ -40,10 +40,11 @@ class HexapodBulletEnv(gym.Env):
         self.replace_envs = False
         self.env_width = 60
         self.env_length = self.max_steps
-        self.env_change_prob = 0.1
+        self.env_change_prob = 0.0
         self.walls = False
 
         #TODO: Find out why variable velocity is being ignored!!
+        # TODO: Find out why perlin isn't training
 
         # Simulation parameters
         self.max_joint_force = 1.4
@@ -55,7 +56,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.2
+        self.training_difficulty = 1.0
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -141,7 +142,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "tiles":
             sf = 4
-            hm = np.random.randint(0, 20 * self.training_difficulty,
+            hm = np.random.randint(0, 15 * self.training_difficulty,
                                    size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -234,7 +235,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 40 * self.training_difficulty
+            height = 30 * self.training_difficulty
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
@@ -400,6 +401,8 @@ class HexapodBulletEnv(gym.Env):
         velocity_rew *= (0.3 / self.target_vel)
         velocity_rew = velocity_rew / (1 + abs(q_yaw) * 15.) # scale velocity reward by yaw deviation
 
+        # TODO: Check that velocithy is properly normalized across all target_velociteis
+
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
 
@@ -489,7 +492,7 @@ class HexapodBulletEnv(gym.Env):
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
-        self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1)
+        self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
 
         # Calculate target velocity
         if self.variable_velocity:
@@ -559,132 +562,25 @@ class HexapodBulletEnv(gym.Env):
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 
-    def demo(self):
+
+    def test_leg_coordination(self):
         self.reset()
-
-        n_rep = 600
-        force = 2
-        for i in range(100):
-
-            for j in range(n_rep):
-                p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(18),
-                                            controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[0.5] * 18,
-                                            forces=[force] * 18,
-                                            physicsClientId=self.client_ID)
-
-                p.stepSimulation(physicsClientId=self.client_ID)
-                time.sleep(0.004)
-
-            for j in range(n_rep):
-                p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(18),
-                                            controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[-0.5] * 18,
-                                            forces=[force] * 18,
-                                            physicsClientId=self.client_ID)
-
-                p.stepSimulation(physicsClientId=self.client_ID)
-                time.sleep(0.004)
-
-            for j in range(n_rep):
-                p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(18),
-                                            controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[0,2,-2] * 6,
-                                            forces=[force] * 18,
-                                            physicsClientId=self.client_ID)
-                p.stepSimulation(physicsClientId=self.client_ID)
-                time.sleep(0.004)
-
-            for j in range(n_rep):
-                p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                            jointIndices=range(18),
-                                            controlMode=p.POSITION_CONTROL,
-                                            targetPositions=[0,-2,2] * 6,
-                                            forces=[force] * 18,
-                                            physicsClientId=self.client_ID)
-
-                p.stepSimulation(physicsClientId=self.client_ID)
-                time.sleep(0.004)
-
-
-    def demo_step(self):
-        self.reset()
-        n_rep = 20
-        VERBOSE=False
-        for i in range(100):
+        n_steps = 30
+        VERBOSE=True
+        while True:
             t1 = time.time()
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([0,0,0] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [0,0,0] * 6)
-                print("scaled action: ", self.scale_action([0,0,0] * 6))
-                #input()
-
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([0,-1,-1] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [0,-1,-1] * 6)
-                print("scaled action: ", self.scale_action([0,-1,-1] * 6))
-                #input()
-
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([0,1,1] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [0,1,1] * 6)
-                print("scaled action: ", self.scale_action([0,1,1] * 6))
-                #input()
-
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([1,0,0] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [1,0,0] * 6)
-                print("scaled action: ", self.scale_action([1,0,0] * 6))
-                #input()
-
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([-1,0,0] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [-1,0,0] * 6)
-                print("scaled action: ", self.scale_action([-1,0,0] * 6))
-                #input()
-
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([0,-1,1] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [0,-1,-1] * 6)
-                print("scaled action: ", self.scale_action([0,-1,-1] * 6))
-                #input()
-
-            for j in range(n_rep):
-                scaled_obs, _, _, _ = self.step([0,1,-1] * 6)
-            _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
-            if VERBOSE:
-                print("Obs: ", joint_angles)
-                print("Scaled obs: ", self.scale_joints(joint_angles))
-                print("For action: ", [0,1,1] * 6)
-                print("scaled action: ", self.scale_action([0,1,1] * 6))
-                #input()
+            sc = 1.0
+            test_acts = [[0, 0, 0], [0, sc, sc], [0, -sc, -sc], [0, sc, -sc], [0, -sc, sc], [sc, 0, 0], [-sc, 0, 0]]
+            for i, a in enumerate(test_acts):
+                for j in range(n_steps):
+                    scaled_obs, _, _, _ = self.step(a * 6)
+                _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+                if VERBOSE:
+                    print("Obs rads: ", joint_angles)
+                    print("Obs normed: ", self.scale_joints(joint_angles))
+                    print("For action rads: ", self.scale_action(a * 6))
+                    print("action normed: ", a)
+                    input()
 
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))
@@ -694,4 +590,4 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     env = HexapodBulletEnv(animate=True, terrain_name="flat")
-    env.demo_step()
+    env.test_leg_coordination()

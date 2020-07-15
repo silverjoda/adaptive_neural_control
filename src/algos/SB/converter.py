@@ -19,7 +19,7 @@ import torch as T
 
 class PyTorchMlp(nn.Module):
 
-    def __init__(self, n_inputs=30, n_actions=18):
+    def __init__(self, n_inputs=29, n_actions=18):
         nn.Module.__init__(self)
 
         self.fc1 = nn.Linear(n_inputs, 96)
@@ -35,7 +35,7 @@ class PyTorchMlp(nn.Module):
         return x
 
 def copy_mlp_weights(baselines_model):
-    torch_mlp = PyTorchMlp(n_inputs=30, n_actions=18)
+    torch_mlp = PyTorchMlp(n_inputs=29, n_actions=18)
     model_params = baselines_model.get_parameters()
 
     policy_keys = [key for key in model_params.keys() if "pi" in key or "shared" in key]
@@ -50,7 +50,7 @@ def copy_mlp_weights(baselines_model):
 
     return torch_mlp
 
-policy_name = "356"
+policy_name = "XSF"
 policy_path = 'agents/{}_SB_policy'.format(policy_name)
 model = A2C.load(policy_path)
 print("Loading policy from: {}".format(policy_path))
