@@ -1,8 +1,8 @@
 Hexapod:
 # TODO: Add goal environment
 # TODO: Tune training process for the whole policy suite
-# TODO: Add difficulty curriculum to rough= and ->>> stairs envs<--- <- IP
-# TODO: Add joint range increase as difficulty increases to regularize the movements <- IP
+# TODO: Add difficulty curriculum to rough= and ->>> stairs envs<---
+# TODO: Add joint range increase as difficulty increases to regularize the movements
 # TODO: Fit contacts using simple function
 # TODO: Penalize slippage
 # TODO: Check that velocity is properly normalized across all target_velociteis

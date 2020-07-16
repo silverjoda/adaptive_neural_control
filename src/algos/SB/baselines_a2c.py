@@ -26,14 +26,14 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
+    args = ["None", "flat", "straight", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 6000000,
+    params = {"iters": 1000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -47,14 +47,16 @@ if __name__ == "__main__":
               "train": True,
               "terrain" : args[1],
               "r_type": args[2],
-              "note": "Training: {}, {}, |Straight, just range difficulty increase| ".format(args[1], args[2]),
+              "note": "Training: {}, {}, |Perlin @ 30 height, no neg pen and low turn pen, new hyperparams, with callbacks| ".format(args[1], args[2]),
               "ID": ID}
 
     print(params)
     TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
-        env = SubprocVecEnv([make_env(params) for _ in range(8)], start_method='fork')
+        n_envs = 6
+        if socket.gethostname() == "goedel": n_envs = 8
+        env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
 
         model = A2C('MlpPolicy',
@@ -71,11 +73,11 @@ if __name__ == "__main__":
                     policy_kwargs=policy_kwargs)
 
         # Save a checkpoint every 1000000 steps
-        checkpoint_callback = CheckpointCallback(save_freq=1000000, save_path='./agents_cp/',
+        checkpoint_callback = CheckpointCallback(save_freq=30000, save_path='agents_cp/',
                                                  name_prefix=params["ID"], verbose=1)
 
-        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='./agents_best/',
-                                     eval_freq=500000,
+        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='agents_best/',
+                                     eval_freq=100000,
                                      deterministic=True,
                                      render=False)
 

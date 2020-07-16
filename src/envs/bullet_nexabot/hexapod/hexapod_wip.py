@@ -10,6 +10,23 @@ import gym
 from gym import spaces
 from opensimplex import OpenSimplex
 
+import torch as T
+import torch.nn as nn
+import torch.nn.functional as F
+
+class ContactReg(nn.Module):
+    def __init__(self, n_inputs=3, n_actions=2):
+        nn.Module.__init__(self)
+        n_hidden = 6
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.Linear(n_hidden, n_actions)
+        self.activ_fn = nn.Tanh()
+        self.out_activ = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        x = self.activ_fn(self.fc1(x))
+        x = self.fc2(x)
+        return x
 
 # To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]
 
@@ -50,14 +67,14 @@ class HexapodBulletEnv(gym.Env):
         # Simulation parameters
         self.max_joint_force = 1.4
         self.forced_target_vel = 0.3
-        self.target_vel = 0.15
+        self.target_vel = 0.3
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
         self.sim_steps_per_iter = 24
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 1.0
+        self.training_difficulty = 0.99
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -118,6 +135,12 @@ class HexapodBulletEnv(gym.Env):
             assert triplet[1] == (self.joints_rads_low[1], self.joints_rads_high[1])
             assert triplet[2] == (self.joints_rads_low[2], self.joints_rads_high[2])
         print("Read joint limits: {}".format(read_joint_limits))
+
+        # Contact regression
+        self.contact_reg_nn = ContactReg()
+        self.contact_reg_optim = T.optim.Adam(params=self.contact_reg_nn.parameters(), lr=0.005, weight_decay=0.0001)
+        self.contact_reg_dataset = []
+        self.contact_reg_batchsize = 240
 
     def make_heightfield(self, height_map=None):
         if hasattr(self, 'terrain'):
@@ -391,6 +414,9 @@ class HexapodBulletEnv(gym.Env):
             unsuitable_position_pen += pen
             leg_pen.append(pen)
 
+        # Contact penalty
+        contact_rew = np.mean((np.array(contacts) + 1. / 2.))
+
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
@@ -421,7 +447,9 @@ class HexapodBulletEnv(gym.Env):
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "total_work_pen" : np.minimum(total_work_pen * 0.07 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.1 * self.training_difficulty}
-            r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1), "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 5., -1, 1)}
+            r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
+                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 5., -1, 1),
+                     "contact_rew" : contact_rew * 0}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
             #print(r_pos, r_neg)
@@ -488,6 +516,21 @@ class HexapodBulletEnv(gym.Env):
         if abs(torso_pos[0]) > 3 or abs(torso_pos[1]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
+
+        # Contact regression stuff
+        reg_torques = joint_torques#
+        training_examples = [[reg_torques[i*3:i*3+3], (contacts[i] + 1.) / 2.] for i in range(6)]
+        self.contact_reg_dataset.extend(training_examples)
+        if len(self.contact_reg_dataset) > self.contact_reg_batchsize and False:
+            dataset = random.choices(self.contact_reg_dataset, k=self.contact_reg_batchsize)
+            X = T.Tensor(np.array([vec[0] for vec in dataset]))
+            Y = T.tensor([vec[1] for vec in dataset], dtype=T.int64)
+            pred = self.contact_reg_nn(X)
+            loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(Y, num_classes=2).double())
+            print("Contact reg loss: {}".format(loss))
+            self.contact_reg_optim.zero_grad()
+            loss.backward()
+            self.contact_reg_optim.step()
 
         return env_obs, r, done, {}
 
@@ -584,6 +627,7 @@ class HexapodBulletEnv(gym.Env):
             test_acts = [[0, 0, 0], [0, sc, sc], [0, -sc, -sc], [0, sc, -sc], [0, -sc, sc], [sc, 0, 0], [-sc, 0, 0]]
             for i, a in enumerate(test_acts):
                 for j in range(n_steps):
+                    a = list(np.random.randn(3))
                     scaled_obs, _, _, _ = self.step(a * 6)
                 _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
                 if VERBOSE:
