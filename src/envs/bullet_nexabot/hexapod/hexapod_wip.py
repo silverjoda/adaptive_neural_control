@@ -147,7 +147,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "tiles":
             sf = 4
-            hm = np.random.randint(0, 0 * self.training_difficulty, # 15
+            hm = np.random.randint(0, 15 * self.training_difficulty, # 15
                                    size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -240,7 +240,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 15 * self.training_difficulty # 30-40
+            height = 30 * self.training_difficulty # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
@@ -468,6 +468,7 @@ class HexapodBulletEnv(gym.Env):
             print("No mode selected")
             exit()
 
+        # Assemble agent observation
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
 
         if self.step_counter:
@@ -479,7 +480,10 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr += 1
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
-        done = self.step_ctr > self.max_steps or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+        done = self.step_ctr > self.max_steps # or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+
+        if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
+            print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
 
         if abs(torso_pos[0]) > 3 or abs(torso_pos[1]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")

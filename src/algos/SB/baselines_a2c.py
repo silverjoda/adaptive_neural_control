@@ -51,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         env = SubprocVecEnv([make_env(params) for _ in range(8)], start_method='fork')
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/XSF_SB_policy.zip")
+        model = A2C.load("agents/QIK_SB_policy.zip")
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
