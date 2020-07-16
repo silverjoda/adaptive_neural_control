@@ -1,6 +1,6 @@
 import fnmatch
 NO_LIMITS = False
-joint_limits = {"coxa" : [-0.4, 0.4],"femur" : [-1.2, -0.2],"tibia" : [0.8, 1.4]}
+joint_limits = {"coxa" : [-0.4, 0.4],"femur" : [-1.8, 0.4],"tibia" : [0.0, 1.8]}
 if NO_LIMITS:
     joint_limits = {"coxa": [-5., 5.], "femur": [-5., 5.], "tibia": [-5., 5.]}
 input_filename = "hexapod_wip.urdf"

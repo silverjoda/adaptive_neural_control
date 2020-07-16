@@ -72,8 +72,8 @@ class HexapodBulletEnv(gym.Env):
         # self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
         # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.joints_rads_low = np.array([-0.4, -1.2, 0.8] * 6)
-        self.joints_rads_high = np.array([0.4, -0.2, 1.4] * 6)
+        self.joints_rads_low = np.array([-0.4, -1.8, 0.0] * 6) # flat policy: [-0.4, -1.2, 0.8]
+        self.joints_rads_high = np.array([0.4, 0.4, 1.8] * 6) # flat policy: [0.4, -0.2, 1.4]
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
@@ -566,7 +566,7 @@ class HexapodBulletEnv(gym.Env):
     def test_leg_coordination(self):
         self.reset()
         n_steps = 30
-        VERBOSE=True
+        VERBOSE=False
         while True:
             t1 = time.time()
             sc = 1.0
