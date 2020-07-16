@@ -93,6 +93,11 @@ class HexapodBulletEnv(gym.Env):
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod_wip_scaled.urdf"), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
+        # Change joint limits dynamically:
+        for i in range(18):
+            p.changeDynamics(bodyUniqueId=self.robot, linkIndex=i, jointLowerLimit=self.joints_rads_low[i],
+                             jointUpperLimit=self.joints_rads_high[i], physicsClientId=self.client_ID)
+
         # Change contact friction for legs and torso
         for i in range(6):
             p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
