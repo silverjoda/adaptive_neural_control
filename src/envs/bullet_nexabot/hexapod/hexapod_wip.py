@@ -511,6 +511,10 @@ class HexapodBulletEnv(gym.Env):
         #             1 - self.training_difficulty)
         # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
+        # Change joint limits dynamically:
+        #for i in range(18):
+        #    p.changeDynamics(bodyUniqueId=self.robot,  linkIndex=i, jointLowerLimit=self.joints_rads_low[i], jointUpperLimit=self.joints_rads_high[i], physicsClientId=self.client_ID)
+
         # Calculate encoding for current step
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
