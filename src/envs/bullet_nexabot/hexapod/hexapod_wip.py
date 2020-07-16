@@ -518,19 +518,19 @@ class HexapodBulletEnv(gym.Env):
             done = True
 
         # Contact regression stuff
-        reg_torques = joint_torques#
-        training_examples = [[reg_torques[i*3:i*3+3], (contacts[i] + 1.) / 2.] for i in range(6)]
-        self.contact_reg_dataset.extend(training_examples)
-        if len(self.contact_reg_dataset) > self.contact_reg_batchsize and False:
-            dataset = random.choices(self.contact_reg_dataset, k=self.contact_reg_batchsize)
-            X = T.Tensor(np.array([vec[0] for vec in dataset]))
-            Y = T.tensor([vec[1] for vec in dataset], dtype=T.int64)
-            pred = self.contact_reg_nn(X)
-            loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(Y, num_classes=2).double())
-            print("Contact reg loss: {}".format(loss))
-            self.contact_reg_optim.zero_grad()
-            loss.backward()
-            self.contact_reg_optim.step()
+        # reg_torques = joint_torques#
+        # training_examples = [[reg_torques[i*3:i*3+3], (contacts[i] + 1.) / 2.] for i in range(6)]
+        # self.contact_reg_dataset.extend(training_examples)
+        # if len(self.contact_reg_dataset) > self.contact_reg_batchsize and False:
+        #     dataset = random.choices(self.contact_reg_dataset, k=self.contact_reg_batchsize)
+        #     X = T.Tensor(np.array([vec[0] for vec in dataset]))
+        #     Y = T.tensor([vec[1] for vec in dataset], dtype=T.int64)
+        #     pred = self.contact_reg_nn(X)
+        #     loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(Y, num_classes=2).double())
+        #     print("Contact reg loss: {}".format(loss))
+        #     self.contact_reg_optim.zero_grad()
+        #     loss.backward()
+        #     self.contact_reg_optim.step()
 
         return env_obs, r, done, {}
 
