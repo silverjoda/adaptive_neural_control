@@ -51,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
