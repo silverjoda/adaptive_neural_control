@@ -8,7 +8,7 @@ from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds, make_vec_env
-from stable_baselines.common.callbacks import CheckpointCallback
+from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 import time
 import random
 import string
@@ -51,14 +51,10 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
-        # Save a checkpoint every 1000000 steps
-        checkpoint_callback = CheckpointCallback(save_freq=1000000, save_path='./agents_cp/',
-                                                 name_prefix=params["ID"], verbose=1)
-
-        env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
+        env = SubprocVecEnv([make_env(params) for _ in range(8)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
 
         model = A2C('MlpPolicy',
@@ -73,9 +69,21 @@ if __name__ == "__main__":
                     full_tensorboard_log=False,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)
+
+        # Save a checkpoint every 1000000 steps
+        checkpoint_callback = CheckpointCallback(save_freq=1000000, save_path='./agents_cp/',
+                                                 name_prefix=params["ID"], verbose=1)
+
+        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='./agents_best/',
+                                     eval_freq=500000,
+                                     deterministic=True,
+                                     render=False)
+
+        callback = CallbackList([checkpoint_callback, eval_callback])
+
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(params["iters"]))
+        model.learn(total_timesteps=int(params["iters"]), callback=callback)
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         print(params)
@@ -93,7 +101,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/XSF_SB_policy.zip")  # 356, SFY, VZT
+        model = A2C.load("agents/XSF_SB_policy.zip")
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
