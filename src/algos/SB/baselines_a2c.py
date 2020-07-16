@@ -33,7 +33,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000,
+    params = {"iters": 8000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -47,7 +47,7 @@ if __name__ == "__main__":
               "train": True,
               "terrain" : args[1],
               "r_type": args[2],
-              "note": "Training: {}, {}, |Perlin @ 30 height, no neg pen and low turn pen, new hyperparams, with callbacks| ".format(args[1], args[2]),
+              "note": "Training: {}, {}, |Perlin @ 30 height, with neg pen and turn pen| ".format(args[1], args[2]),
               "ID": ID}
 
     print(params)
@@ -73,7 +73,7 @@ if __name__ == "__main__":
                     policy_kwargs=policy_kwargs)
 
         # Save a checkpoint every 1000000 steps
-        checkpoint_callback = CheckpointCallback(save_freq=30000, save_path='agents_cp/',
+        checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
                                                  name_prefix=params["ID"], verbose=1)
 
         eval_callback = EvalCallback(make_env(params)(), best_model_save_path='agents_best/',

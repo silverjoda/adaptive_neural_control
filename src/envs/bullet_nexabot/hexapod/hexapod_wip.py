@@ -66,15 +66,15 @@ class HexapodBulletEnv(gym.Env):
 
         # Simulation parameters
         self.max_joint_force = 1.4
-        self.forced_target_vel = 0.3
-        self.target_vel = 0.3
+        self.forced_target_vel = 0.2
+        self.target_vel = 0.2
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
         self.sim_steps_per_iter = 24
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.99
+        self.training_difficulty = 0.2
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -459,17 +459,17 @@ class HexapodBulletEnv(gym.Env):
         elif self.training_mode == "straight_rough":
             r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
                      "roll": np.square(roll) * 0.0 * self.training_difficulty,
-                     "zd": np.square(zd) * 0.00 * self.training_difficulty,
-                     "yd": np.square(yd) * 0.00 * self.training_difficulty,
-                     "phid": np.square(phid) * 0.00 * self.training_difficulty,
-                     "thd": np.square(thd) * 0.00 * self.training_difficulty,
+                     "zd": np.square(zd) * 0.1 * self.training_difficulty,
+                     "yd": np.square(yd) * 0.1 * self.training_difficulty,
+                     "phid": np.square(phid) * 0.1 * self.training_difficulty,
+                     "thd": np.square(thd) * 0.1 * self.training_difficulty,
                      "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                      "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10), 1),
-                     "unsuitable_position_pen": unsuitable_position_pen * 0.0}
+                         total_work_pen * 0.003 * self.training_difficulty * (self.step_ctr > 10), 1),
+                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
-                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1., -1, 1)}
+                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.5, -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
