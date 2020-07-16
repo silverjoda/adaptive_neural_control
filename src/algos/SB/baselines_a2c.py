@@ -26,7 +26,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/QIK_SB_policy.zip")
+        model = A2C.load("agents/2Q5_SB_policy.zip")
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

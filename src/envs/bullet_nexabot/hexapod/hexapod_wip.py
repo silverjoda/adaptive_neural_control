@@ -263,7 +263,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 30 * self.training_difficulty # 30-40
+            height = 35 # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
