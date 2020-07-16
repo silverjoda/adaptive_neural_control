@@ -83,8 +83,7 @@ class HexapodBulletEnv(gym.Env):
         self.left_joints_ids = [0,1,2,6,7,8,12,13,14]
         self.right_joints_ids = [3,4,5,9,10,11,15,16,17]
 
-        # TODO: Make absolute joint limits script for URDF modification
-        # TODO: See what the overhead is if setting the motors individually with velocity limit
+        # TODO: See if you can fit simple reactive function to classify contact
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
