@@ -10,6 +10,7 @@ import gym
 from gym import spaces
 from opensimplex import OpenSimplex
 
+
 # To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]
 
 class HexapodBulletEnv(gym.Env):
@@ -43,12 +44,12 @@ class HexapodBulletEnv(gym.Env):
         self.env_change_prob = 0.0
         self.walls = False
 
-        #TODO: Find out why variable velocity is being ignored!!
+        # TODO: Find out why variable velocity is being ignored!!
         # TODO: Find out why perlin isn't training
 
         # Simulation parameters
         self.max_joint_force = 1.4
-        self.forced_target_vel = 0.30
+        self.forced_target_vel = 0.3
         self.target_vel = 0.15
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
@@ -142,7 +143,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "tiles":
             sf = 4
-            hm = np.random.randint(0, 15 * self.training_difficulty,
+            hm = np.random.randint(0, 0 * self.training_difficulty, # 15
                                    size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -235,7 +236,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 30 * self.training_difficulty
+            height = 15 * self.training_difficulty # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
@@ -348,7 +349,6 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
-
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
 
@@ -437,13 +437,12 @@ class HexapodBulletEnv(gym.Env):
                          total_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10), 1),
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
-                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 3., -1, 1)}
+                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1., -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
-                print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos,
-                                                                                                  r_neg))
+                print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
         elif self.training_mode == "turn_left":
             r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
             r_pos = torso_angular_vel[2] * 7
@@ -589,5 +588,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="flat")
+    env = HexapodBulletEnv(animate=True, terrain_name="perlin")
     env.test_leg_coordination()

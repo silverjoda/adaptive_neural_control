@@ -8,6 +8,7 @@ from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds, make_vec_env
+from stable_baselines.common.callbacks import CheckpointCallback
 import time
 import random
 import string
@@ -25,7 +26,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight_rough", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -36,7 +37,7 @@ if __name__ == "__main__":
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
-              "policy_lr": 0.003,
+              "policy_lr": 0.002,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
@@ -53,17 +54,23 @@ if __name__ == "__main__":
     TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
+        # Save a checkpoint every 1000000 steps
+        checkpoint_callback = CheckpointCallback(save_freq=1000000, save_path='./agents_cp/',
+                                                 name_prefix=params["ID"], verbose=1)
+
         env = SubprocVecEnv([make_env(params) for _ in range(10)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
 
-        # TODO: ADD other hyperparameters to algo and try out the recommended values in zoo
         model = A2C('MlpPolicy',
                     env,
                     learning_rate=params["policy_lr"],
                     verbose=1,
                     n_steps=30,
+                    ent_coef=0.0,
+                    vf_coef=0.5,
+                    lr_schedule='linear',
                     tensorboard_log="/tmp",
-                    full_tensorboard_log=True,
+                    full_tensorboard_log=False,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)
         # Train the agent
@@ -87,7 +94,6 @@ if __name__ == "__main__":
 
     if not TRAIN:
         model = A2C.load("agents/XSF_SB_policy.zip")  # 356, SFY, VZT
-
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
