@@ -477,7 +477,6 @@ class HexapodBulletEnv(gym.Env):
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.5, -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
-            print(r_pos_sum, r_neg_sum)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
@@ -515,7 +514,7 @@ class HexapodBulletEnv(gym.Env):
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
         if torso_pos[0] > self.max_dist_travelled:
-            self.max_dist_travelled = torso_pos[0]
+            self.max_dist_travelled += 0.05
 
         done = self.step_ctr > self.max_steps # or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
 
@@ -551,8 +550,9 @@ class HexapodBulletEnv(gym.Env):
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
+        #self.training_difficulty = np.clip(self.max_dist_travelled - 1.0, 0, 1)
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
-        self.max_dist_travelled = self.max_dist_travelled * 0.9
+        self.max_dist_travelled = self.max_dist_travelled * 0.95
 
         # Calculate target velocity
         if self.variable_velocity:
