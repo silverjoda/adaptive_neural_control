@@ -62,7 +62,8 @@ class HexapodBulletEnv(gym.Env):
         self.walls = False
 
         # TODO: Find out why variable velocity is being ignored!!
-        # TODO: Find out why perlin isn't training
+        # TODO: Find out why perlin isn't training (too much pen)
+        # TODO: Add difficulty increment in dependence to distance travelled
 
         # Simulation parameters
         self.max_joint_force = 1.4
@@ -74,7 +75,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.2
+        self.training_difficulty = 0.99
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -126,6 +127,7 @@ class HexapodBulletEnv(gym.Env):
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
+        self.max_dist_travelled = 0
 
         # Check joint limits
         read_joint_limits = [p.getJointInfo(self.robot, i, self.client_ID)[8:10] for i in range(18)]
@@ -263,7 +265,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 35 # 30-40
+            height = 30 # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
@@ -379,12 +381,12 @@ class HexapodBulletEnv(gym.Env):
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
 
-        self.joint_angle_arr_list.append(joint_angles)
-        joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
-        joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
-        left_quantiles = joint_angle_arr_quantiles[:, self.left_joints_ids]
-        right_quantiles = joint_angle_arr_quantiles[:, self.right_joints_ids]
-        quantile_pen = np.mean(np.square(left_quantiles - right_quantiles))
+        # self.joint_angle_arr_list.append(joint_angles)
+        # joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
+        # joint_angle_arr_quantiles = np.quantile(joint_angle_arr_recent, [0.25,0.5,0.75], axis=0)
+        # left_quantiles = joint_angle_arr_quantiles[:, self.left_joints_ids]
+        # right_quantiles = joint_angle_arr_quantiles[:, self.right_joints_ids]
+        # quantile_pen = np.mean(np.square(left_quantiles - right_quantiles))
 
         # Calculate work done by each motor
         joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
@@ -397,25 +399,25 @@ class HexapodBulletEnv(gym.Env):
         total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Cumulative mean work done per joint
-        joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-15 - np.random.randint(0,20):])
-        joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
-
-        # Symmetry penalty
-        left_work_mean = joint_work_done_floating_avg[self.left_joints_ids]
-        right_work_mean = joint_work_done_floating_avg[self.right_joints_ids]
-        symmetry_work_pen = np.mean(np.square(left_work_mean - right_work_mean))
+        # joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-15 - np.random.randint(0,20):])
+        # joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
+        #
+        # # Symmetry penalty
+        # left_work_mean = joint_work_done_floating_avg[self.left_joints_ids]
+        # right_work_mean = joint_work_done_floating_avg[self.right_joints_ids]
+        # symmetry_work_pen = np.mean(np.square(left_work_mean - right_work_mean))
 
         # Unsuitable position penalty
-        unsuitable_position_pen = 0
-        leg_pen = []
-        for i in range(6):
-            _, a1, a2 = scaled_joint_angles_true[i * 3: i * 3 + 3]
-            pen = np.maximum((np.sign(a1) * (a1 ** 2)) * (np.sign(a2) * (a2 ** 2)), 0)
-            unsuitable_position_pen += pen
-            leg_pen.append(pen)
+        # unsuitable_position_pen = 0
+        # leg_pen = []
+        # for i in range(6):
+        #     _, a1, a2 = scaled_joint_angles_true[i * 3: i * 3 + 3]
+        #     pen = np.maximum((np.sign(a1) * (a1 ** 2)) * (np.sign(a2) * (a2 ** 2)), 0)
+        #     unsuitable_position_pen += pen
+        #     leg_pen.append(pen)
 
         # Contact penalty
-        contact_rew = np.mean((np.array(contacts) + 1. / 2.))
+        #contact_rew = np.mean((np.array(contacts) + 1. / 2.))
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
@@ -431,10 +433,13 @@ class HexapodBulletEnv(gym.Env):
         velocity_rew *= (0.3 / self.target_vel)
         velocity_rew = velocity_rew / (1 + abs(q_yaw) * 15.) # scale velocity reward by yaw deviation
 
-        # TODO: Check that velocithy is properly normalized across all target_velociteis
+        # TODO: Check that velocity is properly normalized across all target_velocities
 
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
+
+        # Tmp spoof
+        quantile_pen = symmetry_work_pen = unsuitable_position_pen = contact_rew = 0
 
         if self.training_mode == "straight":
             r_neg = {"pitch" : np.square(pitch) * 0.1 * self.training_difficulty,
@@ -472,6 +477,7 @@ class HexapodBulletEnv(gym.Env):
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.5, -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values())
+            print(r_pos_sum, r_neg_sum)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
@@ -508,6 +514,9 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr += 1
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
+        if torso_pos[0] > self.max_dist_travelled:
+            self.max_dist_travelled = torso_pos[0]
+
         done = self.step_ctr > self.max_steps # or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
@@ -543,6 +552,7 @@ class HexapodBulletEnv(gym.Env):
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
+        self.max_dist_travelled = self.max_dist_travelled * 0.9
 
         # Calculate target velocity
         if self.variable_velocity:

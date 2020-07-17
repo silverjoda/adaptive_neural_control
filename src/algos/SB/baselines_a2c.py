@@ -26,7 +26,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "perlin", "straight", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -103,7 +103,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/2Q5_SB_policy.zip")
+        model = A2C.load("agents/2Q5_SB_policy.zip") # 2Q5
+        #model = A2C.load("agents_cp/627_7600000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
