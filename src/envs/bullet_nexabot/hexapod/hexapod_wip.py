@@ -400,7 +400,7 @@ class HexapodBulletEnv(gym.Env):
 
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
-        print(np.min(scaled_joint_angles), np.max(scaled_joint_angles))
+        #print(np.min(scaled_joint_angles), np.max(scaled_joint_angles))
         # TODO: Find out why the scaling fails so badly when out of bound
 
         # self.joint_angle_arr_list.append(joint_angles)

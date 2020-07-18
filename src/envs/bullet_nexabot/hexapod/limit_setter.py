@@ -1,5 +1,5 @@
 import fnmatch
-NO_LIMITS = True
+NO_LIMITS = False
 joint_limits = {"coxa" : [-0.4, 0.4],"femur" : [-1.6, -0.6],"tibia" : [0.9, 1.9]}
 if NO_LIMITS:
     joint_limits = {"coxa": [-5., 5.], "femur": [-5., 5.], "tibia": [-5., 5.]}
