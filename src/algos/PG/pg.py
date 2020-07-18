@@ -208,7 +208,7 @@ if __name__=="__main__":
               "ppo_update_iters": 1,
               "normalize_rewards": False,
               "symmetry_pen": args[3],
-              "animate": True,
+              "animate": False,
               "variable_velocity": False,
               "train": True,
               "terrain": args[1],

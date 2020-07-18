@@ -33,7 +33,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 12000000,
+    params = {"iters": 8000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -47,11 +47,11 @@ if __name__ == "__main__":
               "train": True,
               "terrain" : args[1],
               "r_type": args[2],
-              "note": "Training: {}, {}, |Perlin @ 30 height, with neg pen and turn pen| ".format(args[1], args[2]),
+              "note": "Training: {}, {}, |Training without contacts| ".format(args[1], args[2]),
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
