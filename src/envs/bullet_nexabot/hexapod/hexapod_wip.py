@@ -98,7 +98,7 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_low = np.array([-0.4, -1.6, 0.9] * 6)
         self.joints_rads_high = np.array([0.4, -0.6, 1.9] * 6)
 
-        if self.training_mode == "straight_rough":
+        if self.training_mode.endswith("extreme"):
             # Extreme
             self.joints_rads_low = np.array([-0.4, 0, -0.5] * 6)
             self.joints_rads_high = np.array([0.4, 1.0, 0.5] * 6)
@@ -115,7 +115,10 @@ class HexapodBulletEnv(gym.Env):
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hexapod_wip_scaled.urdf"), physicsClientId=self.client_ID)
+        self.urdf_name = "hexapod_wip_normal.urdf"
+        if self.training_mode.endswith("extreme"):
+            self.urdf_name = "hexapod_wip_extreme.urdf"
+        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
         # Change joint limits dynamically:
@@ -480,7 +483,7 @@ class HexapodBulletEnv(gym.Env):
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
-        elif self.training_mode == "straight_rough":
+        elif self.training_mode.startswith("straight_rough"):
             r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
                      "roll": np.square(roll) * 0.0 * self.training_difficulty,
                      "zd": np.square(zd) * 0.1 * self.training_difficulty,
