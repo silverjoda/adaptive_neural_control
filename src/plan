@@ -1,7 +1,7 @@
 Hexapod:
 # TODO: Add goal environment
 # TODO: Tune training process for the whole policy suite
-# TODO: Penalize slippage
+# TODO: Penalize slippage43b
 
 Adaptation research:
 # TODO: Make model based sensitivity propagation as advantage estimator
