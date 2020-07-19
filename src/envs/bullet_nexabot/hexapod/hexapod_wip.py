@@ -75,10 +75,8 @@ class HexapodBulletEnv(gym.Env):
         self.env_change_prob = 0.1
         self.walls = False
 
-
-
         # Simulation parameters
-        self.max_joint_force = 1.4
+        self.max_joint_force = 1.3
         self.forced_target_vel = 0.2
         self.target_vel = 0.2
         self.target_vel_nn_input = 0
@@ -88,7 +86,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
         self.training_difficulty = 0.0
-        self.training_difficulty_increment = 0.0002
+        self.training_difficulty_increment = 0.0003
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
@@ -100,9 +98,10 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_low = np.array([-0.4, -1.6, 0.9] * 6)
         self.joints_rads_high = np.array([0.4, -0.6, 1.9] * 6)
 
-        # Extreme
-        #self.joints_rads_low = np.array([-0.4, 0, -0.5] * 6)
-        #self.joints_rads_high = np.array([0.4, 1.0, 0.5] * 6)
+        if self.training_mode == "straight_rough":
+            # Extreme
+            self.joints_rads_low = np.array([-0.4, 0, -0.5] * 6)
+            self.joints_rads_high = np.array([0.4, 1.0, 0.5] * 6)
 
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
@@ -395,6 +394,8 @@ class HexapodBulletEnv(gym.Env):
 
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
+        scaled_joint_angles = np.clip(scaled_joint_angles, -2, 2)
+        scaled_joint_angles_true = np.clip(scaled_joint_angles_true, -2, 2)
         #print(np.min(scaled_joint_angles), np.max(scaled_joint_angles))
 
         # self.joint_angle_arr_list.append(joint_angles)
@@ -467,6 +468,7 @@ class HexapodBulletEnv(gym.Env):
                     "thd": np.square(thd) * 0.07 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
+                    "torso_contact_pen": torso_contact_pen * 0.1 * self.training_difficulty,
                     "total_work_pen" : np.minimum(total_work_pen * 0.07 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.1 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
@@ -483,8 +485,8 @@ class HexapodBulletEnv(gym.Env):
                      "roll": np.square(roll) * 0.0 * self.training_difficulty,
                      "zd": np.square(zd) * 0.1 * self.training_difficulty,
                      "yd": np.square(yd) * 0.1 * self.training_difficulty,
-                     "phid": np.square(phid) * 0.03 * self.training_difficulty,
-                     "thd": np.square(thd) * 0.03 * self.training_difficulty,
+                     "phid": np.square(phid) * 0.02 * self.training_difficulty,
+                     "thd": np.square(thd) * 0.02 * self.training_difficulty,
                      "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                      "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
                      "torso_contact_pen" : torso_contact_pen * 0.1 * self.training_difficulty ,
@@ -499,13 +501,13 @@ class HexapodBulletEnv(gym.Env):
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
         elif self.training_mode == "turn_left":
-            r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
-            r_pos = torso_angular_vel[2] * 7
-            r = r_pos - r_neg
+            r_neg = np.square(xd) * 0.2 + np.square(yd) * 0.2
+            r_pos = torso_angular_vel[2] * 0.3
+            r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "turn_right":
             r_neg = np.square(xd) * 0.2 + np.square(yd) * 0.2
-            r_pos = -torso_angular_vel[2] * 7
-            r = r_pos - r_neg
+            r_pos = -torso_angular_vel[2] * 0.3
+            r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "stairs":
             r_neg = np.square(q_yaw) * 0.5 + \
                     np.square(pitch) * 0.0 + \
