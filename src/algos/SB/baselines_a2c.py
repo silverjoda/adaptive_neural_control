@@ -26,7 +26,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
+    args = ["None", "flat", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/5YU_SB_policy.zip") # 2Q5
+        model = A2C.load("agents/G15_SB_policy.zip") # B0A - G15
         #model = A2C.load("agents_cp/627_7600000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 

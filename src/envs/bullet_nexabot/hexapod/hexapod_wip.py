@@ -77,6 +77,7 @@ class HexapodBulletEnv(gym.Env):
         # TODO: Find out why variable velocity is being ignored!!
         # TODO: Find out why perlin isn't training (too much pen)
         # TODO: Add difficulty increment in dependence to distance travelled
+        # TODO: Train with friction changes
 
         # Simulation parameters
         self.max_joint_force = 1.4
@@ -284,7 +285,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 30 # 30-40
+            height = 28 # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)

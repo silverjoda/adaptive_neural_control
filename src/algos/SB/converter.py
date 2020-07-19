@@ -50,7 +50,7 @@ def copy_mlp_weights(baselines_model):
 
     return torch_mlp
 
-policy_name = "2Q5"
+policy_name = "G15"
 policy_path = 'agents/{}_SB_policy'.format(policy_name)
 model = A2C.load(policy_path)
 print("Loading policy from: {}".format(policy_path))
