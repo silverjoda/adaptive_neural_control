@@ -1,13 +1,7 @@
 Hexapod:
 # TODO: Add goal environment
 # TODO: Tune training process for the whole policy suite
-# TODO: Add difficulty curriculum to rough= and ->>> stairs envs<---
-# TODO: Add joint range increase as difficulty increases to regularize the movements
-# TODO: Fit contacts using simple function
 # TODO: Penalize slippage
-# TODO: Check that velocity is properly normalized across all target_velociteis
-# TODO: See if you can fit simple reactive function to classify contact
-# TODO: Add difficulty increment in dependence to distance travelled
 
 Adaptation research:
 # TODO: Make model based sensitivity propagation as advantage estimator

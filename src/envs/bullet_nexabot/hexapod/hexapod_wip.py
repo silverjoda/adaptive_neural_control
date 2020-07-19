@@ -10,6 +10,7 @@ import gym
 from gym import spaces
 from opensimplex import OpenSimplex
 
+
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
@@ -74,10 +75,7 @@ class HexapodBulletEnv(gym.Env):
         self.env_change_prob = 0.1
         self.walls = False
 
-        # TODO: Find out why variable velocity is being ignored!!
-        # TODO: Find out why perlin isn't training (too much pen)
-        # TODO: Add difficulty increment in dependence to distance travelled
-        # TODO: Train with friction changes
+
 
         # Simulation parameters
         self.max_joint_force = 1.4
@@ -97,21 +95,16 @@ class HexapodBulletEnv(gym.Env):
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
-        #self.joints_rads_low_lim = np.array([-0.3, -1.4, 0.7] * 6)
-        #self.joints_rads_high_lim = np.array([0.3, 0.0, 1.2] * 6)
-        #self.joints_rads_midpoint = 0.5 * (self.joints_rads_high_lim + self.joints_rads_low_lim)
 
-        # self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
-        # self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (1 - self.training_difficulty)
-        # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
+        # Normal
         self.joints_rads_low = np.array([-0.4, -1.6, 0.9] * 6)
         self.joints_rads_high = np.array([0.4, -0.6, 1.9] * 6)
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        #self.joints_rads_low = np.array([-0.4, -1.8, 0.0] * 6) # flat policy: [-0.4, -1.2, 0.8]
-        #self.joints_rads_high = np.array([0.4, 0.4, 1.8] * 6) # flat policy: [0.4, -0.2, 1.4]
-        #self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+        # Extreme
+        #self.joints_rads_low = np.array([-0.4, 0, -0.5] * 6)
+        #self.joints_rads_high = np.array([0.4, 1.0, 0.5] * 6)
+
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
         self.femur_joint_ids = range(1, 18, 3)
@@ -332,6 +325,7 @@ class HexapodBulletEnv(gym.Env):
         ctct_leg_4 = int(len(p.getContactPoints(self.robot, self.terrain, 11, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
         ctct_leg_5 = int(len(p.getContactPoints(self.robot, self.terrain, 14, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
         ctct_leg_6 = int(len(p.getContactPoints(self.robot, self.terrain, 17, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
         #contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4, ctct_leg_5, ctct_leg_6]
         contacts = np.zeros(6)
@@ -345,7 +339,7 @@ class HexapodBulletEnv(gym.Env):
             joint_angles.append(o[0])
             joint_velocities.append(o[1])
             joint_torques.append(o[3])
-        return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts
+        return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso
 
     def scale_joints(self, joints):
         sjoints = np.array(joints)
@@ -394,7 +388,7 @@ class HexapodBulletEnv(gym.Env):
         for o in obs_sequential:
             joint_angles_skewed.append(o[0])
 
-        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
+        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
@@ -402,7 +396,6 @@ class HexapodBulletEnv(gym.Env):
         scaled_joint_angles = self.scale_joints(joint_angles_skewed)
         scaled_joint_angles_true = self.scale_joints(joint_angles)
         #print(np.min(scaled_joint_angles), np.max(scaled_joint_angles))
-        # TODO: Find out why the scaling fails so badly when out of bound
 
         # self.joint_angle_arr_list.append(joint_angles)
         # joint_angle_arr_recent = np.array(self.joint_angle_arr_list[-15 - np.random.randint(0,20):])
@@ -442,6 +435,9 @@ class HexapodBulletEnv(gym.Env):
         # Contact penalty
         #contact_rew = np.mean((np.array(contacts) + 1. / 2.))
 
+        # Torso contact penalty
+        torso_contact_pen = (ctct_torso * 0.5 + 0.5)
+
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
         q_yaw = np.arctan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
@@ -455,8 +451,6 @@ class HexapodBulletEnv(gym.Env):
         velocity_rew = 1. / (abs(xd_av - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
         velocity_rew *= (0.3 / self.target_vel)
         velocity_rew = velocity_rew / (1 + abs(q_yaw) * 15.) # scale velocity reward by yaw deviation
-
-        # TODO: Check that velocity is properly normalized across all target_velocities
 
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
@@ -473,7 +467,7 @@ class HexapodBulletEnv(gym.Env):
                     "thd": np.square(thd) * 0.07 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                    "total_work_pen" : np.minimum(total_work_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "total_work_pen" : np.minimum(total_work_pen * 0.07 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.1 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
@@ -493,8 +487,9 @@ class HexapodBulletEnv(gym.Env):
                      "thd": np.square(thd) * 0.03 * self.training_difficulty,
                      "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                      "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
+                     "torso_contact_pen" : torso_contact_pen * 0.1 * self.training_difficulty ,
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1),
+                         total_work_pen * 0.05 * self.training_difficulty * (self.step_ctr > 10), 1),
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.5, -1, 1)}
@@ -508,7 +503,7 @@ class HexapodBulletEnv(gym.Env):
             r_pos = torso_angular_vel[2] * 7
             r = r_pos - r_neg
         elif self.training_mode == "turn_right":
-            r_neg = np.square(xd) * 0.3 + np.square(yd) * 0.3
+            r_neg = np.square(xd) * 0.2 + np.square(yd) * 0.2
             r_pos = -torso_angular_vel[2] * 7
             r = r_pos - r_neg
         elif self.training_mode == "stairs":
@@ -548,26 +543,6 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
-        # # Contact regression stuff ===
-        # reg_torques = joint_torques
-        # training_examples = [[reg_torques[i*3:i*3+3], (contacts[i] + 1.) / 2.] for i in range(6)]
-        # self.contact_reg_dataset.extend(training_examples)
-        #
-        # # Contact reg stuff
-        # if len(self.contact_reg_dataset) > self.contact_reg_batchsize and self.step_ctr % 10 == 0 and True:
-        #     dataset = random.choices(self.contact_reg_dataset, k=self.contact_reg_batchsize)
-        #     X = T.Tensor(np.array([vec[0] for vec in dataset]))
-        #     Y = T.tensor([vec[1] for vec in dataset], dtype=T.int64)
-        #     pred = self.contact_reg_nn(X)
-        #     self.contact_reg_manual.p1, self.contact_reg_manual.p2 = [-0.5, -0.2]
-        #     pred_manual = self.contact_reg_manual(X)
-        #     loss = F.binary_cross_entropy_with_logits(pred, F.one_hot(Y, num_classes=2).double())
-        #     loss_manual = F.binary_cross_entropy_with_logits(pred_manual, F.one_hot(Y, num_classes=2).double())
-        #     print("Contact reg loss: {}, manual {} , p1: {}, p2: {}".format(loss, loss_manual, self.contact_reg_manual.p1, self.contact_reg_manual.p2 ))
-        #     loss.backward()
-        #     self.contact_reg_optim.step()
-        # #=============================
-
         return env_obs, r, done, {}
 
     def reset(self):
@@ -582,6 +557,12 @@ class HexapodBulletEnv(gym.Env):
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
         self.max_dist_travelled = self.max_dist_travelled * 0.95
 
+        # Change contact friction for legs and torso
+        # self.lateral_friction = np.random.rand(0.7) + 0.7
+        # for i in range(6):
+        #     p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
+        # p.changeDynamics(self.robot, -1, lateralFriction=self.lateral_friction)
+
         # Calculate target velocity
         if self.variable_velocity:
             self.target_vel_nn_input = np.random.rand() * 2 - 1
@@ -593,16 +574,6 @@ class HexapodBulletEnv(gym.Env):
 
         if self.episode_ctr % 100 == 0 and self.episode_ctr > 100:
             print("--------- CURRENT TRAINING DIFFICULTY: {}".format(self.training_difficulty))
-
-        # self.joints_rads_low = self.joints_rads_low_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
-        #             1 - self.training_difficulty)
-        # self.joints_rads_high = self.joints_rads_high_lim * (self.training_difficulty) + self.joints_rads_midpoint * (
-        #             1 - self.training_difficulty)
-        # self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
-        # Change joint limits dynamically:
-        #for i in range(18):
-        #    p.changeDynamics(bodyUniqueId=self.robot,  linkIndex=i, jointLowerLimit=self.joints_rads_low[i], jointUpperLimit=self.joints_rads_high[i], physicsClientId=self.client_ID)
 
         # Calculate encoding for current step
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
@@ -618,7 +589,7 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.env_length // 2 - 3:self.env_length // 2 + 3, self.env_width // 2 - 3 : self.env_width // 2 + 3]) * self.mesh_scale_vert
 
         # Random initial rotation
-        rnd_rot = np.random.rand() - 0.5
+        rnd_rot = np.random.rand() * 1.2 - 0.6
         rnd_quat = p.getQuaternionFromAxisAngle([0,0,1], rnd_rot)
         self.prev_yaw_dev = rnd_rot
 
@@ -656,9 +627,10 @@ class HexapodBulletEnv(gym.Env):
         print("Total reward: {}".format(total_rew))
 
     def test_leg_coordination(self):
+        np.set_printoptions(precision=3)
         self.reset()
         n_steps = 30
-        VERBOSE=False
+        VERBOSE=True
         while True:
             t1 = time.time()
             sc = 1.0
@@ -667,13 +639,13 @@ class HexapodBulletEnv(gym.Env):
                 for j in range(n_steps):
                     #a = list(np.random.randn(3))
                     scaled_obs, _, _, _ = self.step(a * 6)
-                _, _, _, _, joint_angles, _, joint_torques, contacts = self.get_obs()
+                _, _, _, _, joint_angles, _, joint_torques, contacts, ctct_torso = self.get_obs()
                 if VERBOSE:
                     print("Obs rads: ", joint_angles)
                     print("Obs normed: ", self.scale_joints(joint_angles))
                     print("For action rads: ", self.scale_action(a * 6))
                     print("action normed: ", a)
-                    input()
+                    #input()
 
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))
