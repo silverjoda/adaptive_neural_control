@@ -544,7 +544,7 @@ class HexapodBulletEnv(gym.Env):
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
 
-        if abs(torso_pos[0]) > 3 or abs(torso_pos[1]) > 2.5:
+        if abs(torso_pos[0]) > 3 or abs(torso_pos[1]) > 2.5 or abs(torso_pos[2]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 

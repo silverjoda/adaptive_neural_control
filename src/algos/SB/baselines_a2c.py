@@ -26,14 +26,14 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "turn_left", "no_symmetry_pen"]
+    args = ["None", "flat", "straight", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000,
+    params = {"iters": 50000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -51,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
@@ -103,8 +103,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/G15_SB_policy.zip") # B0A - G15
-        #model = A2C.load("agents_cp/627_7600000_steps.zip")  # 2Q5
+        model = A2C.load("agents/ZJ6_SB_policy.zip") # B0A - G15
+        #model = A2C.load("agents_cp/GX6_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

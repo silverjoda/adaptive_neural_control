@@ -194,7 +194,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 if __name__=="__main__":
-    args = ["None", "perlin", "straight_rough", "symmetry_pen"]
+    args = ["None", "flat", "turn_left", "symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -210,7 +210,7 @@ if __name__=="__main__":
               "symmetry_pen": args[3],
               "animate": True,
               "variable_velocity": False,
-              "train": True,
+              "train": False,
               "terrain": args[1],
               "r_type": args[2],
               "note": "Training: {}, {}, |Straight, just range difficulty increase| ".format(args[1], args[2]),
@@ -236,7 +236,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "N6A" #
+        policy_name = "I7I" #
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         #policy = policies.PyTorchMlp(29, 18)
