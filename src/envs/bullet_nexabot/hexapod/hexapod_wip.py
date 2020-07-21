@@ -86,7 +86,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
         self.training_difficulty = 0.0
-        self.training_difficulty_increment = 0.0003
+        self.training_difficulty_increment = 0.0002
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
@@ -466,7 +466,7 @@ class HexapodBulletEnv(gym.Env):
             r_neg = {"pitch" : np.square(pitch) * 0.05 * self.training_difficulty,
                     "roll" : np.square(roll) * 0.05 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.05 * self.training_difficulty,
-                    "yd" : np.square(yd) * 0.3 * self.training_difficulty,
+                    "yd" : np.square(yd) * 0.2 * self.training_difficulty,
                     "phid": np.square(phid) * 0.05 * self.training_difficulty,
                     "thd": np.square(thd) * 0.05 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
@@ -499,7 +499,7 @@ class HexapodBulletEnv(gym.Env):
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
             r_pos_sum = sum(r_pos.values())
-            r_neg_sum = sum(r_neg.values())
+            r_neg_sum = 0#sum(r_neg.values())
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
