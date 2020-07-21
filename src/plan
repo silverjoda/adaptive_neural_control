@@ -1,7 +1,8 @@
 Hexapod:
 # TODO: Add goal environment
 # TODO: Tune training process for the whole policy suite
-# TODO: Penalize slippage43b
+# TODO: Try learning leg model in air using random policy and see if the model regression is as accurate under a different policy (non-random)
+# TODO: Try to learn contact model using leg model
 
 Adaptation research:
 # TODO: Make model based sensitivity propagation as advantage estimator

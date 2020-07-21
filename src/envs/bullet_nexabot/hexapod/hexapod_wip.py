@@ -85,7 +85,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.0
+        self.training_difficulty = 0.25
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -280,7 +280,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 28 # 30-40
+            height = 45 * self.training_difficulty # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
@@ -659,5 +659,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="flat")
+    env = HexapodBulletEnv(animate=True, terrain_name="perlin")
     env.test_leg_coordination()
