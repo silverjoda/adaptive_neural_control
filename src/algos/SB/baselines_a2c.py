@@ -103,7 +103,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/BMT_SB_policy.zip") # 4DT contactless:perlin:normal
+        model = A2C.load("agents/BMT_SB_policy.zip") # 4DT contactless:perlin:normal, BMT, U79 contactless:perlin:extreme
         #model = A2C.load("agents_cp/GX6_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 

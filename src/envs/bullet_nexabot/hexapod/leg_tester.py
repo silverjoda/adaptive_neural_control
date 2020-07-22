@@ -60,70 +60,83 @@ if __name__ == "__main__":
                        physicsClientId=client_ID)
 
     leg_model_nn = LegModelLSTM(n_inputs=6, n_actions=3)
-    optim = T.optim.Adam(leg_model_nn.parameters())
+    optim = T.optim.Adam(leg_model_nn.parameters(), lr=0.003)
     batchsize = 30
-    n_iters = 1000
+    n_iters = 50000
     episode_len = 100
     max_joint_force = 1.3
     sim_steps_per_iter = 24
 
-    joints = []
-    acts = []
-    for iter in range(n_iters):
-        ep_joints = []
-        ep_acts = []
-        # Sample batchsize episodes
-        [p.resetJointState(leg, i, np.random.randn(), 0, physicsClientId=client_ID) for i in range(3)]
-        for st in range(episode_len):
-            # Joint
-            obs = p.getJointStates(leg, range(3), physicsClientId=client_ID)  # pos, vel, reaction(6), prev_torque
-            joint_angles = []
-            joint_velocities = []
-            joint_torques = []
-            for o in obs:
-                joint_angles.append(o[0])
-                joint_velocities.append(o[1])
-                joint_torques.append(o[3])
-            joint_angles_normed = scale_joints(joint_angles)
-            ep_joints.append(joint_angles_normed)
+    TRAIN = True
 
-            # Action
-            act_normed = np.clip(np.random.randn(3), -1, 1)
-            scaled_action = scale_action(act_normed)
-            ep_acts.append(act_normed)
+    if TRAIN:
+        joints = []
+        acts = []
+        for iter in range(n_iters):
+            ep_joints = []
+            ep_acts = []
+            # Sample batchsize episodes
+            [p.resetJointState(leg, i, np.random.randn(), 0, physicsClientId=client_ID) for i in range(3)]
+            for st in range(episode_len):
+                # Joint
+                obs = p.getJointStates(leg, range(3), physicsClientId=client_ID)  # pos, vel, reaction(6), prev_torque
+                joint_angles = []
+                joint_velocities = []
+                joint_torques = []
+                for o in obs:
+                    joint_angles.append(o[0])
+                    joint_velocities.append(o[1])
+                    joint_torques.append(o[3])
+                joint_angles_normed = scale_joints(joint_angles)
+                ep_joints.append(joint_angles_normed)
 
-            # Simulate
-            for i in range(3):
-                p.setJointMotorControl2(bodyUniqueId=leg,
-                                        jointIndex=i,
-                                        controlMode=p.POSITION_CONTROL,
-                                        targetPosition=scaled_action[i],
-                                        force=max_joint_force,
-                                        positionGain=0.1,
-                                        velocityGain=0.1,
-                                        maxVelocity=2.0,
-                                        physicsClientId=client_ID)
+                # Action
+                act_normed = np.clip(np.random.randn(3), -1, 1)
+                scaled_action = scale_action(act_normed)
+                ep_acts.append(act_normed)
 
-            for i in range(sim_steps_per_iter):
-                p.stepSimulation(physicsClientId=client_ID)
-                if (animate) and True: time.sleep(0.0038)
+                # Simulate
+                for i in range(3):
+                    p.setJointMotorControl2(bodyUniqueId=leg,
+                                            jointIndex=i,
+                                            controlMode=p.POSITION_CONTROL,
+                                            targetPosition=scaled_action[i],
+                                            force=max_joint_force,
+                                            positionGain=0.1,
+                                            velocityGain=0.1,
+                                            maxVelocity=2.0,
+                                            physicsClientId=client_ID)
 
-        joints.append(ep_joints)
-        acts.append(ep_acts)
+                for i in range(sim_steps_per_iter):
+                    p.stepSimulation(physicsClientId=client_ID)
+                    if (animate) and True: time.sleep(0.0038)
 
-        if iter % batchsize == 0 and iter > 0:
-            # Forward pass
-            joints_T = T.tensor([j[:-1] for j in joints] , dtype=T.float32)
-            joints_next_T = T.tensor([j[1:] for j in joints], dtype=T.float32)
-            acts_T = T.tensor([j[:-1] for j in acts] , dtype=T.float32)
-            pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
+            joints.append(ep_joints)
+            acts.append(ep_acts)
 
-            joints = []
-            acts = []
+            if iter % batchsize == 0 and iter > 0:
+                # Forward pass
+                joints_T = T.tensor([j[:-1] for j in joints] , dtype=T.float32)
+                joints_next_T = T.tensor([j[1:] for j in joints], dtype=T.float32)
+                acts_T = T.tensor([j[:-1] for j in acts] , dtype=T.float32)
+                pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
 
-            # update
-            optim.zero_grad()
-            loss = F.mse_loss(pred, joints_next_T)
-            optim.step()
+                joints = []
+                acts = []
 
-            print("Iter: {}/{}, loss: {}".format(iter, n_iters, loss))
+                # update
+                optim.zero_grad()
+                loss = F.mse_loss(pred, joints_next_T)
+                loss.backward()
+                optim.step()
+
+                print("Iter: {}/{}, loss: {}".format(iter, n_iters, loss))
+
+        sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "legtester.p")
+        T.save(leg_model_nn.state_dict(), sdir)
+    else:
+        sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "legtester.p")
+        leg_model_nn = LegModelLSTM(n_inputs=6, n_actions=3)
+        leg_model_nn.load_state_dict(T.load(sdir))
+
+    # Test
