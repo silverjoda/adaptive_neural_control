@@ -34,9 +34,10 @@ class OrnsteinUhlenbeckActionNoise():
         self.x_prev = self.x0 if self.x0 is not None else np.zeros_like(self.mu)
 
 class LegModelLSTM(nn.Module):
-    def __init__(self, n_inputs=3, n_actions=3):
+    def __init__(self, n_inputs=3, n_actions=3, use_tanh=False):
         nn.Module.__init__(self)
         n_hidden = 12
+        self.use_tanh=use_tanh
         self.fc1 = nn.Linear(n_inputs, n_hidden)
         self.lstm = nn.LSTM(n_hidden, n_hidden, num_layers=1, batch_first=True)
         self.fc2 = nn.Linear(n_hidden, n_actions)
@@ -45,7 +46,10 @@ class LegModelLSTM(nn.Module):
     def forward(self, x):
         x = self.activ_fn(self.fc1(x))
         x, h = self.lstm(x, None)
-        x = self.fc2(x)
+        if self.use_tanh:
+            x = T.tanh(self.fc2(x))
+        else:
+            x = self.fc2(x)
         return x, h
 
 
@@ -136,7 +140,7 @@ def train_rnd(use_correlated_noise=False):
 
 def train_adversarial():
     leg_model_nn = LegModelLSTM(n_inputs=6, n_actions=3)
-    act_gen_nn = LegModelLSTM(n_inputs=3, n_actions=3)
+    act_gen_nn = LegModelLSTM(n_inputs=3, n_actions=3, use_tanh=True)
     optim_disc = T.optim.Adam(leg_model_nn.parameters(), lr=0.003)
     optim_gen = T.optim.Adam(act_gen_nn.parameters(), lr=0.003)
 
@@ -323,7 +327,7 @@ if __name__ == "__main__":
                        physicsClientId=client_ID)
 
     batchsize = 30
-    n_iters = 10000
+    n_iters = 100000
     episode_len = 100
     max_joint_force = 1.3
     sim_steps_per_iter = 24
