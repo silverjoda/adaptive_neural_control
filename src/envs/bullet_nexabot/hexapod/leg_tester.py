@@ -90,7 +90,7 @@ def train_rnd(use_correlated_noise=False):
             if use_correlated_noise:
                 noise = correlated_noise[st]
             act_normed = noise
-            scaled_action = scale_action(act_normed)
+            action_rads = scale_action(act_normed)
             ep_acts.append(act_normed)
 
             # Simulate
@@ -98,7 +98,7 @@ def train_rnd(use_correlated_noise=False):
                 p.setJointMotorControl2(bodyUniqueId=leg,
                                         jointIndex=i,
                                         controlMode=p.POSITION_CONTROL,
-                                        targetPosition=scaled_action[i],
+                                        targetPosition=action_rads[i],
                                         force=max_joint_force,
                                         positionGain=0.1,
                                         velocityGain=0.1,
@@ -169,15 +169,15 @@ def train_adversarial():
             ep_joints.append(joint_angles_normed)
 
             # Action
-            scaled_action = scale_action(act_noise[st])
-            ep_acts.append(act_noise[st])
+            action_rads = scale_action(act_noise[0, st])
+            ep_acts.append(act_noise[0, st])
 
             # Simulate
             for i in range(3):
                 p.setJointMotorControl2(bodyUniqueId=leg,
                                         jointIndex=i,
                                         controlMode=p.POSITION_CONTROL,
-                                        targetPosition=scaled_action[i],
+                                        targetPosition=action_rads[i],
                                         force=max_joint_force,
                                         positionGain=0.1,
                                         velocityGain=0.1,
@@ -196,7 +196,7 @@ def train_adversarial():
             joints_T = T.tensor([j[:-1] for j in joints], dtype=T.float32)
             joints_next_T = T.tensor([j[1:] for j in joints], dtype=T.float32)
             act_noises_T = T.tensor([j[:-1] for j in batch_rnd_noises])
-            acts_T = act_gen_nn(act_noises_T)
+            acts_T, _ = act_gen_nn(act_noises_T)
             pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
 
             joints = []
@@ -208,7 +208,7 @@ def train_adversarial():
             optim_gen.zero_grad()
             loss_disc = F.mse_loss(pred, joints_next_T)
             loss_gen = -loss_disc
-            loss_disc.backward(keep_graph=True)
+            loss_disc.backward(retain_graph=True)
             loss_gen.backward()
 
             optim_disc.step()
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     TRAIN = True
 
     if TRAIN:
-        train_rnd(correlated_noise=True)
-        #train_adversarial()
+        #train_rnd(use_correlated_noise=True)
+        train_adversarial()
 
     test_rnd()
