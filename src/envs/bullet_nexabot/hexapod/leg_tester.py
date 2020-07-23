@@ -208,14 +208,15 @@ def train_adversarial():
             acts_T, _ = act_gen_nn(act_noises_T)
             pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
 
-            # Do discriminator first
-            with T.no_grad():
-                acts_T, _ = act_gen_nn(act_noises_T)
-            pred, _ = leg_model_nn(T.cat((joints_T_gen, acts_T), dim=2))
-            optim_disc.zero_grad()
-            loss_disc = F.mse_loss(pred, joints_next_T_gen)
-            loss_disc.backward()
-            optim_disc.step()
+            if iter % batchsize * 2 == 0:
+                # Do discriminator first
+                with T.no_grad():
+                    acts_T, _ = act_gen_nn(act_noises_T)
+                pred, _ = leg_model_nn(T.cat((joints_T_gen, acts_T), dim=2))
+                optim_disc.zero_grad()
+                loss_disc = F.mse_loss(pred, joints_next_T_gen)
+                loss_disc.backward()
+                optim_disc.step()
 
             # Update gen
             acts_T, _ = act_gen_nn(act_noises_T)
@@ -339,7 +340,7 @@ if __name__ == "__main__":
                        physicsClientId=client_ID)
 
     batchsize = 30
-    n_iters = 10000
+    n_iters = 15000
     episode_len = 100
     max_joint_force = 1.3
     sim_steps_per_iter = 24
