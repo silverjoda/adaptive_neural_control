@@ -142,8 +142,8 @@ def train_rnd(use_correlated_noise=False, param_sigma=.0):
 def train_adversarial():
     leg_model_nn = LegModelLSTM(n_inputs=6, n_actions=3)
     act_gen_nn = LegModelLSTM(n_inputs=3, n_actions=3, use_tanh=True)
-    optim_disc = T.optim.Adam(leg_model_nn.parameters(), lr=0.003)
-    optim_gen = T.optim.Adam(act_gen_nn.parameters(), lr=0.003)
+    optim_disc = T.optim.Adam(leg_model_nn.parameters(), lr=0.002)
+    optim_gen = T.optim.Adam(act_gen_nn.parameters(), lr=0.004)
 
     print("Training:")
     joints = []
@@ -201,7 +201,9 @@ def train_adversarial():
         if iter % batchsize == 0 and iter > 0:
             # Forward pass
             joints_T = T.tensor([j[:-1] for j in joints], dtype=T.float32)
+            joints_T_gen = joints_T.clone()
             joints_next_T = T.tensor([j[1:] for j in joints], dtype=T.float32)
+            joints_next_T_gen = joints_next_T.clone()
             act_noises_T = T.tensor([j[:-1] for j in batch_rnd_noises])
             acts_T, _ = act_gen_nn(act_noises_T)
             pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
@@ -209,15 +211,17 @@ def train_adversarial():
             # Do discriminator first
             with T.no_grad():
                 acts_T, _ = act_gen_nn(act_noises_T)
-            pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
+            pred, _ = leg_model_nn(T.cat((joints_T_gen, acts_T), dim=2))
             optim_disc.zero_grad()
-
-            # update
-            optim_gen.zero_grad()
-            loss_disc = F.mse_loss(pred, joints_next_T)
-            loss_gen = -loss_disc
+            loss_disc = F.mse_loss(pred, joints_next_T_gen)
             loss_disc.backward()
             optim_disc.step()
+
+            # Update gen
+            acts_T, _ = act_gen_nn(act_noises_T)
+            pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
+            optim_gen.zero_grad()
+            loss_gen = -F.mse_loss(pred, joints_next_T)
             loss_gen.backward()
             optim_gen.step()
 
