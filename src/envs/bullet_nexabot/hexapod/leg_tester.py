@@ -208,7 +208,7 @@ def train_adversarial():
             acts_T, _ = act_gen_nn(act_noises_T)
             pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
 
-            if iter % batchsize * 2 == 0:
+            if iter % batchsize * 3 == 0:
                 # Do discriminator first
                 with T.no_grad():
                     acts_T, _ = act_gen_nn(act_noises_T)

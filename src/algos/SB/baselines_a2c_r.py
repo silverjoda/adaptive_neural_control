@@ -13,6 +13,8 @@ import time
 import random
 import string
 import socket
+import numpy as np
+from copy import deepcopy
 
 def make_env(params):
     def _init():
@@ -26,14 +28,14 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "stairs_up", "straight_rough_extreme", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 10000000,
+    params = {"iters": 100,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -51,15 +53,15 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
         if socket.gethostname() == "goedel": n_envs = 8
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
-        policy_kwargs = dict(net_arch=[int(96), int(96)])
+        policy_kwargs = dict()
 
-        model = A2C('MlpPolicy',
+        model = A2C('MlpLstmPolicy',
                     env,
                     learning_rate=params["policy_lr"],
                     verbose=1,
@@ -95,27 +97,30 @@ if __name__ == "__main__":
     if socket.gethostname() == "goedel":
         exit()
 
-    env = env_fun(animate=True,
-                  max_steps=params["max_steps"],
-                  step_counter=True,
-                  terrain_name=params["terrain"],
-                  training_mode=params["r_type"],
-                  variable_velocity=False)
+    env_list = []
+    for i in range(n_envs):
+        params_tmp = deepcopy(params)
+        if i == 0:
+            params_tmp["animate"] = True
+        else:
+            params_tmp["animate"] = False
+        env_list.append(make_env(params_tmp))
+    env = SubprocVecEnv(env_list, start_method='fork')
 
     if not TRAIN:
-        model = A2C.load("agents/APC_SB_policy.zip") # 4DT contactless:perlin:normal, BMT, U79 contactless:perlin:extreme
+        pass
+        #model = A2C.load("agents/APC_SB_policy.zip") # 4DT contactless:perlin:normal, BMT, U79 contactless:perlin:extreme
         #model = A2C.load("agents_cp/GX6_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
     for _ in range(100):
         cum_rew = 0
-        for i in range(800):
+        for i in range(100):
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
-            cum_rew += reward
-            env.render()
-            if done:
+            cum_rew += reward[0]
+            if done[0]:
                 obs = env.reset()
                 print(cum_rew)
                 break

@@ -175,8 +175,9 @@ class HexapodBulletEnv(gym.Env):
                                                   heightfieldTextureScaling=(self.env_width - 1) / 2,
                                                   heightfieldData=heightfieldData,
                                                   numHeightfieldRows=height_map.shape[0],
-                                                  numHeightfieldColumns=height_map.shape[1])
-        terrain = p.createMultiBody(0, terrainShape)
+                                                  numHeightfieldColumns=height_map.shape[1],
+                                                  physicsClientId=self.client_ID)
+        terrain = p.createMultiBody(0, terrainShape, physicsClientId=self.client_ID)
         p.resetBasePositionAndOrientation(terrain, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
         return terrain
 
@@ -187,7 +188,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "tiles":
             sf = 4
-            hm = np.random.randint(0, 15 * self.training_difficulty, # 15
+            hm = np.random.randint(0, 25 * self.training_difficulty, # 15
                                    size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -201,7 +202,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "stairs_up":
             hm = np.ones((self.env_length, self.env_width)) * current_height
-            stair_height = 13 * self.training_difficulty
+            stair_height = 10 * self.training_difficulty
             stair_width = 2
 
             initial_offset = self.env_length // 2 - self.env_length // 8
@@ -280,7 +281,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 45 * self.training_difficulty # 30-40
+            height = 40 * self.training_difficulty # 30-40
 
             M = math.ceil(self.env_width)
             N = math.ceil(self.env_length)
