@@ -61,7 +61,7 @@ def scale_joints(joints):
 def scale_action(action):
     return (np.array(action) * 0.5 + 0.5) * joints_rads_diff + joints_rads_low
 
-def train_rnd(use_correlated_noise=False):
+def train_rnd(use_correlated_noise=False, param_sigma=.0):
     leg_model_nn = LegModelLSTM(n_inputs=6, n_actions=3)
     optim = T.optim.Adam(leg_model_nn.parameters(), lr=0.003)
 
@@ -70,6 +70,7 @@ def train_rnd(use_correlated_noise=False):
     joints = []
     acts = []
     for iter in range(n_iters):
+        max_velocity = 2.0 - np.random.rand() * param_sigma
         ou.reset()
         correlated_noise = [ou() for i in range(episode_len)]
         ep_joints = []
@@ -106,7 +107,7 @@ def train_rnd(use_correlated_noise=False):
                                         force=max_joint_force,
                                         positionGain=0.1,
                                         velocityGain=0.1,
-                                        maxVelocity=2.0,
+                                        maxVelocity=max_velocity,
                                         physicsClientId=client_ID)
 
             for i in range(sim_steps_per_iter):
@@ -151,14 +152,14 @@ def train_adversarial():
     for iter in range(n_iters):
         # Sample noise vec from generator
         rnd_noise = np.random.rand(episode_len, 3).astype(np.float32) * 2. - 1.
+        batch_rnd_noises.append(rnd_noise)
         with T.no_grad():
             act_noise, _ = act_gen_nn(T.tensor(rnd_noise).unsqueeze(0))
-        batch_rnd_noises.append(rnd_noise)
 
         ep_joints = []
         ep_acts = []
         # Sample batchsize episodes
-        [p.resetJointState(leg, i, np.random.randn(), 0, physicsClientId=client_ID) for i in range(3)]
+        [p.resetJointState(leg, i, np.random.rand() * 2 - 1, 0, physicsClientId=client_ID) for i in range(3)]
         for st in range(episode_len):
             # Joint
             obs = p.getJointStates(leg, range(3), physicsClientId=client_ID)  # pos, vel, reaction(6), prev_torque
@@ -173,8 +174,10 @@ def train_adversarial():
             ep_joints.append(joint_angles_normed)
 
             # Action
-            action_rads = scale_action(act_noise[0, st])
-            ep_acts.append(act_noise[0, st])
+            act = act_noise[0, st]
+            #if np.random.rand() < 0.001: print(act)
+            action_rads = scale_action(act)
+            ep_acts.append(act)
 
             # Simulate
             for i in range(3):
@@ -203,22 +206,26 @@ def train_adversarial():
             acts_T, _ = act_gen_nn(act_noises_T)
             pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
 
-            joints = []
-            acts = []
-            batch_rnd_noises = []
+            # Do discriminator first
+            with T.no_grad():
+                acts_T, _ = act_gen_nn(act_noises_T)
+            pred, _ = leg_model_nn(T.cat((joints_T, acts_T), dim=2))
+            optim_disc.zero_grad()
 
             # update
-            optim_disc.zero_grad()
             optim_gen.zero_grad()
             loss_disc = F.mse_loss(pred, joints_next_T)
             loss_gen = -loss_disc
-            loss_disc.backward(retain_graph=True)
-            loss_gen.backward()
-
+            loss_disc.backward()
             optim_disc.step()
+            loss_gen.backward()
             optim_gen.step()
 
             print("Iter: {}/{}, loss: {}".format(iter, n_iters, loss_disc))
+
+            joints = []
+            acts = []
+            batch_rnd_noises = []
 
     sdir_disc = os.path.join(os.path.dirname(os.path.realpath(__file__)), "legtester.p")
     sdir_gen = os.path.join(os.path.dirname(os.path.realpath(__file__)), "legtester_gen.p")
@@ -226,7 +233,7 @@ def train_adversarial():
     T.save(leg_model_nn.state_dict(), sdir_gen)
     print("Training done")
 
-def test_rnd():
+def test_rnd(param_sigma=.0):
     print("Loading model and testing")
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "legtester.p")
     leg_model_nn = LegModelLSTM(n_inputs=6, n_actions=3)
@@ -243,6 +250,7 @@ def test_rnd():
     acts = []
     losses = []
     for iter in range(n_test_iters):
+        max_velocity = 2.0 - np.random.rand() * param_sigma
         ou.reset()
         correlated_noise = [ou() for i in range(episode_len)]
         ep_joints = []
@@ -277,7 +285,7 @@ def test_rnd():
                                         force=max_joint_force,
                                         positionGain=0.1,  # 0.1
                                         velocityGain=0.1,  # 0.1
-                                        maxVelocity=2.0,  # 2.0
+                                        maxVelocity=max_velocity,  # 2.0
                                         physicsClientId=client_ID)
 
             for i in range(sim_steps_per_iter):
@@ -327,7 +335,7 @@ if __name__ == "__main__":
                        physicsClientId=client_ID)
 
     batchsize = 30
-    n_iters = 100000
+    n_iters = 10000
     episode_len = 100
     max_joint_force = 1.3
     sim_steps_per_iter = 24
@@ -335,7 +343,7 @@ if __name__ == "__main__":
     TRAIN = True
 
     if TRAIN:
-        #train_rnd(use_correlated_noise=True)
+        #train_rnd(use_correlated_noise=True, param_sigma=1.5)
         train_adversarial()
 
-    test_rnd()
+    test_rnd(param_sigma=0) # sig=1.5: 0.05211, sig=0: 0.03527

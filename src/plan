@@ -19,10 +19,9 @@ Quad:
 # TODO: Add feedforward reg to compensate yaw effect when pitching or rolling. Test Quad
 
 Hexapod HW:
-# TODO: Test a learned policy on hexapod
+# TODO: Test learned policies on hexapod
+# TODO: Make contact sensors
 # TODO: Integrate T265 (both hardware and SW)
-# TODO: Test gamepad on hex through ros and through direct dongle (test range)
-# TODO: Write full controll pipeline for hexapod (flat, rough and turn policies)
 # TODO: Test how much energy each servo consumes in total and compare with simulation
 
 Car HW:
