@@ -26,7 +26,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "stairs_up", "straight_rough_extreme", "no_symmetry_pen"]
+    args = ["None", "flat", "straight_rough_extreme", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -37,7 +37,7 @@ if __name__ == "__main__":
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
-              "policy_lr": 0.002,
+              "policy_lr": 0.001,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                     vf_coef=0.5,
                     lr_schedule='linear',
                     tensorboard_log="/tmp",
-                    full_tensorboard_log=False,
+                    full_tensorboard_log=True,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)
 
@@ -103,8 +103,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/APC_SB_policy.zip") # 4DT contactless:perlin:normal, BMT, U79 contactless:perlin:extreme
-        #model = A2C.load("agents_cp/GX6_300000_steps.zip")  # 2Q5
+        model = A2C.load("agents/BMT_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme
+        #model = A2C.load("agents_cp/71G_4000000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

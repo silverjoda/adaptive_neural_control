@@ -33,9 +33,8 @@ if __name__ == "__main__":
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
-
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 100,
+    params = {"iters": 1000000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -56,7 +55,7 @@ if __name__ == "__main__":
     TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
-        n_envs = 6
+        n_envs = 4
         if socket.gethostname() == "goedel": n_envs = 8
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict()
@@ -70,7 +69,7 @@ if __name__ == "__main__":
                     vf_coef=0.5,
                     lr_schedule='linear',
                     tensorboard_log="/tmp",
-                    full_tensorboard_log=False,
+                    full_tensorboard_log=True,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)
 
@@ -86,6 +85,7 @@ if __name__ == "__main__":
         callback = CallbackList([checkpoint_callback, eval_callback])
 
         # Train the agent
+        print("Started training")
         t1 = time.time()
         model.learn(total_timesteps=int(params["iters"]), callback=callback)
         t2 = time.time()
