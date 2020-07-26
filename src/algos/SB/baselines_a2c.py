@@ -13,6 +13,7 @@ import time
 import random
 import string
 import socket
+import numpy as np
 
 def make_env(params):
     def _init():
@@ -26,14 +27,14 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight", "no_symmetry_pen"]
+    args = ["None", "flat", "turn_left", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 10000000,
+    params = {"iters": 500000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -103,8 +104,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/LF8_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme
-        #model = A2C.load("agents_cp/71G_4000000_steps.zip")  # 2Q5
+        model = A2C.load("agents/WTA_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme
+        #model = A2C.load("agents_best/best_model.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
@@ -112,7 +113,7 @@ if __name__ == "__main__":
         cum_rew = 0
         for i in range(800):
             action, _states = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
+            obs, reward, done, info = env.step(action + np.random.randn(18))
             cum_rew += reward
             env.render()
             if done:

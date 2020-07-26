@@ -85,7 +85,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.25
+        self.training_difficulty = 0.0
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -505,11 +505,12 @@ class HexapodBulletEnv(gym.Env):
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
         elif self.training_mode == "turn_left":
-            r_neg = np.square(xd) * 0.1 + np.square(yd) * 0.1
+            r_neg = torso_contact_pen * 0.2 + np.square(pitch) * 0.2 + np.square(roll) * 0.2 + unsuitable_position_pen * 0.1
             r_pos = torso_angular_vel[2] * 1.
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "turn_right":
-            r_neg = np.square(xd) * 0.1 + np.square(yd) * 0.1
+            r_neg = torso_contact_pen * 0.2 + np.square(pitch) * 0.2 + np.square(
+                roll) * 0.2 + unsuitable_position_pen * 0.1
             r_pos = -torso_angular_vel[2] * 1.
             r = np.clip(r_pos - r_neg, -3, 3)
         elif self.training_mode == "stairs":
