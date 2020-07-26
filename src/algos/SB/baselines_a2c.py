@@ -26,7 +26,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "straight_rough_extreme", "no_symmetry_pen"]
+    args = ["None", "flat", "straight", "no_symmetry_pen"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/BMT_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme
+        model = A2C.load("agents/LF8_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme
         #model = A2C.load("agents_cp/71G_4000000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 

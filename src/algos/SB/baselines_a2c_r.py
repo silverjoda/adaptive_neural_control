@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000000,
+    params = {"iters": 10000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -77,17 +77,11 @@ if __name__ == "__main__":
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
                                                  name_prefix=params["ID"], verbose=1)
 
-        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='agents_best/',
-                                     eval_freq=100000,
-                                     deterministic=True,
-                                     render=False)
-
-        callback = CallbackList([checkpoint_callback, eval_callback])
 
         # Train the agent
         print("Started training")
         t1 = time.time()
-        model.learn(total_timesteps=int(params["iters"]), callback=callback)
+        model.learn(total_timesteps=int(params["iters"]), callback=checkpoint_callback)
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
         print(params)
