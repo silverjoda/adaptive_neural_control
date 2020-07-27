@@ -27,14 +27,14 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "flat", "turn_left", "no_symmetry_pen"]
+    args = ["None", "flat", "turn_left"]
     if len(sys.argv) > 1:
         args = sys.argv
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000,
+    params = {"iters": 8000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
@@ -42,7 +42,6 @@ if __name__ == "__main__":
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
-              "symmetry_pen": args[3],
               "animate": False,
               "variable_velocity": False,
               "train": True,
@@ -52,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 6
@@ -68,7 +67,7 @@ if __name__ == "__main__":
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',
-                    tensorboard_log="/tmp/{}/".format(ID),
+                    tensorboard_log="./tb/{}/".format(ID),
                     full_tensorboard_log=False,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)

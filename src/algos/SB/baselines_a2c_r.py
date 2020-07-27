@@ -28,7 +28,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "perlin", "straight_rough", "no_symmetry_pen"]
+    args = ["None", "perlin", "straight_rough"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -42,7 +42,6 @@ if __name__ == "__main__":
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
-              "symmetry_pen": args[3],
               "animate": False,
               "variable_velocity": False,
               "train": True,
