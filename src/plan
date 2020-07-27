@@ -27,3 +27,9 @@ Hexapod HW:
 Car HW:
 # TODO: Start integrating hardware
 
+# VIR Projects:
+1) Learning model of fast RC buggie using script which gathers data and using it to
+   learn a forward function of the buggie using supervised learning.
+2) Learning online stabilizing for real quadcopter
+3) Control of real car or quad using RL
+4)
