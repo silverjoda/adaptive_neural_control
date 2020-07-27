@@ -85,7 +85,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.25
+        self.training_difficulty = 0.20
         self.training_difficulty_increment = 0.0002
 
         # Environment parameters
@@ -660,5 +660,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="perlin")
+    env = HexapodBulletEnv(animate=True, terrain_name="tiles")
     env.test_leg_coordination()
