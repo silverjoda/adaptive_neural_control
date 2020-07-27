@@ -480,7 +480,6 @@ class HexapodBulletEnv(gym.Env):
                      "contact_rew" : contact_rew * 0}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 5)
-            #print(r_neg)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
