@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',
-                    tensorboard_log="/tmp",
+                    tensorboard_log="./tb/{}/".format(ID),
                     full_tensorboard_log=False,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)
