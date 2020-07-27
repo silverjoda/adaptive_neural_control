@@ -464,8 +464,8 @@ class HexapodBulletEnv(gym.Env):
         quantile_pen = symmetry_work_pen = contact_rew = 0
 
         if self.training_mode == "straight":
-            r_neg = {"pitch" : np.square(pitch) * 0.5 * self.training_difficulty,
-                    "roll" : np.square(roll) * 0.5 * self.training_difficulty,
+            r_neg = {"pitch" : np.square(pitch) * 0.3 * self.training_difficulty,
+                    "roll" : np.square(roll) * 0.3 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.3 * self.training_difficulty,
                     "yd" : np.square(yd) * 0.2 * self.training_difficulty,
                     "phid": np.square(phid) * 0.03 * self.training_difficulty,
@@ -473,13 +473,13 @@ class HexapodBulletEnv(gym.Env):
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "torso_contact_pen": torso_contact_pen * 0.0 * self.training_difficulty,
-                    "total_work_pen" : np.minimum(total_work_pen * 0.2 * self.training_difficulty * (self.step_ctr > 10), 1),
-                    "unsuitable_position_pen" : unsuitable_position_pen * 0.05 * self.training_difficulty}
+                    "total_work_pen" : np.minimum(total_work_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "unsuitable_position_pen" : unsuitable_position_pen * 0.03 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
                      "contact_rew" : contact_rew * 0}
             r_pos_sum = sum(r_pos.values())
-            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 0)
+            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 5)
             #print(r_neg)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
