@@ -68,7 +68,7 @@ if __name__ == "__main__":
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',
-                    tensorboard_log="/tmp",
+                    tensorboard_log="/tmp/{}/".format(ID),
                     full_tensorboard_log=True,
                     gamma=params["gamma"],
                     policy_kwargs=policy_kwargs)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/WTA_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme
+        model = A2C.load("agents/266_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
         #model = A2C.load("agents_best/best_model.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         cum_rew = 0
         for i in range(800):
             action, _states = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action + np.random.randn(18))
+            obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
             if done:

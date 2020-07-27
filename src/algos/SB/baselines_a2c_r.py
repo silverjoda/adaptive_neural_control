@@ -38,7 +38,7 @@ if __name__ == "__main__":
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
-              "policy_lr": 0.002,
+              "policy_lr": 0.001,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
@@ -52,10 +52,10 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
+    n_envs = 8
 
     if TRAIN or socket.gethostname() == "goedel":
-        n_envs = 4
         if socket.gethostname() == "goedel": n_envs = 8
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict()
@@ -102,10 +102,7 @@ if __name__ == "__main__":
     env = SubprocVecEnv(env_list, start_method='fork')
 
     if not TRAIN:
-        pass
-        #model = A2C.load("agents/APC_SB_policy.zip") # 4DT contactless:perlin:normal, BMT, U79 contactless:perlin:extreme
-        #model = A2C.load("agents_cp/GX6_300000_steps.zip")  # 2Q5
-    #print(evaluate_policy(model, env, n_eval_episodes=3))
+        model = A2C.load("agents/792_SB_policy.zip")
 
     obs = env.reset()
     for _ in range(100):
