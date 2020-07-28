@@ -188,7 +188,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "tiles":
             sf = 4
-            hm = np.random.randint(0, 25 * self.training_difficulty, # 15
+            hm = np.random.randint(0, 22 * self.training_difficulty, # 15
                                    size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
