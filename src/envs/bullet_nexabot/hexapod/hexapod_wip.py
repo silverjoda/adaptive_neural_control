@@ -466,15 +466,15 @@ class HexapodBulletEnv(gym.Env):
         if self.training_mode == "straight":
             r_neg = {"pitch" : np.square(pitch) * 0.7 * self.training_difficulty,
                     "roll" : np.square(roll) * 0.7 * self.training_difficulty,
-                    "zd" : np.square(zd) * 0.3 * self.training_difficulty,
+                    "zd" : np.square(zd) * 0.2* self.training_difficulty,
                     "yd" : np.square(yd) * 0.2 * self.training_difficulty,
-                    "phid": np.square(phid) * 0.03 * self.training_difficulty,
-                    "thd": np.square(thd) * 0.03 * self.training_difficulty,
+                    "phid": np.square(phid) * 0.01 * self.training_difficulty,
+                    "thd": np.square(thd) * 0.012 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "torso_contact_pen": torso_contact_pen * 0.1 * self.training_difficulty,
-                    "total_work_pen" : np.minimum(total_work_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10), 1),
-                    "unsuitable_position_pen" : unsuitable_position_pen * 0.03 * self.training_difficulty}
+                    "total_work_pen" : np.minimum(total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
                      "contact_rew" : contact_rew * 0}
