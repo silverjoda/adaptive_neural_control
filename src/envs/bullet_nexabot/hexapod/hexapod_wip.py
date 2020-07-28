@@ -85,8 +85,8 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.20
-        self.training_difficulty_increment = 0.0002
+        self.training_difficulty = 0.1
+        self.training_difficulty_increment = 0.00015
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
