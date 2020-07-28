@@ -16,7 +16,6 @@ import os
 import torch.nn as nn
 import torch as T
 
-
 class PyTorchMlp(nn.Module):
 
     def __init__(self, n_inputs=29, n_actions=18):
@@ -50,7 +49,7 @@ def copy_mlp_weights(baselines_model):
 
     return torch_mlp
 
-policy_name = "U79"
+policy_name = "266"
 policy_path = 'agents/{}_SB_policy'.format(policy_name)
 model = A2C.load(policy_path)
 print("Loading policy from: {}".format(policy_path))
