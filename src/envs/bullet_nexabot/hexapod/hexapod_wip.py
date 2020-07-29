@@ -85,8 +85,8 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.99
-        self.training_difficulty_increment = 0.00015
+        self.training_difficulty = 0.1
+        self.training_difficulty_increment = 0.00010
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
@@ -478,7 +478,6 @@ class HexapodBulletEnv(gym.Env):
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
                      "contact_rew" : contact_rew * 0}
-            print(r_neg)
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 5)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
