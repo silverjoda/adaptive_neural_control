@@ -48,7 +48,6 @@ class SinTask:
         X_trn, Y_trn, X_tst, Y_tst = self.get_dataset_halfsin(15)
         return plt.plot(X_trn, Y_trn, 'ro', X_tst, Y_tst, 'go')
 
-
 class SinPolicy(nn.Module):
     def __init__(self, hidden=24):
         super(SinPolicy, self).__init__()

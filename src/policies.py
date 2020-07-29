@@ -239,6 +239,7 @@ class NN_PG_VF(nn.Module):
         x = self.fc3(x)
         return x
 
+
 class PyTorchMlp(nn.Module):
 
     def __init__(self, n_inputs=30, n_actions=18):
