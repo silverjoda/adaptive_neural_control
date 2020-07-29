@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = A2C.load("agents/792_SB_policy.zip")
-        model = A2C.load("agents_cp/8UD_18800000_steps.zip")
+        model = A2C.load("agents_cp/8UD_23600000_steps.zip")
 
     obs = env.reset()
     for _ in range(100):
