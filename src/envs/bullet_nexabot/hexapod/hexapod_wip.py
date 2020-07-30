@@ -70,23 +70,28 @@ class HexapodBulletEnv(gym.Env):
         self.variable_velocity = variable_velocity
         self.force_target_velocity = False
         self.replace_envs = False
-        self.env_width = 60
-        self.env_length = self.max_steps
         self.env_change_prob = 0.1
         self.walls = False
 
         # Simulation parameters
+        self.env_width = 60
+        self.env_length = self.max_steps
         self.max_joint_force = 1.3
         self.forced_target_vel = 0.2
         self.target_vel = 0.2
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
         self.sim_steps_per_iter = 24
-        self.mesh_scale_lat = 0.1
+        self.mesh_scale_lat = 0.1 # 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.15
+        self.training_difficulty = 0.99 # 0.15
         self.training_difficulty_increment = 0.0001
+
+        if self.terrain_name.startswith("stairs"):
+            self.env_width *= 4
+            self.env_length *= 4
+            self.mesh_scale_lat /= 4
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
@@ -163,7 +168,7 @@ class HexapodBulletEnv(gym.Env):
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, self.client_ID)
         if height_map is None:
-            heightfieldData = np.zeros(self.env_width*self.env_length)
+            heightfieldData = np.zeros(self.env_width * self.env_length)
             terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.mesh_scale_lat , self.mesh_scale_lat , self.mesh_scale_vert],
                                                   heightfieldTextureScaling=(self.env_width - 1) / 2,
                                                   heightfieldData=heightfieldData,
@@ -202,10 +207,10 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "stairs_up":
             hm = np.ones((self.env_length, self.env_width)) * current_height
-            stair_height = 10 * self.training_difficulty
-            stair_width = 2
+            stair_height = 15 * self.training_difficulty
+            stair_width = 8
 
-            initial_offset = self.env_length // 2 - self.env_length // 8
+            initial_offset = self.env_length // 2 + 3
             n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
 
             for i in range(n_steps):
@@ -223,10 +228,10 @@ class HexapodBulletEnv(gym.Env):
             hm[initial_offset + self.env_length // 4:, :] = current_height
 
         if env_name == "stairs_down":
-            stair_height = 13 * self.training_difficulty
-            stair_width = 2
+            stair_height = 15 * self.training_difficulty
+            stair_width = 8
 
-            initial_offset = self.env_length // 2 - self.env_length // 8
+            initial_offset = self.env_length // 2
             n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
 
             current_height = n_steps * stair_height
@@ -660,5 +665,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="tiles")
+    env = HexapodBulletEnv(animate=True, terrain_name="stairs_down")
     env.test_leg_coordination()
