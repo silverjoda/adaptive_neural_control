@@ -12,7 +12,7 @@ Adaptation research:
 # TODO: Goal: Learn how to meta learn for supervised learning and RL
 # TODO: Try meta learning (MAML and meta learning exploration) for supervised learning of transition probabilities
 
-Research: Steps
+Research: Steps#
 # TODO: Prepare environments for training and testing. All environments must be in the same form as gym, but also sample-able upon reset
 # TODO: Environments are utimately the following: Cartpole, Cartpole swing up, Hexapod, Quadcopter stabilize, Quadcopter waypoints, Buggie, Airplane waypoints, Airplane land, Sailboat waypoint
 # TODO: Test model learning for all envs. Is random exploration enough? How does a randomly trained model performance generalize to
