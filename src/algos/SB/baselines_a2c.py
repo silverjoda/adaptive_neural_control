@@ -36,7 +36,7 @@ if __name__ == "__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 16000000,
               "batchsize": 60,
-              "max_steps": 100,
+              "max_steps": 100,#
               "gamma": 0.99,
               "policy_lr": 0.001,
               "weight_decay": 0.0001,
