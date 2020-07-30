@@ -52,10 +52,10 @@ if __name__ == "__main__":
 
     print(params)
     TRAIN = False
-    n_envs = 8
+    n_envs = 6
 
     if TRAIN or socket.gethostname() == "goedel":
-        if socket.gethostname() == "goedel": n_envs = 8
+        if socket.gethostname() == "goedel": n_envs = 6
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict()
 

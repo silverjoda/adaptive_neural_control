@@ -85,8 +85,8 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1
         self.mesh_scale_vert = 2
         self.lateral_friction = 1.2
-        self.training_difficulty = 0.20
-        self.training_difficulty_increment = 0.00010
+        self.training_difficulty = 0.15
+        self.training_difficulty_increment = 0.0001
 
         # Environment parameters
         self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
@@ -187,8 +187,8 @@ class HexapodBulletEnv(gym.Env):
             hm = np.ones((self.env_length, self.env_width)) * current_height
 
         if env_name == "tiles":
-            sf = 4
-            hm = np.random.randint(0, 22 * self.training_difficulty, # 15
+            sf = 3
+            hm = np.random.randint(0, 20 * self.training_difficulty, # 15
                                    size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_length, self.env_width))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -472,8 +472,8 @@ class HexapodBulletEnv(gym.Env):
                     "thd": np.square(thd) * 0.01 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                    "torso_contact_pen": torso_contact_pen * 0.2 * self.training_difficulty,
-                    "total_work_pen" : np.minimum(total_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "torso_contact_pen": torso_contact_pen * 0.1 * self.training_difficulty,
+                    "total_work_pen" : np.minimum(total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.00 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
