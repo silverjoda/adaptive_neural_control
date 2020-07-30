@@ -1,10 +1,10 @@
 import fnmatch
 NO_LIMITS = False
-joint_limits = {"coxa" : [-0.4, 0.4],"femur" : [0, 1],"tibia" : [-0.5, 0.5]}
+joint_limits = {"coxa" : [-0.4, 0.4],"femur" : [-1.6, -0.6],"tibia" : [0.9, 1.9]}
 if NO_LIMITS:
     joint_limits = {"coxa": [-5., 5.], "femur": [-5., 5.], "tibia": [-5., 5.]}
 input_filename = "hexapod_wip.urdf"
-output_filename = "hexapod_wip_extreme.urdf"
+output_filename = "hexapod_wip_normal.urdf"
 
 with open(input_filename, "r") as in_file:
     buf = in_file.readlines()
