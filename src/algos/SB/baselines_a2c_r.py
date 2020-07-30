@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 30000000,
+    params = {"iters": 80000000,
               "batchsize": 60,
               "max_steps": 100,
               "gamma": 0.99,
