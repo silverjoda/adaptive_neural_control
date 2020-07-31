@@ -28,7 +28,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "perlin", "straight_rough"]
+    args = ["None", "tiles", "straight_rough"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -76,7 +76,6 @@ if __name__ == "__main__":
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
                                                  name_prefix=params["ID"], verbose=1)
 
-
         # Train the agent
         print("Started training")
         t1 = time.time()
@@ -102,7 +101,7 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = A2C.load("agents/792_SB_policy.zip")
-        model = A2C.load("agents_cp/8UD_23600000_steps.zip")
+        model = A2C.load("agents_cp/T49_12600000_steps.zip")
 
     obs = env.reset()
     for _ in range(100):

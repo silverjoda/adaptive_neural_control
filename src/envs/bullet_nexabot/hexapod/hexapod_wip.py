@@ -211,7 +211,7 @@ class HexapodBulletEnv(gym.Env):
             stair_height = 14 * self.training_difficulty
             stair_width = 8
 
-            initial_offset = self.env_length // 2 + 3
+            initial_offset = self.env_length // 2 - self.env_length // 14
             n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
 
             for i in range(n_steps):
@@ -473,9 +473,9 @@ class HexapodBulletEnv(gym.Env):
             r_neg = {"pitch" : np.square(pitch) * 1.5 * self.training_difficulty,
                     "roll" : np.square(roll) * 0.5 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.1 * self.training_difficulty,
-                    "yd" : np.square(yd) * 0.2 * self.training_difficulty,
-                    "phid": np.square(phid) * 0.01 * self.training_difficulty,
-                    "thd": np.square(thd) * 0.01 * self.training_difficulty,
+                    "yd" : np.square(yd) * 0.1 * self.training_difficulty,
+                    "phid": np.square(phid) * 0.02 * self.training_difficulty,
+                    "thd": np.square(thd) * 0.02 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                     "torso_contact_pen": torso_contact_pen * 0.1 * self.training_difficulty,
@@ -531,8 +531,8 @@ class HexapodBulletEnv(gym.Env):
                      "total_work_pen": np.minimum(
                          total_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10), 1),
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
-            r_pos = {"velocity_rew": np.clip(velocity_rew * 8, -1, 1),
-                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
+            r_pos = {"velocity_rew": np.clip(velocity_rew * 6, -1, 1),
+                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 0.5, -1, 1)}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 10)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
