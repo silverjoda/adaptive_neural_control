@@ -28,7 +28,7 @@ def make_env(params):
     return _init
 
 if __name__ == "__main__":
-    args = ["None", "tiles", "straight_rough"]
+    args = ["None", "perlin", "straight_rough"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -100,8 +100,8 @@ if __name__ == "__main__":
     env = SubprocVecEnv(env_list, start_method='fork')
 
     if not TRAIN:
-        #model = A2C.load("agents/792_SB_policy.zip")
-        model = A2C.load("agents_cp/T49_12600000_steps.zip")
+        #model = A2C.load("agents/42")
+        model = A2C.load("agents_cp/42T_29100000_steps.zip")
 
     obs = env.reset()
     for _ in range(100):
