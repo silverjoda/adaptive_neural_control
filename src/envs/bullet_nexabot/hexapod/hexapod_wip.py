@@ -473,7 +473,7 @@ class HexapodBulletEnv(gym.Env):
             r_neg = {"pitch" : np.square(pitch) * 1.5 * self.training_difficulty,
                     "roll" : np.square(roll) * 0.5 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.1 * self.training_difficulty,
-                    "yd" : np.square(yd) * 0.1 * self.training_difficulty,
+                    "yd" : np.square(yd) * 0.5 * self.training_difficulty,
                     "phid": np.square(phid) * 0.02 * self.training_difficulty,
                     "thd": np.square(thd) * 0.02 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
