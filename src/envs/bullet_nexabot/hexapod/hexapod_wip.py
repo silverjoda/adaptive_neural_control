@@ -109,6 +109,11 @@ class HexapodBulletEnv(gym.Env):
             self.joints_rads_low = np.array([-0.4, 0, -0.5] * 6)
             self.joints_rads_high = np.array([0.4, 1.0, 0.5] * 6)
 
+        if self.training_mode.endswith("wide_range"):
+            # Extreme
+            self.joints_rads_low = np.array([-0.5, -2.0, 0.0] * 6)
+            self.joints_rads_high = np.array([0.5, -0.0, 2.0] * 6)
+
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
@@ -124,6 +129,8 @@ class HexapodBulletEnv(gym.Env):
         self.urdf_name = "hexapod_wip_normal.urdf"
         if self.training_mode.endswith("extreme"):
             self.urdf_name = "hexapod_wip_extreme.urdf"
+        if self.training_mode.endswith("wide_range"):
+            self.urdf_name = "hexapod_wip_wide_range.urdf"
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
@@ -426,13 +433,13 @@ class HexapodBulletEnv(gym.Env):
         total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Cumulative mean work done per joint
-        # joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-15 - np.random.randint(0,20):])
-        # joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
-        #
-        # # Symmetry penalty
-        # left_work_mean = joint_work_done_floating_avg[self.left_joints_ids]
-        # right_work_mean = joint_work_done_floating_avg[self.right_joints_ids]
-        # symmetry_work_pen = np.mean(np.square(left_work_mean - right_work_mean))
+        joint_work_done_arr_recent = np.array(self.joint_work_done_arr_list[-15 - np.random.randint(0,20):])
+        joint_work_done_floating_avg = np.mean(joint_work_done_arr_recent, axis=0)
+
+        # Symmetry penalty
+        left_work_mean = joint_work_done_floating_avg[self.left_joints_ids]
+        right_work_mean = joint_work_done_floating_avg[self.right_joints_ids]
+        symmetry_work_pen = np.mean(np.square(left_work_mean - right_work_mean))
 
         # Unsuitable position penalty
         unsuitable_position_pen = 0
@@ -467,9 +474,9 @@ class HexapodBulletEnv(gym.Env):
         self.prev_yaw_dev = q_yaw
 
         # Tmp spoofs
-        quantile_pen = symmetry_work_pen = contact_rew = 0
+        quantile_pen = contact_rew = 0
 
-        if self.training_mode == "straight":
+        if self.training_mode.startswith("straight"):
             r_neg = {"pitch" : np.square(pitch) * 1.5 * self.training_difficulty,
                     "roll" : np.square(roll) * 0.5 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.1 * self.training_difficulty,
@@ -477,7 +484,7 @@ class HexapodBulletEnv(gym.Env):
                     "phid": np.square(phid) * 0.02 * self.training_difficulty,
                     "thd": np.square(thd) * 0.02 * self.training_difficulty,
                     "quantile_pen" : quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                    "symmetry_work_pen" : symmetry_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
+                    "symmetry_work_pen" : symmetry_work_pen * 3.0 * self.training_difficulty * (self.step_ctr > 20),
                     "torso_contact_pen": torso_contact_pen * 0.1 * self.training_difficulty,
                     "total_work_pen" : np.minimum(total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.00 * self.training_difficulty}
@@ -518,7 +525,7 @@ class HexapodBulletEnv(gym.Env):
                 roll) * 0.2 + unsuitable_position_pen * 0.1
             r_pos = -torso_angular_vel[2] * 1.
             r = np.clip(r_pos - r_neg, -3, 3)
-        elif self.training_mode == "stairs":
+        elif self.training_mode.startswith("stairs"):
             r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
                      "roll": np.square(roll) * 0.0 * self.training_difficulty,
                      "zd": np.square(zd) * 0.0 * self.training_difficulty,
@@ -678,5 +685,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="stairs_up")
+    env = HexapodBulletEnv(animate=True, terrain_name="flat", training_mode="straight_wide_range")
     env.test_leg_coordination()
