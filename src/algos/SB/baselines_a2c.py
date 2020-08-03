@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv
 
-    from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
+    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 20000000,
@@ -51,7 +51,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -83,12 +83,14 @@ if __name__ == "__main__":
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
                                                  name_prefix=params["ID"], verbose=1)
 
-        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='agents_best/',
+        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='agents_best/{}/'.format(params["ID"]),
                                      eval_freq=100000,
                                      deterministic=True,
                                      render=False)
 
         callback = CallbackList([checkpoint_callback, eval_callback])
+
+        # TODO: Custom callback
 
         # Train the agent
         t1 = time.time()

@@ -3,7 +3,9 @@ Hexapod training:
 # TODO: Add callback for id and NOTE reporting.
 # TODO: Add callback for symmetry penalty using gradient descent
 # TODO: Keep training straight and stairs policy
-# TODO: Change WIP files to regular and delete garbage
+# TODO: Change WIP files to regular and delete garbage (including agents etc)
+# TODO: Make checkpoint and best model copier from goedel
+# TODO: Make proper input argument parser
 
 Hexapod HW:
 # TODO: Make contact sensors
@@ -18,7 +20,7 @@ Adaptation research:
 # TODO: Goal: Learn how to meta learn for supervised learning and RL
 # TODO: Try meta learning (MAML and meta learning exploration) for supervised learning of transition probabilities
 
-Research: Steps#
+Research: Steps
 # TODO: Prepare environments for training and testing. All environments must be in the same form as gym, but also sample-able upon reset
 # TODO: Environments are utimately the following: Cartpole, Cartpole swing up, Hexapod, Quadcopter stabilize, Quadcopter waypoints, Buggie, Airplane waypoints, Airplane land, Sailboat waypoint
 # TODO: Test model learning for all envs. Is random exploration enough? How does a randomly trained model performance generalize to
@@ -33,8 +35,6 @@ Paper:
 Quad:
 # TODO: Add feedforward reg to compensate yaw effect when pitching or rolling. Test Quad
 
-
-
 Car HW:
 # TODO: Start integrating hardware
 
@@ -48,4 +48,4 @@ Room pi:
    learn a forward function of the buggie using supervised learning.
 2) Learning online stabilizing or flying for real quadcopter
 3) Control of real car or quad using RL
-4) Model based control of a KUKA robot using gradient descent
+4) Model based planning control of a KUKA robot using learned model and gradient descent
