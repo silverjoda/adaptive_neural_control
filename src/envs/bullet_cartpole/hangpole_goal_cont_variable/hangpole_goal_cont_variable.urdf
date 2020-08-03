@@ -44,7 +44,7 @@
     <origin xyz="0.0 0.0 0.0"/>
     <parent link="slideBar"/>
     <child link="cart"/>
-    <limit effort="1000.0" lower="-15" upper="15" velocity="5"/>
+    <limit effort="1000.0" lower="-3" upper="3" velocity="5"/>
   </joint>
 
   <link name="pole">

@@ -19,10 +19,8 @@ def make_env(params):
     def _init():
         env = env_fun(animate=params["animate"],
                       max_steps=params["max_steps"],
-                      step_counter=True,
-                      terrain_name=params["terrain"],
-                      training_mode=params["r_type"],
-                      variable_velocity=params["variable_velocity"])
+                      action_input=True,
+                      latent_input=False)
         return env
     return _init
 
@@ -31,7 +29,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv
 
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000,
