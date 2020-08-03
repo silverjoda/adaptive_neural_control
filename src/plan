@@ -3,7 +3,6 @@ Hexapod training:
 # TODO: Add callback for id and NOTE reporting.
 # TODO: Add callback for symmetry penalty using gradient descent
 # TODO: Keep training straight and stairs policy
-# TODO: Change WIP files to regular and delete garbage (including agents etc)
 # TODO: Make checkpoint and best model copier from goedel
 # TODO: Make proper input argument parser
 
