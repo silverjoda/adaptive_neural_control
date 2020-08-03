@@ -53,7 +53,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_vert = 2 # 0.2
         self.lateral_friction = 1.2 # 1.2
         self.training_difficulty = 0.0 # 0.0 initial
-        self.training_difficulty_increment = 0.0001
+        self.training_difficulty_increment = 0.0001 # 0.0001
 
         if self.terrain_name.startswith("stairs"):
             self.env_width *= 4
