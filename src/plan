@@ -1,12 +1,18 @@
-Hexapod:
-# TODO: Add goal environment
-# TODO: Tune training process for the whole policy suite
+Hexapod training:
 # TODO: Try learning leg model in air using random policy and see if the model regression is as accurate under a different policy (non-random)
-# TODO: Try to learn contact model using leg model
+# TODO: Add callback for id and NOTE reporting.
+# TODO: Add callback for symmetry penalty using gradient descent
+# TODO: Keep training straight and stairs policy
+# TODO: Change WIP files to regular and delete garbage
+
+Hexapod HW:
+# TODO: Make contact sensors
+# TODO: Make contact + dampeners in CAD software
+# TODO: Integrate T265 (both hardware and SW)
+# TODO: Test how much energy each servo consumes in total and compare with simulation
 
 Adaptation research:
 # TODO: Make model based sensitivity propagation as advantage estimator
-# TODO: Make RNN PG using new updated algo
 # TODO: Fix up an adaptation env (hangpole probably) for adaptation testing
 # TODO: Model based learning from a small amount of examples regularized by simulated examples
 # TODO: Goal: Learn how to meta learn for supervised learning and RL
@@ -27,14 +33,15 @@ Paper:
 Quad:
 # TODO: Add feedforward reg to compensate yaw effect when pitching or rolling. Test Quad
 
-Hexapod HW:
-# TODO: Test learned policies on hexapod
-# TODO: Make contact sensors
-# TODO: Integrate T265 (both hardware and SW)
-# TODO: Test how much energy each servo consumes in total and compare with simulation
+
 
 Car HW:
 # TODO: Start integrating hardware
+
+Room pi:
+# TODO: Install necessary stuff on pi
+# TODO: Add and test night camera
+# TODO: Install PI near bed
 
 # VIR Projects:
 1) Learning model of fast RC buggie using script which gathers data and using it to
