@@ -49,7 +49,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -104,24 +104,21 @@ if __name__ == "__main__":
 
     env = env_fun(animate=True,
                   max_steps=params["max_steps"],
-                  step_counter=True,
-                  terrain_name=params["terrain"],
-                  training_mode=params["r_type"],
-                  variable_velocity=False)
+                  action_input=True,
+                  latent_input=False)
 
     if not TRAIN:
-        model = A2C.load("agents/WGC_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        #model = A2C.load("agents_cp/K60_7200000_steps.zip")  # 2Q5
-    #print(evaluate_policy(model, env, n_eval_episodes=3))
+        model = A2C.load("agents/H2F_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
 
     obs = env.reset()
     for _ in range(100):
         cum_rew = 0
-        for i in range(800):
+        for i in range(200):
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
+            time.sleep(0.01)
             if done:
                 obs = env.reset()
                 print(cum_rew)
