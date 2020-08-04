@@ -208,8 +208,8 @@ if __name__=="__main__":
               "ppo_update_iters": 1,
               "normalize_rewards": True,
               "symmetry_pen": args[3],
-              "animate": False,
-              "train": True,
+              "animate": True,
+              "train": False,
               "variable_velocity": True,
               "terrain": args[1],
               "r_type": args[2],
@@ -236,7 +236,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "OHS" #
+        policy_name = "4PE" #
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         #policy = policies.PyTorchMlp(29, 18)

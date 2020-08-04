@@ -172,7 +172,7 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = A2C.load("agents/WGC_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = A2C.load("agents_cp/PW9_2400000_steps.zip")  # 2Q5
+        model = A2C.load("agents_cp/FXX_2400000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
