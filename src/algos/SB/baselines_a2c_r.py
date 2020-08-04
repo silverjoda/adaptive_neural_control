@@ -63,7 +63,7 @@ if __name__ == "__main__":
                     env,
                     learning_rate=params["policy_lr"],
                     verbose=1,
-                    n_steps=30,
+                    n_steps=100,
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',

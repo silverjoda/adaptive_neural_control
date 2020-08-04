@@ -8,12 +8,75 @@ from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common import set_global_seeds, make_vec_env
-from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
+from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback, CallbackList, BaseCallback
 import time
 import random
 import string
 import socket
 import numpy as np
+
+class CustomCallback(BaseCallback):
+    """
+    A custom callback that derives from ``BaseCallback``.
+
+    :param verbose: (int) Verbosity level 0: not output 1: info 2: debug
+    """
+    def __init__(self, verbose=0):
+        super(CustomCallback, self).__init__(verbose)
+        # Those variables will be accessible in the callback
+        # (they are defined in the base class)
+        # The RL model
+        # self.model = None  # type: BaseRLModel
+        # An alias for self.model.get_env(), the environment used for training
+        # self.training_env = None  # type: Union[gym.Env, VecEnv, None]
+        # Number of time the callback was called
+        # self.n_calls = 0  # type: int
+        # self.num_timesteps = 0  # type: int
+        # local and global variables
+        # self.locals = None  # type: Dict[str, Any]
+        # self.globals = None  # type: Dict[str, Any]
+        # The logger object, used to report things in the terminal
+        # self.logger = None  # type: logger.Logger
+        # # Sometimes, for event callback, it is useful
+        # # to have access to the parent object
+        # self.parent = None  # type: Optional[BaseCallback]
+
+    def _on_training_start(self) -> None:
+        """
+        This method is called before the first rollout starts.
+        """
+        pass
+
+    def _on_rollout_start(self) -> None:
+        """
+        A rollout is the collection of environment interaction
+        using the current policy.
+        This event is triggered before collecting new samples.
+        """
+        pass
+
+    def _on_step(self) -> bool:
+        """
+        This method will be called by the model after each call to `env.step()`.
+
+        For child callback (of an `EventCallback`), this will be called
+        when the event is triggered.
+
+        :return: (bool) If the callback returns False, training is aborted early.
+        """
+        return True
+
+    def _on_rollout_end(self) -> None:
+        """
+        This event is triggered before updating the policy.
+        """
+        pass
+
+    def _on_training_end(self) -> None:
+        """
+        This event is triggered before exiting the `learn()` method.
+        """
+        pass
 
 def make_env(params):
     def _init():
@@ -34,11 +97,11 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000,
+    params = {"iters": 20000000,
               "batchsize": 60,
-              "max_steps": 100,
-              "gamma": 0.99,
-              "policy_lr": 0.001,
+              "max_steps": 90,
+              "gamma": 0.97,
+              "policy_lr": 0.002,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
@@ -55,7 +118,7 @@ if __name__ == "__main__":
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
-        n_envs = 6
+        n_envs = 1
         if socket.gethostname() == "goedel": n_envs = 8
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
@@ -83,12 +146,8 @@ if __name__ == "__main__":
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
                                                  name_prefix=params["ID"], verbose=1)
 
-        eval_callback = EvalCallback(make_env(params)(), best_model_save_path='agents_best/{}/'.format(params["ID"]),
-                                     eval_freq=100000,
-                                     deterministic=True,
-                                     render=False)
-
-        callback = CallbackList([checkpoint_callback, eval_callback])
+        custom_callback = CustomCallback()
+        callback = CallbackList([checkpoint_callback])
 
         # TODO: Custom callback
 
@@ -112,8 +171,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/WGC_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        #model = A2C.load("agents_cp/K60_7200000_steps.zip")  # 2Q5
+        #model = A2C.load("agents/WGC_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = A2C.load("agents_cp/3BX_15600000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

@@ -52,7 +52,7 @@ class HexapodBulletEnv(gym.Env):
         self.mesh_scale_lat = 0.1 # 0.1
         self.mesh_scale_vert = 2 # 0.2
         self.lateral_friction = 1.2 # 1.2
-        self.training_difficulty = 0.0 # 0.0 initial
+        self.training_difficulty = 0.99 # 0.0 initial
         self.training_difficulty_increment = 0.0001 # 0.0001
 
         if self.terrain_name.startswith("stairs"):
@@ -101,6 +101,9 @@ class HexapodBulletEnv(gym.Env):
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
         self.generate_rnd_env()
 
+        if self.terrain_name == "flat":
+            self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+
         # Change contact friction for legs and torso
         for i in range(6):
             p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
@@ -116,6 +119,8 @@ class HexapodBulletEnv(gym.Env):
         self.max_dist_travelled = 0
 
     def make_heightfield(self, height_map=None):
+        if self.terrain_name == "flat":
+            return
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, self.client_ID)
         if height_map is None:
@@ -395,15 +400,15 @@ class HexapodBulletEnv(gym.Env):
                     "roll" : np.square(roll) * 0.5 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.1 * self.training_difficulty,
                     "yd" : np.square(yd) * 0.5 * self.training_difficulty,
-                    "phid": np.square(phid) * 0.02 * self.training_difficulty,
-                    "thd": np.square(thd) * 0.02 * self.training_difficulty,
+                    "phid": np.square(phid) * 0.01 * self.training_difficulty,
+                    "thd": np.square(thd) * 0.01 * self.training_difficulty,
                     "total_work_pen" : np.minimum(total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
                      "contact_rew" : contact_rew * 0}
             r_pos_sum = sum(r_pos.values())
-            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 5)
+            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 5) * 1
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
@@ -515,7 +520,7 @@ class HexapodBulletEnv(gym.Env):
         self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
 
         # Change heightmap with small probability
-        if np.random.rand() < self.env_change_prob:
+        if np.random.rand() < self.env_change_prob and not self.terrain_name == "flat":
             self.generate_rnd_env()
 
         # Get heightmap height at robot position
