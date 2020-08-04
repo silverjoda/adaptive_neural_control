@@ -34,15 +34,26 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         p.setRealTimeSimulation(0)
 
         self.target_debug_line = None
-        self.target_var = 1.2
+        self.target_var = 2.
         self.target_change_prob = 0.008
-        self.weight_position_min = 0.0
-        self.weight_position_var = 1.0
+        self.weight_position_min = 0.2
+        self.weight_position_var = 0.8
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_goal_cont_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        obs_lower_bnd = [-3, -7, -3.1415, -7, -2]
+        obs_upper_bnd = [3, 7, 3.1415, 7, 2]
+
+        if self.latent_input:
+            obs_lower_bnd.extend([0])
+            obs_upper_bnd.extend([1])
+
+        if self.action_input:
+            obs_lower_bnd.extend([-1])
+            obs_upper_bnd.extend([1])
+
+        self.observation_space = spaces.Box(low=np.array(obs_lower_bnd), high=np.array(obs_upper_bnd))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
     def get_obs(self):
@@ -53,7 +64,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         theta_dot = np.clip(theta_dot / 10, -7, 7)
 
         # Change operational point so that the jump in angle sign is down below
-        theta += np.pi
+        #theta += np.pi
 
         # Change theta range to [-pi, pi]
         if theta > 0:
@@ -97,7 +108,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         ctrl_pen = np.square(ctrl[0]) * 0.001
         r = target_rew / (1 + 2.0 * vel_pen) - ctrl_pen  # Agent is rewarded only if low velocity near target
 
-        done = (self.step_ctr > self.max_steps) or abs(theta) > 0.5
+        done = (self.step_ctr > self.max_steps) or abs(theta) > 0.6
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("Theta: % 3.3f" % (theta), [-1, 0, 2])
@@ -108,12 +119,12 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1]) # Weight position is here only to draw correct height of target
 
+        obs = np.concatenate((obs, [self.target]))
+
         if self.latent_input:
             obs = np.concatenate((obs, self.get_latent_label()))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
-
-        obs = np.concatenate((obs, [self.target]))
 
         return obs, r, done, {}
 
@@ -123,7 +134,6 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.theta_prev = 1
 
         self.weight_position = self.weight_position_min + np.random.rand() * self.weight_position_var
-        self.cartpole_mass = 5.0
 
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1])
@@ -186,17 +196,17 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
     def demo(self):
         for i in range(100):
             self.reset()
-            p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
+            p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
             acts = [0.1, -0.1, 0.3, -0.3]
             for a in acts:
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 for i in range(self.max_steps):
-                    self.step(np.array([a]))
+                    obs, r, done, _ = self.step(np.array([a]))
+                    print(obs)
                     time.sleep(0.01)
 
     def kill(self):
         p.disconnect()
-
 
 
 if __name__ == "__main__":

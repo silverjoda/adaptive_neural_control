@@ -13,8 +13,7 @@ Hexapod HW:
 # TODO: Test how much energy each servo consumes in total and compare with simulation
 
 Adaptation research:
-# TODO: Make model based sensitivity propagation as advantage estimator
-# TODO: Fix up an adaptation env (hangpole probably) for adaptation testing
+# TODO: Fix up an adaptation env (hangpole probably) for adaptation testing <- current
 # TODO: Model based learning from a small amount of examples regularized by simulated examples
 # TODO: Goal: Learn how to meta learn for supervised learning and RL
 # TODO: Try meta learning (MAML and meta learning exploration) for supervised learning of transition probabilities
