@@ -149,7 +149,7 @@ if __name__ == "__main__":
         custom_callback = CustomCallback()
         callback = CallbackList([checkpoint_callback])
 
-        # TODO: Custom callback
+        # TODO: Custom callback for symmetry <-
 
         # Train the agent
         t1 = time.time()
