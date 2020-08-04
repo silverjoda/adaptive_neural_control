@@ -50,7 +50,38 @@ class PyTorchMlp(nn.Module):
         return x
 
 
-def learn_model(params, env, policy, regressor):
+def learn_model(params, env, policy, regressor, gather_dataset=True):
+
+    if gather_dataset:
+        episode_observations = []
+        episode_actions = []
+        for i in range(params["episodes"]):
+            observations = []
+            actions = []
+            obs = env.reset()
+            for i in range(params["max_steps"]):
+                action, _states = policy.predict(obs, deterministic=True)
+                observations.append(obs)
+                actions.append(action)
+                obs, reward, done, info = env.step(action)
+                env.render()
+                if done:
+                    episode_observations.append(observations)
+                    episode_actions.append(actions)
+                    break
+
+        print("Gathered dataset, saving")
+        episode_observations = np.array(episode_observations)
+        episode_actions = np.array(episode_actions)
+        np.save("data/observations", episode_observations)
+        np.save("data/actions", episode_actions)
+    else:
+        print("Loaded dataset")
+        episode_observations = np.load("data/observations")
+        episode_actions = np.load("data/actions")
+
+    # Start training
+    print("Starting training")
 
     # Save trained model
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -64,7 +95,7 @@ if __name__ == "__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"episodes": 100,
               "batchsize": 60,
-              "max_steps": 100,
+              "max_steps": 200,
               "gamma": 0.99,
               "policy_lr": 0.001,
               "weight_decay": 0.0001,
@@ -76,30 +107,26 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
-    LOAD_POLICY = False
+    TRAINED_POLICY = False
 
-    if TRAIN or socket.gethostname() == "goedel":
-        env = env_fun(animate=True,
-                      max_steps=params["max_steps"],
-                      step_counter=True,
-                      terrain_name=params["terrain"],
-                      training_mode=params["r_type"],
-                      variable_velocity=False)
+    env = env_fun(animate=True,
+                  max_steps=params["max_steps"],
+                  action_input=False,
+                  latent_input=False)
 
-        # Here random or loaded learned policy
-        policy = A2C('MlpPolicy', env)
-        if LOAD_POLICY:
-            policy_dir = "agents/xxx.zip"
-            policy = A2C.load(policy_dir)  # 2Q5
+    # Here random or loaded learned policy
+    policy = A2C('MlpPolicy', env)
+    if TRAINED_POLICY:
+        policy_dir = "agents/xxx.zip"
+        policy = A2C.load(policy_dir)  # 2Q5
 
-        # Make regressor NN agent
-        regressor = PyTorchMlp(env.obs_dim + env.act_dim, env.act_dim)
+    # Make regressor NN agent
+    regressor = PyTorchMlp(env.obs_dim + env.act_dim, env.act_dim)
 
-        # Train the agent
-        t1 = time.time()
-        learn_model(params, env, policy, regressor)
-        t2 = time.time()
-        print("Training time: {}".format(t2-t1))
-        print(params)
-        env.close()
+    # Train the agent
+    t1 = time.time()
+    learn_model(params, env, policy, regressor)
+    t2 = time.time()
+    print("Training time: {}".format(t2-t1))
+    print(params)
+    env.close()
