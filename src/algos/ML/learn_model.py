@@ -59,7 +59,7 @@ def learn_model(params, env, policy, regressor):
     print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 if __name__ == "__main__":
-    from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
+    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"episodes": 100,

@@ -408,7 +408,7 @@ class HexapodBulletEnv(gym.Env):
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
                      "contact_rew" : contact_rew * 0}
             r_pos_sum = sum(r_pos.values())
-            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 5) * 1
+            r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
@@ -428,7 +428,7 @@ class HexapodBulletEnv(gym.Env):
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
             r_pos_sum = sum(r_pos.values())
-            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 10)
+            r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 10) * 1, r_pos_sum), 0)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
