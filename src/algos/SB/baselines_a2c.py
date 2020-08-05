@@ -97,7 +97,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 20000000,
+    params = {"iters": 40000000,
               "batchsize": 60,
               "max_steps": 90,
               "gamma": 0.97,
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
     print(params)
     TRAIN = False
-    CONTINUE = True
+    CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 1
@@ -124,13 +124,14 @@ if __name__ == "__main__":
         policy_kwargs = dict(net_arch=[int(96), int(96)])
 
         if CONTINUE:
-            ID = "PW9" # FXX
+            ID = "FXX" # FXX
             print("Continuing training with : {}".format(ID))
             params["ID"] = ID
             model = A2C.load("agents/{}_SB_policy.zip".format(ID))  # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
             model.env = env
             model.tensorboard_log="./tb/{}/".format(ID)
             model.lr_schedule = 'linear'
+            model.learning_rate = params["policy_lr"] / 5.
             model.n_steps = 30
             model.ent_coef = 0.0
             model.vf_coef = 0.5
@@ -177,7 +178,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = A2C.load("agents/PW9_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = A2C.load("agents/FXX_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
         #model = A2C.load("agents_cp/FXX_2400000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 

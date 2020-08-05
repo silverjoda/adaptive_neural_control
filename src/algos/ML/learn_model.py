@@ -10,18 +10,34 @@ from stable_baselines import A2C
 
 class PyTorchMlp(nn.Module):
 
-    def __init__(self, n_inputs=30, n_actions=18):
+    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
         nn.Module.__init__(self)
 
-        self.fc1 = nn.Linear(n_inputs, 96)
-        self.fc2 = nn.Linear(96, 96)
-        self.fc3 = nn.Linear(96, n_actions)
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.Linear(n_hidden, n_hidden)
+        self.fc3 = nn.Linear(n_hidden, n_actions)
         self.activ_fn = nn.Tanh()
         self.out_activ = nn.Softmax(dim=0)
 
     def forward(self, x):
         x = self.activ_fn(self.fc1(x))
         x = self.activ_fn(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+class PyTorchLSTM(nn.Module):
+    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
+        nn.Module.__init__(self)
+
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.LSTM(n_hidden, n_hidden, batch_first=True)
+        self.fc3 = nn.Linear(n_hidden, n_actions)
+        self.activ_fn = nn.Tanh()
+        self.out_activ = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        x = self.activ_fn(self.fc1(x))
+        x, h = self.fc2(x)
         x = self.fc3(x)
         return x
 
@@ -128,8 +144,19 @@ if __name__ == "__main__":
         policy_dir = "agents/xxx.zip"
         policy = A2C.load(policy_dir)  # 2Q5
 
+    # TODO: Make evaluation of the trained regressor. Evaluation has to be accept any policy and regressor (add hidden state to rnn, btw).
+    # TODO: Evaluation also has to visibly show accuracy at every step.
+    # TODO: Make multiple policy and/or dropout training to gauge confidence.
+
+    # TODO: Questions to be answered
+    # TODO: Q1) Can you learn good model from random policy (how does it generalize to state distribution induced by trained policy)
+    # TODO: Q2) Does confidence using droupout or ensembles work
+    # TODO: Q3) Does RNN learn model for adapting param
+    # TODO: Q4) Using model for learning policy (later)
+
     # Make regressor NN agent
-    regressor = PyTorchMlp(env.obs_dim + env.act_dim, env.obs_dim)
+    #regressor = PyTorchMlp(env.obs_dim + env.act_dim, 24, env.obs_dim)
+    regressor = PyTorchLSTM(env.obs_dim + env.act_dim, 24, env.obs_dim)
 
     # Train the agent
     t1 = time.time()

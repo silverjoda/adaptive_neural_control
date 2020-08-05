@@ -36,8 +36,8 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.target_debug_line = None
         self.target_var = 2.
         self.target_change_prob = 0.008
-        self.weight_position_min = 0.2
-        self.weight_position_var = 0.8
+        self.weight_position_min = 0.9
+        self.weight_position_var = 0.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_goal_cont_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -134,6 +134,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.theta_prev = 1
 
         self.weight_position = self.weight_position_min + np.random.rand() * self.weight_position_var
+        p.setJointMotorControl2(self.cartpole, 2, p.POSITION_CONTROL, self.weight_position)
 
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -self.weight_position], [0, 0, 0, 1])
@@ -146,6 +147,11 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         #p.setJointMotorControl2(self.cartpole, 2, p.POSITION_CONTROL, self.weight_position)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
+
+        # Do initial steps
+        for i in range(5):
+            p.stepSimulation()
+
         return obs
 
     def render_line(self):
