@@ -214,6 +214,9 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
     def kill(self):
         p.disconnect()
 
+    def close(self):
+        self.kill()
+
 
 if __name__ == "__main__":
     env = HangPoleGoalContVariableBulletEnv(animate=True)
