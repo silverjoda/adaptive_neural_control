@@ -397,8 +397,8 @@ class HexapodBulletEnv(gym.Env):
 
         if self.training_mode.startswith("straight"):
             r_neg = {"pitch" : np.square(pitch) * 1.5 * self.training_difficulty,
-                    "roll" : np.square(roll) * 0.5 * self.training_difficulty,
-                    "zd" : np.square(zd) * 0.1 * self.training_difficulty,
+                    "roll" : np.square(roll) * 0.8 * self.training_difficulty,
+                    "zd" : np.square(zd) * 0.2 * self.training_difficulty,
                     "yd" : np.square(yd) * 0.5 * self.training_difficulty,
                     "phid": np.square(phid) * 0.01 * self.training_difficulty,
                     "thd": np.square(thd) * 0.01 * self.training_difficulty,

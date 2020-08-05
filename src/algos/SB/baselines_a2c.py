@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
     print(params)
     TRAIN = False
-    CONTINUE = False
+    CONTINUE = True
 
     if TRAIN or socket.gethostname() == "goedel":
         n_envs = 1
@@ -123,24 +123,30 @@ if __name__ == "__main__":
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
 
-        model = A2C('MlpPolicy',
-                    env=env,
-                    learning_rate=params["policy_lr"],
-                    verbose=1,
-                    n_steps=30,
-                    ent_coef=0.0,
-                    vf_coef=0.5,
-                    lr_schedule='linear',
-                    tensorboard_log="./tb/{}/".format(ID),
-                    full_tensorboard_log=False,
-                    gamma=params["gamma"],
-                    policy_kwargs=policy_kwargs)
-
         if CONTINUE:
-            ID = "7X0"
+            ID = "PW9" # FXX
+            print("Continuing training with : {}".format(ID))
+            params["ID"] = ID
             model = A2C.load("agents/{}_SB_policy.zip".format(ID))  # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-            model.tensorboard_log="./tb/{}/".format(ID),
             model.env = env
+            model.tensorboard_log="./tb/{}/".format(ID)
+            model.lr_schedule = 'linear'
+            model.n_steps = 30
+            model.ent_coef = 0.0
+            model.vf_coef = 0.5
+        else:
+            model = A2C('MlpPolicy',
+                        env=env,
+                        learning_rate=params["policy_lr"],
+                        verbose=1,
+                        n_steps=30,
+                        ent_coef=0.0,
+                        vf_coef=0.5,
+                        lr_schedule='linear',
+                        tensorboard_log="./tb/{}/".format(ID),
+                        full_tensorboard_log=False,
+                        gamma=params["gamma"],
+                        policy_kwargs=policy_kwargs)
 
         # Save a checkpoint every 1000000 steps
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
@@ -171,8 +177,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        #model = A2C.load("agents/WGC_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = A2C.load("agents_cp/FXX_2400000_steps.zip")  # 2Q5
+        model = A2C.load("agents/PW9_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        #model = A2C.load("agents_cp/FXX_2400000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

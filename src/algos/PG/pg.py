@@ -12,7 +12,9 @@ import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def train(env, policy, params):
-    policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-8, momentum=0)
+    policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"],
+                                   eps=1e-8, momentum=0)
+    symmetry_optim = T.optim.SGD(policy.parameters(), lr=0.0002, weight_decay=params["weight_decay"], momentum=0.9)
 
     batch_states = []
     batch_actions = []
@@ -80,7 +82,7 @@ def train(env, policy, params):
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             if params["ppo_update_iters"] > 0:
-                loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+                loss_policy = update_policy_ppo(policy, policy_optim, symmetry_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             else:
                 loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
             t2 = time.time()
@@ -105,7 +107,7 @@ def train(env, policy, params):
             T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
-def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_policy_ppo(policy, policy_optim, symmetry_optim, batch_states, batch_actions, batch_advantages, update_iters):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
     c_eps = 0.2
     loss = None
@@ -117,7 +119,7 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
-        policy.soft_clip_grads(.7)
+        T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
         policy_optim.step()
 
         if params["symmetry_pen"] == "symmetry_pen":
@@ -156,10 +158,10 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
 
             loss = (actions_rev_pred - actions_rev).pow(2).mean()
             print("Symmetry loss: {}".format(loss))
-            policy_optim.zero_grad()
+            symmetry_optim.zero_grad()
             loss.backward()
-            policy.soft_clip_grads(.7)
-            policy_optim.step()
+            T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
+            symmetry_optim.step()
 
     return loss.data
 
@@ -208,8 +210,8 @@ if __name__=="__main__":
               "ppo_update_iters": 1,
               "normalize_rewards": True,
               "symmetry_pen": args[3],
-              "animate": True,
-              "train": False,
+              "animate": False,
+              "train": True,
               "variable_velocity": True,
               "terrain": args[1],
               "r_type": args[2],
@@ -236,7 +238,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "4PE" #
+        policy_name = "9GB" #
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         #policy = policies.PyTorchMlp(29, 18)
