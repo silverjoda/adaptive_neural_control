@@ -7,6 +7,7 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 from stable_baselines import A2C
+import pybullet as p
 
 class PyTorchMlp(nn.Module):
 
@@ -41,6 +42,12 @@ class PyTorchLSTM(nn.Module):
         x = self.fc3(x)
         return x
 
+    def forward_step(self, x, h):
+        x = self.activ_fn(self.fc1(x))
+        x, h = self.fc2(x, h)
+        x = self.fc3(x)
+        return x, h
+
 
 def learn_model(params, env, policy, regressor, gather_dataset=True):
     if gather_dataset:
@@ -53,7 +60,7 @@ def learn_model(params, env, policy, regressor, gather_dataset=True):
             obs = env.reset()
             for j in range(params["max_steps"]):
                 action, _states = policy.predict(obs, deterministic=True)
-                action = action + np.random.randn(1)
+                action = action + np.random.randn(env.act_dim)
                 observations.append(obs)
                 actions.append(action)
                 obs, reward, done, info = env.step(action)
@@ -111,12 +118,43 @@ def learn_model(params, env, policy, regressor, gather_dataset=True):
     print("Saving trained model")
     T.save(regressor.state_dict(), "agents/{}".format(params["ID"]))
 
+def evaluate_model(params, env, policy, regressor):
+    for i in range(params["eval_episodes"]):
+        obs = env.reset()
+        h = None
+        for j in range(params["max_steps"]):
+
+            # Get action from policy
+            action, _states = policy.predict((obs, h), deterministic=True)
+            action = action + np.random.randn(env.act_dim)
+
+            with T.no_grad():
+                # Predict next step
+                if "lstm" in policy.__class__.lower():
+                    obs_pred, h = regressor.forward_step(T.cat((obs, action)).unsqueeze(0))
+                else:
+                    obs_pred, h = regressor.forward(T.tensor(obs).unsqueeze(0))
+
+            # Step env and get next obs GT
+            obs, reward, done, info = env.step(action)
+
+            # Calculate error and plot info
+            obs_err = np.mean(obs - obs_pred.numpy())
+
+            p.removeAllUserDebugItems()
+            p.addUserDebugText("Mean err: % 3.3f" % (obs_err), [-1, 0, 2], textColorRGB=[np.clip(obs_err, 0, 1),1,0])
+
+            if done: break
+
+        if i % 100 == 0:
+            print("Dataset gathering episode: {}/{}".format(i, params["dataset_episodes"]))
 
 if __name__ == "__main__":
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"dataset_episodes": 1000,
+              "eval_episodes": 100,
               "training_iters" : 10000,
               "batchsize": 30,
               "max_steps": 200,
@@ -165,3 +203,10 @@ if __name__ == "__main__":
     print("Training time: {}".format(t2-t1))
     print(params)
     env.close()
+
+    # Evaluate the agent
+    env = env_fun(animate=True,
+                  max_steps=params["max_steps"],
+                  action_input=False,
+                  latent_input=False)
+    evaluate_model(params, env, policy, regressor)
