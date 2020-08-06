@@ -14,7 +14,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 def train(env, policy, params):
     policy_optim = T.optim.RMSprop(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"],
                                    eps=1e-8, momentum=0)
-    symmetry_optim = T.optim.SGD(policy.parameters(), lr=0.0002, weight_decay=params["weight_decay"], momentum=0.9)
+    symmetry_optim = T.optim.SGD(policy.parameters(), lr=0.0004, weight_decay=params["weight_decay"], momentum=0.9)
 
     batch_states = []
     batch_actions = []

@@ -45,7 +45,7 @@ class HexapodBulletEnv(gym.Env):
         self.env_width = 60
         self.env_length = self.max_steps
         self.max_joint_force = 1.3
-        self.target_vel = 0.2
+        self.target_vel = 0.3
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
         self.sim_steps_per_iter = 24
@@ -396,17 +396,17 @@ class HexapodBulletEnv(gym.Env):
         quantile_pen = contact_rew = symmetry_work_pen = torso_contact_pen = 0
 
         if self.training_mode.startswith("straight"):
-            r_neg = {"pitch" : np.square(pitch) * 1.5 * self.training_difficulty,
-                    "roll" : np.square(roll) * 0.8 * self.training_difficulty,
-                    "zd" : np.square(zd) * 0.2 * self.training_difficulty,
+            r_neg = {"pitch" : np.square(pitch) * 1.2 * self.training_difficulty,
+                    "roll" : np.square(roll) * 1.2 * self.training_difficulty,
+                    "zd" : np.square(zd) * 0.5 * self.training_difficulty,
                     "yd" : np.square(yd) * 0.5 * self.training_difficulty,
-                    "phid": np.square(phid) * 0.01 * self.training_difficulty,
-                    "thd": np.square(thd) * 0.01 * self.training_difficulty,
-                    "total_work_pen" : np.minimum(total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1),
+                    "phid": np.square(phid) * 0.02 * self.training_difficulty,
+                    "thd": np.square(thd) * 0.02 * self.training_difficulty,
+                    "total_work_pen" : np.minimum(total_work_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10), 1),
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
-                     "contact_rew" : contact_rew * 0}
+                     "body_height" : np.minimum(torso_pos[2] - 0.05, 0.05) * 1.0}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)

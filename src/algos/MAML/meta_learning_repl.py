@@ -61,6 +61,7 @@ class SinPolicy(nn.Module):
         y_pred = self.linear3(h_relu)
         return y_pred
 
+
 def train_maml(env_fun, param_dict):
     # Initialize policy with meta parameters
     meta_policy = SinPolicy(param_dict["hidden"])

@@ -100,8 +100,8 @@ if __name__ == "__main__":
     params = {"iters": 40000000,
               "batchsize": 60,#
               "max_steps": 90,
-              "gamma": 0.97,
-              "policy_lr": 0.0015,
+              "gamma": 0.98,
+              "policy_lr": 0.001,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
               "normalize_rewards": False,
@@ -118,8 +118,8 @@ if __name__ == "__main__":
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
-        n_envs = 1
-        if socket.gethostname() == "goedel": n_envs = 8
+        n_envs = 4
+        if socket.gethostname() == "goedel": n_envs = 10
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
 
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         custom_callback = CustomCallback()
         callback = CallbackList([checkpoint_callback])
 
-        # TODO: Custom callback for symmetry <-
+
 
         # Train the agent
         t1 = time.time()
@@ -179,7 +179,7 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = A2C.load("agents/FXX_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = A2C.load("agents_cp/CSM_26000000_steps.zip")  # 2Q5
+        model = A2C.load("agents_cp/CSM_29600000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
