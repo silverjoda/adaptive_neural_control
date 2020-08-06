@@ -208,7 +208,7 @@ if __name__=="__main__":
               "policy_lr": 0.001,
               "weight_decay": 0.0001,
               "ppo_update_iters": 1,
-              "normalize_rewards": True,
+              "normalize_rewards": False,
               "symmetry_pen": args[3],
               "animate": True,
               "train": False,

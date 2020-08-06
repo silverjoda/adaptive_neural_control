@@ -2,7 +2,7 @@ import gym
 import sys
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import TD3
+from stable_baselines import SAC
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import make_vec_env
@@ -14,7 +14,7 @@ import random
 import string
 import socket
 import numpy as np
-from stable_baselines.td3.policies import MlpPolicy
+from stable_baselines.sac.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 
@@ -37,14 +37,8 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 2000000,
-              "batchsize": 60,#
-              "max_steps": 90,
-              "gamma": 0.98,
-              "policy_lr": 0.001,
-              "weight_decay": 0.0001,
-              "ppo_update_iters": 1,
-              "normalize_rewards": False,
+    params = {"iters": 100000,
+              "max_steps" : 90,
               "animate": False,
               "variable_velocity": False,
               "train": True,
@@ -54,7 +48,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -71,19 +65,21 @@ if __name__ == "__main__":
                                                     theta=0.15,
                                                     dt=0.01)
 
-        model = TD3('MlpPolicy',
+        model = SAC('MlpPolicy',
                     env=env,
-                    gamma=params["gamma"],
-                    learning_rate=params["policy_lr"],
+                    gamma=0.98,
+                    learning_rate=3e-4,
                     buffer_size=1000000,
                     learning_starts=10000,
-                    train_freq=1000,
-                    gradient_steps=1000,
-                    batch_size=100,
+                    tau=0.01,
+                    train_freq=1,
+                    gradient_steps=1,
+                    ent_coef='auto',
+                    batch_size=256,
                     tensorboard_log="./tb/{}/".format(ID),
                     verbose=1,
-                    full_tensorboard_log=False,
-                    policy_kwargs=dict(layers=[160, 140]))
+                    action_noise=action_noise,
+                    full_tensorboard_log=False)
 
         # Save a checkpoint every 1000000 steps
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
@@ -109,8 +105,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        #model = TD3.load("agents/FXX_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = TD3.load("agents_cp/09T_300000_steps.zip")  # 2Q5
+        #model = SAC.load("agents/FXX_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = SAC.load("agents_cp/09T_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
