@@ -112,6 +112,9 @@ class HexapodBulletEnv(gym.Env):
         # Episodal parameters
         self.step_ctr = 0
         self.episode_ctr = 0
+        self.episode_rew_list = []
+        self.rew_mean = 0
+        self.rew_std = 1
         self.xd_queue = []
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
@@ -406,7 +409,7 @@ class HexapodBulletEnv(gym.Env):
                     "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.training_difficulty}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
-                     "body_height" : np.minimum(torso_pos[2] - 0.05, 0.05) * 1.0}
+                     "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 1.0}
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
@@ -490,6 +493,9 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
+        self.episode_rew_list.append(r)
+        #r_white = (r - self.rew_mean) / self.rew_std
+
         return env_obs, r, done, {}
 
     def reset(self):
@@ -503,6 +509,11 @@ class HexapodBulletEnv(gym.Env):
         #self.training_difficulty = np.clip(self.max_dist_travelled - 1.0, 0, 1)
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
         self.max_dist_travelled = self.max_dist_travelled * 0.95
+
+        new_std = np.mean(np.square(np.array(self.episode_rew_list) - self.rew_mean))
+        self.rew_std = self.rew_std * 0.95 + new_std * 0.05
+        self.rew_mean = self.rew_mean * 0.95 + np.mean(self.episode_rew_list) * 0.05
+        self.episode_rew_list = []
 
         # Calculate target velocity
         if self.variable_velocity:
