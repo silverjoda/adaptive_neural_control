@@ -118,7 +118,7 @@ if __name__ == "__main__":
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
-        n_envs = 4
+        n_envs = 1
         if socket.gethostname() == "goedel": n_envs = 10
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(196), int(196)])
@@ -143,7 +143,7 @@ if __name__ == "__main__":
                         n_steps=30,
                         ent_coef=0.0,
                         vf_coef=0.5,
-                        lr_schedule='linear', # TODO: TRY EXPONENTIAL LEARNING RATE
+                        lr_schedule='linear',
                         tensorboard_log="./tb/{}/".format(ID),
                         full_tensorboard_log=False,
                         gamma=params["gamma"],
@@ -155,8 +155,6 @@ if __name__ == "__main__":
 
         custom_callback = CustomCallback()
         callback = CallbackList([checkpoint_callback])
-
-
 
         # Train the agent
         t1 = time.time()

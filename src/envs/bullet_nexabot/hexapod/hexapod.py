@@ -113,8 +113,8 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.episode_ctr = 0
         self.episode_rew_list = []
-        self.rew_mean = 0
-        self.rew_std = 1
+        self.rew_mean = 0.
+        self.rew_std = 1.
         self.xd_queue = []
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
@@ -494,7 +494,7 @@ class HexapodBulletEnv(gym.Env):
             done = True
 
         self.episode_rew_list.append(r)
-        #r_white = (r - self.rew_mean) / self.rew_std
+        r_white = (r - self.rew_mean) / self.rew_std
 
         return env_obs, r, done, {}
 
@@ -510,9 +510,10 @@ class HexapodBulletEnv(gym.Env):
         self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
         self.max_dist_travelled = self.max_dist_travelled * 0.95
 
-        new_std = np.mean(np.square(np.array(self.episode_rew_list) - self.rew_mean))
-        self.rew_std = self.rew_std * 0.95 + new_std * 0.05
-        self.rew_mean = self.rew_mean * 0.95 + np.mean(self.episode_rew_list) * 0.05
+        if len(self.episode_rew_list) > 10:
+            new_std = np.mean(np.square(np.array(self.episode_rew_list) - self.rew_mean))
+            self.rew_std = self.rew_std * 0.95 + new_std * 0.05
+            self.rew_mean = self.rew_mean * 0.95 + np.mean(self.episode_rew_list) * 0.05
         self.episode_rew_list = []
 
         # Calculate target velocity
