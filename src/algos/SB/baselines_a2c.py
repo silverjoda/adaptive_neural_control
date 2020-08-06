@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 40000000,
-              "batchsize": 60,
+              "batchsize": 60,#
               "max_steps": 90,
               "gamma": 0.97,
               "policy_lr": 0.0015,
