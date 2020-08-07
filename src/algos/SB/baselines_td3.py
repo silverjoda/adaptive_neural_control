@@ -29,6 +29,9 @@ def make_env(params):
         return env
     return _init
 
+def lr_fun(step):
+    return 1e-3 / np.power(1 + 9e-7, step)
+
 if __name__ == "__main__":
     args = ["None", "flat", "straight"]
     if len(sys.argv) > 1:
@@ -54,7 +57,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -74,7 +77,7 @@ if __name__ == "__main__":
         model = TD3('MlpPolicy',
                     env=env,
                     gamma=params["gamma"],
-                    learning_rate=params["policy_lr"],
+                    learning_rate=lr_fun,
                     buffer_size=1000000,
                     learning_starts=10000,
                     train_freq=1000,
@@ -109,8 +112,8 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        #model = TD3.load("agents/FXX_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = TD3.load("agents_cp/09T_300000_steps.zip")  # 2Q5
+        model = TD3.load("agents/09T_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        #model = TD3.load("agents_cp/09T_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

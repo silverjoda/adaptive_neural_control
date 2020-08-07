@@ -48,7 +48,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         model = SAC('MlpPolicy',
                     env=env,
                     gamma=0.98,
-                    learning_rate=3e-4,
+                    learning_rate=lambda x: 3e-4 / np.power(1 + 5e-7, x),
                     buffer_size=1000000,
                     learning_starts=10000,
                     tau=0.01,
@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = SAC.load("agents/FXX_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = SAC.load("agents_cp/09T_300000_steps.zip")  # 2Q5
+        model = SAC.load("agents_cp/W22_2700000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
