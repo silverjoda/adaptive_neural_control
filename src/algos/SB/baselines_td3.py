@@ -53,11 +53,11 @@ if __name__ == "__main__":
               "train": True,
               "terrain" : args[1],
               "r_type": args[2],
-              "note": "Training: {}, {}, |Training without contacts| ".format(args[1], args[2]),
+              "note": "Training: {}, {}, |Training with no penalty| ".format(args[1], args[2]),
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -112,7 +112,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = TD3.load("agents/09T_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = TD3.load("agents/QM5_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
         #model = TD3.load("agents_cp/09T_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 

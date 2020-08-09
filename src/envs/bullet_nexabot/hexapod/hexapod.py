@@ -45,7 +45,7 @@ class HexapodBulletEnv(gym.Env):
         self.env_width = 60
         self.env_length = self.max_steps
         self.max_joint_force = 1.3
-        self.target_vel = 0.3
+        self.target_vel = 0.15
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
         self.sim_steps_per_iter = 24
@@ -418,15 +418,35 @@ class HexapodBulletEnv(gym.Env):
         elif self.training_mode.startswith("straight_rough"):
             r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
                      "roll": np.square(roll) * 0.0 * self.training_difficulty,
-                     "zd": np.square(zd) * 0.1 * self.training_difficulty,
-                     "yd": np.square(yd) * 0.1 * self.training_difficulty,
-                     "phid": np.square(phid) * 0.02 * self.training_difficulty,
-                     "thd": np.square(thd) * 0.02 * self.training_difficulty,
+                     "zd": np.square(zd) * 0.1 * self.training_difficulty, # 0.1
+                     "yd": np.square(yd) * 0.1 * self.training_difficulty, # 0.1
+                     "phid": np.square(phid) * 0.02 * self.training_difficulty, # 0.02
+                     "thd": np.square(thd) * 0.02 * self.training_difficulty, # 0.02
                      "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
                      "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
                      "torso_contact_pen" : torso_contact_pen * 0.0 * self.training_difficulty,
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10), 1),
+                         total_work_pen * 0.02 * self.training_difficulty * (self.step_ctr > 10), 1), # 0.02
+                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
+            r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
+                     "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
+            r_pos_sum = sum(r_pos.values())
+            r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 10) * 1, r_pos_sum), 0)
+            r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
+            if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
+                print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
+        elif self.training_mode.startswith("straight_no_pen"):
+            r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
+                     "roll": np.square(roll) * 0.0 * self.training_difficulty,
+                     "zd": np.square(zd) * 0.0 * self.training_difficulty, # 0.1
+                     "yd": np.square(yd) * 0.0 * self.training_difficulty, # 0.1
+                     "phid": np.square(phid) * 0.0 * self.training_difficulty, # 0.02
+                     "thd": np.square(thd) * 0.0 * self.training_difficulty, # 0.02
+                     "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
+                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
+                     "torso_contact_pen" : torso_contact_pen * 0.0 * self.training_difficulty,
+                     "total_work_pen": np.minimum(
+                         total_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10), 1), # 0.03
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
