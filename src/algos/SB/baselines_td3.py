@@ -83,6 +83,7 @@ if __name__ == "__main__":
                     train_freq=1000,
                     gradient_steps=1000,
                     batch_size=100,
+                    action_noise=action_noise,
                     tensorboard_log="./tb/{}/".format(ID),
                     verbose=1,
                     full_tensorboard_log=False,
