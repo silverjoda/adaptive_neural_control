@@ -215,7 +215,7 @@ if __name__ == "__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"dataset_episodes": 100,
               "training_iters": 100,
-              "eval_episodes": 30,
+              "eval_episodes": 3,
               "batchsize": 30,
               "gamma": 0.99,
               "regressor_lr": 0.001,
@@ -232,8 +232,8 @@ if __name__ == "__main__":
 
     results = []
 
-    for p in itertools.product([0,1], [0,1], [0,1]):
-        LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL = p
+    for prod in itertools.product([0,1], [0,1], [0,1]):
+        LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL = prod
         mean_mse, min_mse, max_mse = run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR,
                                               LSTM_POLICY=LSTM_POLICY,
                                               VARIABLE_TRAIN=VARIABLE_TRAIN,
