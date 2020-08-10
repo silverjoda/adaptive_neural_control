@@ -70,7 +70,44 @@ class CustomCallback(BaseCallback):
         """
         This event is triggered before updating the policy.
         """
-        pass
+        mb_obs, mb_rewards, mb_actions, mb_values, mb_dones = [], [], [], [], []
+        for _ in range(self.model.n_steps):
+            actions, values, states, _ = self.model.step(self.obs, self.states, self.dones)
+            mb_obs.append(np.copy(self.obs))
+            mb_actions.append(actions)
+            mb_values.append(values)
+            mb_dones.append(self.dones)
+            clipped_actions = actions
+            # Clip the actions to avoid out of bound error
+            if isinstance(self.env.action_space, gym.spaces.Box):
+                clipped_actions = np.clip(actions, self.env.action_space.low, self.env.action_space.high)
+            obs, rewards, dones, infos = self.env.step(clipped_actions)
+
+            self.model.num_timesteps += self.n_envs
+
+            self.states = states
+            self.dones = dones
+            self.obs = obs
+            mb_rewards.append(rewards)
+        mb_dones.append(self.dones)
+        # batch of steps to batch of rollouts
+        mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype).swapaxes(1, 0).reshape(self.batch_ob_shape)
+        mb_rewards = np.asarray(mb_rewards, dtype=np.float32).swapaxes(0, 1)
+        mb_actions = np.asarray(mb_actions, dtype=self.env.action_space.dtype).swapaxes(0, 1)
+        mb_values = np.asarray(mb_values, dtype=np.float32).swapaxes(0, 1)
+        mb_dones = np.asarray(mb_dones, dtype=np.bool).swapaxes(0, 1)
+        mb_masks = mb_dones[:, :-1]
+        mb_dones = mb_dones[:, 1:]
+        true_rewards = np.copy(mb_rewards)
+        last_values = self.model.value(self.obs, self.states, self.dones).tolist()
+        # discount/bootstrap off value fn
+
+        # convert from [n_env, n_steps, ...] to [n_steps * n_env, ...]
+        mb_rewards = mb_rewards.reshape(-1, *mb_rewards.shape[2:])
+        mb_actions = mb_actions.reshape(-1, *mb_actions.shape[2:])
+        mb_values = mb_values.reshape(-1, *mb_values.shape[2:])
+        mb_masks = mb_masks.reshape(-1, *mb_masks.shape[2:])
+        true_rewards = true_rewards.reshape(-1, *true_rewards.shape[2:])
 
     def _on_training_end(self) -> None:
         """
@@ -111,7 +148,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
