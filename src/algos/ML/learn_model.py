@@ -213,9 +213,9 @@ if __name__ == "__main__":
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"dataset_episodes": 100,
-              "training_iters": 100,
-              "eval_episodes": 3,
+    params = {"dataset_episodes": 30000,
+              "training_iters": 30000,
+              "eval_episodes": 100,
               "batchsize": 30,
               "gamma": 0.99,
               "regressor_lr": 0.001,
@@ -238,7 +238,7 @@ if __name__ == "__main__":
                                               LSTM_POLICY=LSTM_POLICY,
                                               VARIABLE_TRAIN=VARIABLE_TRAIN,
                                               VARIABLE_EVAL=VARIABLE_EVAL)
-        results.extend([LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse])
+        results.append([LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse])
 
     print("Final results ====================================================")
     print("==================================================================")
