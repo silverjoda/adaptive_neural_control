@@ -1,6 +1,7 @@
 import random
 import string
 import time
+import itertools
 
 import numpy as np
 import torch as T
@@ -166,28 +167,18 @@ def evaluate_model(params, env, policy, regressor):
     print("Evaluation complete, Global mean_mse = {}, Global min_mse = {}, Global max_mse = {}".format(mean_mse, min_mse, max_mse))
     return mean_mse, min_mse, max_mse
 
-def run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_POLICY, VARIABLE):
+def run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL):
     env = env_fun(animate=params["animate"],
                   max_steps=params["max_steps"],
                   action_input=False,
                   latent_input=False,
-                  variable=VARIABLE)
+                  is_variable=VARIABLE_TRAIN)
 
     # Here random or loaded learned policy
     policy = A2C('MlpPolicy', env)
     if LOAD_POLICY:
         policy_dir = "agents/xxx.zip"
         policy = A2C.load(policy_dir)  # 2Q5
-
-    # TODO: Make evaluation of the trained regressor. Evaluation has to be accept any policy and regressor (add hidden state to rnn, btw).
-    # TODO: Evaluation also has to visibly show accuracy at every step.
-    # TODO: Make multiple policy and/or dropout training to gauge confidence.
-
-    # TODO: Questions to be answered
-    # TODO: Q1) Can you learn good model from random policy (how does it generalize to state distribution induced by trained policy)
-    # TODO: Q2) Does confidence using droupout or ensembles work
-    # TODO: Q3) Does RNN learn model for adapting param
-    # TODO: Q4) Using model for learning policy (later)
 
     # Make regressor NN agent
     if LSTM_POLICY:
@@ -208,6 +199,8 @@ def run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_PO
         regressor_dir = "agents/regressor_Y1G"
         regressor.load_state_dict(T.load(regressor_dir))
 
+    env.set_params_variable(VARIABLE_EVAL)
+
     # Evaluate the agent
     env = env_fun(animate=params["animate"],
                   max_steps=params["max_steps"],
@@ -220,8 +213,8 @@ if __name__ == "__main__":
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"dataset_episodes": 1000,
-              "training_iters": 1000,
+    params = {"dataset_episodes": 100,
+              "training_iters": 100,
               "eval_episodes": 30,
               "batchsize": 30,
               "gamma": 0.99,
@@ -237,6 +230,34 @@ if __name__ == "__main__":
     LOAD_REGRESSOR = False
     TRAIN_REGRESSOR = True
 
-    mlp_reg_non_variable = run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_POLICY=False, VARIABLE_TRAIN=False, VARIABLE_EVAL=False)
+    results = []
 
+    for p in itertools.product([0,1], [0,1], [0,1]):
+        LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL = p
+        mean_mse, min_mse, max_mse = run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR,
+                                              LSTM_POLICY=LSTM_POLICY,
+                                              VARIABLE_TRAIN=VARIABLE_TRAIN,
+                                              VARIABLE_EVAL=VARIABLE_EVAL)
+        results.extend([LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse])
+
+    print("Final results ====================================================")
+    print("==================================================================")
+
+    for r in results:
+        LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse = r
+        print(
+            "Evaluating: LSTM_POLICY: {}, VARIABLE_TRAIN: {}, VARIABLE_EVAL: {}. Results: mean_mse: {}, min_mse: {}, max_mse: {}".
+            format(LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse))
+
+
+
+    # TODO: Make evaluation of the trained regressor. Evaluation has to be accept any policy and regressor (add hidden state to rnn, btw).
+    # TODO: Evaluation also has to visibly show accuracy at every step.
+    # TODO: Make multiple policy and/or dropout training to gauge confidence.
+
+    # TODO: Questions to be answered
+    # TODO: Q1) Can you learn good model from random policy (how does it generalize to state distribution induced by trained policy)
+    # TODO: Q2) Does confidence using droupout or ensembles work
+    # TODO: Q3) Does RNN learn model for adapting param
+    # TODO: Q4) Using model for learning policy (later)
 

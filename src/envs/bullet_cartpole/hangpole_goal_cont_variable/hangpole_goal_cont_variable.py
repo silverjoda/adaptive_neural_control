@@ -10,7 +10,7 @@ import src.my_utils as my_utils
 
 
 class HangPoleGoalContVariableBulletEnv(gym.Env):
-    def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False, variable=False):
+    def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False, is_variable=False):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -19,7 +19,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.animate = animate
         self.latent_input = latent_input
         self.action_input = action_input
-        self.variable = variable
+        self.is_variable = is_variable
 
         # Simulator parameters
         self.max_steps = max_steps
@@ -38,12 +38,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.target_var = 2.
         self.target_change_prob = 0.008
 
-        if self.variable:
-            self.weight_position_min = 0.1
-            self.weight_position_var = 0.9
-        else:
-            self.weight_position_min = 1.0
-            self.weight_position_var = 0.0
+        self.set_params_variable(is_variable)
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_goal_cont_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -61,6 +56,15 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
         self.observation_space = spaces.Box(low=np.array(obs_lower_bnd), high=np.array(obs_upper_bnd))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+
+    def set_params_variable(self, is_variable):
+        self.is_variable = is_variable
+        if is_variable:
+            self.weight_position_min = 0.1
+            self.weight_position_var = 0.9
+        else:
+            self.weight_position_min = 1.0
+            self.weight_position_var = 0.0
 
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
@@ -88,7 +92,6 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
         self.state = np.array([x, x_dot, theta, theta_dot])
         return self.state
-
 
     def get_latent_label(self):
         weight_pos = (2 * self.weight_position - 2 * self.weight_position_min) / self.weight_position_var - 1
