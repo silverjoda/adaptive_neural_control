@@ -38,13 +38,13 @@ class HexapodBulletEnv(gym.Env):
         self.training_mode = training_mode
         self.variable_velocity = variable_velocity
         self.force_target_velocity = False
-        self.forced_target_vel = 0.2
+        self.forced_target_vel = 0.15
         self.env_change_prob = 0.1
 
         # Simulation parameters
         self.env_width = 60
         self.env_length = self.max_steps
-        self.max_joint_force = 1.3
+        self.max_joint_force = 1.6
         self.target_vel = 0.15
         self.target_vel_nn_input = 0
         self.target_vel_range = [0.1, 0.3]
@@ -337,9 +337,9 @@ class HexapodBulletEnv(gym.Env):
                                     controlMode=p.POSITION_CONTROL,
                                     targetPosition=scaled_action[i],
                                     force=self.max_joint_force,
-                                    positionGain=0.1,
-                                    velocityGain=0.1,
-                                    maxVelocity=2.0,
+                                    positionGain=0.3,
+                                    velocityGain=0.3,
+                                    maxVelocity=3.0,
                                     physicsClientId=self.client_ID)
 
         leg_ctr = 0
@@ -398,7 +398,7 @@ class HexapodBulletEnv(gym.Env):
         # Tmp spoofs
         quantile_pen = contact_rew = symmetry_work_pen = torso_contact_pen = 0
 
-        if self.training_mode.startswith("straight"):
+        if self.training_mode == "straight":
             r_neg = {"pitch" : np.square(pitch) * 1.2 * self.training_difficulty,
                     "roll" : np.square(roll) * 1.2 * self.training_difficulty,
                     "zd" : np.square(zd) * 0.5 * self.training_difficulty,
@@ -426,7 +426,7 @@ class HexapodBulletEnv(gym.Env):
                      "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
                      "torso_contact_pen" : torso_contact_pen * 0.0 * self.training_difficulty,
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.02 * self.training_difficulty * (self.step_ctr > 10), 1), # 0.02
+                         total_work_pen * 0.1 * self.training_difficulty * (self.step_ctr > 10), 1), # 0.02
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
@@ -435,7 +435,7 @@ class HexapodBulletEnv(gym.Env):
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
-        elif self.training_mode.startswith("straight_no_pen"):
+        elif self.training_mode == "straight_no_pen":
             r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
                      "roll": np.square(roll) * 0.0 * self.training_difficulty,
                      "zd": np.square(zd) * 0.0 * self.training_difficulty, # 0.1
@@ -627,5 +627,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="flat", training_mode="straight_wide_range")
+    env = HexapodBulletEnv(animate=True, terrain_name="stairs_up", training_mode="straight_rough")
     env.test_leg_coordination()

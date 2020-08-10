@@ -32,16 +32,13 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv
 
-    from src.envs.bullet_nexabot.hexapod.hexapod_wip import HexapodBulletEnv as env_fun
+    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 80000000,
               "batchsize": 60,
-              "max_steps": 100,
+              "max_steps": 90,
               "gamma": 0.99,
-              "policy_lr": 0.001,
-              "weight_decay": 0.0001,
-              "ppo_update_iters": 1,
-              "normalize_rewards": False,
+              "policy_lr": 0.005,
               "animate": False,
               "variable_velocity": False,
               "train": True,
@@ -63,7 +60,7 @@ if __name__ == "__main__":
                     env,
                     learning_rate=params["policy_lr"],
                     verbose=1,
-                    n_steps=100,
+                    n_steps=40,
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',
