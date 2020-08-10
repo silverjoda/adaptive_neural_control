@@ -48,7 +48,7 @@ class PyTorchLSTM(nn.Module):
         x = self.fc3(x)
         return x, h
 
-def learn_model(params, env, policy, regressor, gather_dataset=True):
+def learn_regressor(params, env, policy, regressor, gather_dataset=True):
     if gather_dataset:
         print("Starting dataset gathering")
         episode_observations = []
@@ -111,16 +111,18 @@ def learn_model(params, env, policy, regressor, gather_dataset=True):
         optim.step()
 
         if i % 100 == 0:
-            print("Iter: {}/{}  loss: {}".format(i, params["training_iters"], loss))
+            print("Iter: {}/{}  loss: {}".format(i + 1, params["training_iters"], loss))
 
     # Save trained model
     print("Saving trained model")
     T.save(regressor.state_dict(), "agents/regressor_{}".format(params["ID"]))
 
 def evaluate_model(params, env, policy, regressor):
+    mse_errors = []
     for i in range(params["eval_episodes"]):
         obs = env.reset()
         h = None
+        mse_episode_errors = []
         for j in range(params["max_steps"]):
 
             # Get action from policy
@@ -130,7 +132,8 @@ def evaluate_model(params, env, policy, regressor):
             with T.no_grad():
                 # Predict next step
                 if "lstm" in regressor.__class__.__name__.lower():
-                    obs_pred, h = regressor.forward_step(T.tensor(np.concatenate((obs, action)), dtype=T.float32).unsqueeze(0), h)
+                    obs_pred, h = regressor.forward_step(T.tensor(np.concatenate((obs, action)), dtype=T.float32).unsqueeze(0).unsqueeze(0), h)
+                    obs_pred = obs_pred[0]
                 else:
                     obs_pred  = regressor.forward(T.tensor(np.concatenate((obs, action)), dtype=T.float32).unsqueeze(0))
 
@@ -138,45 +141,37 @@ def evaluate_model(params, env, policy, regressor):
             obs, reward, done, info = env.step(action)
 
             # Calculate error and plot info
-            obs_err = np.mean(obs - obs_pred.numpy())
+            obs_err = np.mean(np.square(obs - obs_pred.numpy()))
+            mse_episode_errors.append(obs_err)
 
             p.removeAllUserDebugItems()
-            p.addUserDebugText("Mean err: % 3.3f" % (obs_err), [-1, 0, 2], textColorRGB=[np.clip(obs_err, 0, 1),1,0])
+            clp_err = np.clip(obs_err, 0, 1)
+            p.addUserDebugText("Mean err: % 3.3f" % (obs_err), [-1, 0, 2], textColorRGB=[clp_err,1-clp_err,1-clp_err], textSize=2)
 
             time.sleep(0.01)
 
             if done: print("Done, breaking"); break
 
-        print("Eval episode: {}/{}".format(i, params["eval_episodes"]))
+        mse_errors.append(mse_episode_errors)
 
-if __name__ == "__main__":
-    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
+        print("Eval episode: {}/{}, mean_mse = {}, min_mse = {}, max_mse = {}".format(i,
+                                                                                      params["eval_episodes"],
+                                                                                      np.mean(mse_episode_errors),
+                                                                                      np.min(mse_episode_errors),
+                                                                                      np.max(mse_episode_errors)))
 
-    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"dataset_episodes": 100,
-              "training_iters": 100,
-              "eval_episodes": 10,
-              "batchsize": 30,
-              "max_steps": 200,
-              "gamma": 0.99,
-              "regressor_lr": 0.001,
-              "weight_decay": 0.0001,
-              "normalize_rewards": False,
-              "animate": False,
-              "variable_velocity": False,
-              "train": True,
-              "note": "",
-              "ID": ID}
+    mean_mse = np.mean(mse_errors)
+    min_mse = np.min(mse_errors)
+    max_mse = np.max(mse_errors)
+    print("Evaluation complete, Global mean_mse = {}, Global min_mse = {}, Global max_mse = {}".format(mean_mse, min_mse, max_mse))
+    return mean_mse, min_mse, max_mse
 
-    print(params)
-    LOAD_POLICY = False
-    LOAD_REGRESSOR = True
-    TRAIN = False
-
+def run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_POLICY, VARIABLE):
     env = env_fun(animate=params["animate"],
                   max_steps=params["max_steps"],
                   action_input=False,
-                  latent_input=False)
+                  latent_input=False,
+                  variable=VARIABLE)
 
     # Here random or loaded learned policy
     policy = A2C('MlpPolicy', env)
@@ -195,15 +190,17 @@ if __name__ == "__main__":
     # TODO: Q4) Using model for learning policy (later)
 
     # Make regressor NN agent
-    regressor = PyTorchMlp(env.obs_dim + env.act_dim, 24, env.obs_dim)
-    #regressor = PyTorchLSTM(env.obs_dim + env.act_dim, 24, env.obs_dim)
+    if LSTM_POLICY:
+        regressor = PyTorchLSTM(env.obs_dim + env.act_dim, 24, env.obs_dim)
+    else:
+        regressor = PyTorchMlp(env.obs_dim + env.act_dim, 24, env.obs_dim)
 
-    if TRAIN:
-        # Train the agent
+    if TRAIN_REGRESSOR:
+        # Train the regressor
         t1 = time.time()
-        learn_model(params, env, policy, regressor, gather_dataset=True)
+        learn_regressor(params, env, policy, regressor, gather_dataset=True)
         t2 = time.time()
-        print("Training time: {}".format(t2-t1))
+        print("Training time: {}".format(t2 - t1))
         print(params)
     env.close()
 
@@ -212,8 +209,34 @@ if __name__ == "__main__":
         regressor.load_state_dict(T.load(regressor_dir))
 
     # Evaluate the agent
-    env = env_fun(animate=True,
+    env = env_fun(animate=params["animate"],
                   max_steps=params["max_steps"],
                   action_input=False,
                   latent_input=False)
-    evaluate_model(params, env, policy, regressor)
+    return evaluate_model(params, env, policy, regressor)
+
+
+if __name__ == "__main__":
+    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
+
+    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    params = {"dataset_episodes": 1000,
+              "training_iters": 1000,
+              "eval_episodes": 30,
+              "batchsize": 30,
+              "gamma": 0.99,
+              "regressor_lr": 0.001,
+              "weight_decay": 0.0001,
+              "max_steps": 200,
+              "normalize_rewards": False,
+              "animate": False,
+              "note": "",
+              "ID": ID}
+
+    LOAD_POLICY = False
+    LOAD_REGRESSOR = False
+    TRAIN_REGRESSOR = True
+
+    mlp_reg_non_variable = run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_POLICY=False, VARIABLE_TRAIN=False, VARIABLE_EVAL=False)
+
+

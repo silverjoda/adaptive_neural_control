@@ -10,7 +10,7 @@ import src.my_utils as my_utils
 
 
 class HangPoleGoalContVariableBulletEnv(gym.Env):
-    def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False):
+    def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False, variable=False):
         if (animate):
           p.connect(p.GUI)
         else:
@@ -19,6 +19,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.animate = animate
         self.latent_input = latent_input
         self.action_input = action_input
+        self.variable = variable
 
         # Simulator parameters
         self.max_steps = max_steps
@@ -36,8 +37,13 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         self.target_debug_line = None
         self.target_var = 2.
         self.target_change_prob = 0.008
-        self.weight_position_min = 0.9
-        self.weight_position_var = 0.0
+
+        if self.variable:
+            self.weight_position_min = 0.1
+            self.weight_position_var = 0.9
+        else:
+            self.weight_position_min = 1.0
+            self.weight_position_var = 0.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_goal_cont_variable.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
