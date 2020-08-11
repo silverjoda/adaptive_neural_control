@@ -199,13 +199,12 @@ def run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_PO
         regressor_dir = "agents/regressor_Y1G"
         regressor.load_state_dict(T.load(regressor_dir))
 
-    env.set_params_variable(VARIABLE_EVAL)
-
     # Evaluate the agent
     env = env_fun(animate=params["animate"],
                   max_steps=params["max_steps"],
                   action_input=False,
-                  latent_input=False)
+                  latent_input=False,
+                  is_variable=VARIABLE_EVAL)
     return evaluate_model(params, env, policy, regressor)
 
 
@@ -234,7 +233,10 @@ if __name__ == "__main__":
 
     for prod in itertools.product([0,1], [0,1], [0,1]):
         LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL = prod
-        mean_mse, min_mse, max_mse = run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR,
+        mean_mse, min_mse, max_mse = run_experiment(params,
+                                              LOAD_POLICY=LOAD_POLICY,
+                                              LOAD_REGRESSOR=LOAD_REGRESSOR,
+                                              TRAIN_REGRESSOR=TRAIN_REGRESSOR,
                                               LSTM_POLICY=LSTM_POLICY,
                                               VARIABLE_TRAIN=VARIABLE_TRAIN,
                                               VARIABLE_EVAL=VARIABLE_EVAL)
@@ -248,8 +250,6 @@ if __name__ == "__main__":
         print(
             "Evaluating: LSTM_POLICY: {}, VARIABLE_TRAIN: {}, VARIABLE_EVAL: {}. Results: mean_mse: {}, min_mse: {}, max_mse: {}".
             format(LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse))
-
-
 
     # TODO: Make evaluation of the trained regressor. Evaluation has to be accept any policy and regressor (add hidden state to rnn, btw).
     # TODO: Evaluation also has to visibly show accuracy at every step.

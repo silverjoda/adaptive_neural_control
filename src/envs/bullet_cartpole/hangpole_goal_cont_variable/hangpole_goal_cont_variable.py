@@ -228,5 +228,5 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
 
 if __name__ == "__main__":
-    env = HangPoleGoalContVariableBulletEnv(animate=True)
+    env = HangPoleGoalContVariableBulletEnv(animate=True, is_variable=True)
     env.demo()
