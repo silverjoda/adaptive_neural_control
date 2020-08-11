@@ -5,6 +5,8 @@ import torch.nn.functional as F
 from copy import deepcopy
 import logging
 import matplotlib.pyplot as plt
+import random
+import string
 
 class SinPolicy(nn.Module):
     def __init__(self, hidden=24):
@@ -19,16 +21,55 @@ class SinPolicy(nn.Module):
         y_pred = self.linear3(h_relu)
         return y_pred
 
+class PyTorchMlp(nn.Module):
+
+    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
+        nn.Module.__init__(self)
+
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.Linear(n_hidden, n_hidden)
+        self.fc3 = nn.Linear(n_hidden, n_actions)
+        self.activ_fn = nn.Tanh()
+        self.out_activ = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        x = self.activ_fn(self.fc1(x))
+        x = self.activ_fn(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+class PyTorchLSTM(nn.Module):
+    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
+        nn.Module.__init__(self)
+
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.LSTM(n_hidden, n_hidden, batch_first=True)
+        self.fc3 = nn.Linear(n_hidden, n_actions)
+        self.activ_fn = nn.Tanh()
+        self.out_activ = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        x = self.activ_fn(self.fc1(x))
+        x, h = self.fc2(x)
+        x = self.fc3(x)
+        return x
+
+    def forward_step(self, x, h):
+        x = self.activ_fn(self.fc1(x))
+        x, h = self.fc2(x, h)
+        x = self.fc3(x)
+        return x, h
+
 class MAMLModelTrainer:
 
-    def __init__(self):
-        pass
+    def __init__(self, env):
+        self.env = env
 
-    def train_maml(env_fun, param_dict):
-        # Initialize policy with meta parameters
-        meta_policy = SinPolicy(param_dict["hidden"])
-        meta_trn_opt = T.optim.SGD(meta_policy.parameters(), lr=param_dict["lr_meta"],
-                                   momentum=param_dict["momentum_meta"], weight_decay=param_dict["w_decay_meta"])
+    def meta_train_model(self, param_dict, meta_policy):
+        meta_trn_opt = T.optim.SGD(meta_policy.parameters(),
+                                   lr=param_dict["lr_meta"],
+                                   momentum=param_dict["momentum_meta"],
+                                   weight_decay=param_dict["w_decay_meta"])
 
         for mt in range(param_dict["meta_training_iters"]):
             # Clear meta gradients
@@ -159,10 +200,17 @@ class MAMLModelTrainer:
         plt.show()
         plt.pause(1000)
 
+        return policy
+
+
+
 if __name__ == "__main__":
     policy = SinPolicy(24)
+    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import \
+        HangPoleGoalContVariableBulletEnv as env_fun
 
-    param_dict = {"meta_training_iters" : 25000,
+    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    params = {"meta_training_iters" : 25000,
                   "reptile_training_iters": 1500,
                   "reptile_k" : 5,
                   "training_iters": 1, # 3
@@ -175,9 +223,19 @@ if __name__ == "__main__":
                   "momentum_trn" : 0.95, # 0.95
                   "momentum_meta" : 0.95, # 0.95
                   "w_decay" : 0.001, # 0.001
-                  "w_decay_meta" : 0.001} # 0.001
+                  "w_decay_meta" : 0.001,
+                  "ID" : ID}
 
-    env_fun = SinTask
-    train_maml(env_fun, param_dict) # Not tested yet
-    #train_fomaml(env_fun, param_dict)
-    #train_reptile(env_fun, param_dict)
+    # TODO: Make maml into form which accepts envs for supervised model learning
+    # TODO: Make maml into form which accepts envs for RL
+    # TODO: Make maml into form which accepts envs for RL exploration policy
+    env = env_fun(animate=False,
+                  max_steps=200,
+                  action_input=False,
+                  latent_input=False,
+                  is_variable=True)
+
+    meta_policy = PyTorchMlp(n_inputs=env.obs_dim, n_hidden=25, n_actions=env.act_dim)
+    maml_model_trainer = MAMLModelTrainer(env)
+    meta_trained_policy = maml_model_trainer.meta_train_model(params, meta_policy)
+    T.save(meta_trained_policy.state_dict(), "meta_agents/meta_regressor_{}".format(params["ID"]))
