@@ -1,0 +1,253 @@
+<?xml version="1.0"?>
+<robot name="quadrotor">
+  <material name="green">
+        <color rgba="0 .8 .8 1"/>
+  </material>
+
+  <material name="blue">
+        <color rgba="0 .0 1 1"/>
+  </material>
+
+  <material name="black">
+        <color rgba="0 0 0 1"/>
+  </material>
+
+  <link name="base">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.01"/>
+      </geometry>
+      <origin xyz="0 0 0"/>
+      <material name="black"/>
+    </visual>
+
+    <inertial>
+      <origin xyz="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+    <!-- FL boom (1) /-->
+    <link name="boom_fl">
+      <visual>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <geometry>
+          <cylinder radius="0.015" length="0.2"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+    <link name="motor_fl">
+        <visual>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <sphere radius="0.025"/>
+          </geometry>
+          <material name="blue"/>
+        </visual>
+
+        <collision>
+          <origin xyz="0 0 0" rpy="0 0 0" />
+          <geometry>
+            <sphere radius="0.025"/>
+          </geometry>
+        </collision>
+
+        <inertial>
+          <origin xyz="0 0.1 0.0" rpy="0 0 0" />
+          <mass value="0.1"/>
+          <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+        </inertial>
+    </link>
+
+    <joint name="boom_motor_fl" type="fixed">
+      <origin xyz="0.0 0.2 0" rpy="0 0 0"/>
+      <parent link="base"/>
+      <child link="boom_fl"/>
+    </joint>
+
+    <joint name="base_boom_fl" type="fixed">
+      <origin xyz="0.0 0.0 0" rpy="0 0 -0.7854"/>
+      <parent link="base"/>
+      <child link="boom_fl"/>
+    </joint>
+
+    <!-- FR boom (2) /-->
+    <link name="boom_fr">
+      <visual>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <geometry>
+          <cylinder radius="0.015" length="0.2"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+    <link name="motor_fr">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+        <material name="blue"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="0 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+    <joint name="boom_motor_fr" type="fixed">
+      <origin xyz="0.0 0.2 0" rpy="0 0 0"/>
+      <parent link="base"/>
+      <child link="boom_fr"/>
+    </joint>
+
+    <joint name="base_boom_fr" type="fixed">
+      <origin xyz="0.0 0.0 0" rpy="0 0 -0.7854"/>
+      <parent link="base"/>
+      <child link="boom_fr"/>
+    </joint>
+
+    <!-- RL boom (3) /-->
+    <link name="boom_rl">
+      <visual>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <geometry>
+          <cylinder radius="0.015" length="0.2"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+    <link name="motor_rl">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+        <material name="blue"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="0 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+    <joint name="boom_motor_rl" type="fixed">
+      <origin xyz="0.0 0.2 0" rpy="0 0 -0.7854"/>
+      <parent link="base"/>
+      <child link="boom_rl"/>
+    </joint>
+
+    <joint name="base_boom_rl" type="fixed">
+      <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
+      <parent link="base"/>
+      <child link="boom_rl"/>
+    </joint>
+
+    <joint name="base_boom_rl" type="fixed">
+      <origin xyz="0.0 0.0 0" rpy="0 0 0.7854"/>
+      <parent link="base"/>
+      <child link="boom_rl"/>
+    </joint>
+
+    <!-- RR boom (4) /-->
+    <link name="boom_rr">
+      <visual>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <geometry>
+          <cylinder radius="0.015" length="0.2"/>
+        </geometry>
+        <material name="black"/>
+      </visual>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="-1.5708 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+  <link name="motor_rr">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+        <material name="blue"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <sphere radius="0.025"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0 0.1 0.0" rpy="0 0 0" />
+        <mass value="0.1"/>
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+      </inertial>
+    </link>
+
+    <joint name="boom_motor_rr" type="fixed">
+      <origin xyz="0.0 0.2 0" rpy="0 0 -0.7854"/>
+      <parent link="base"/>
+      <child link="boom_rr"/>
+    </joint>
+
+    <joint name="base_boom_rr" type="fixed">
+      <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
+      <parent link="base"/>
+      <child link="boom_rr"/>
+    </joint>
+
+    <joint name="base_boom_rr" type="fixed">
+      <origin xyz="0.0 0.0 0" rpy="0 0 2.3562"/>
+      <parent link="base"/>
+      <child link="boom_rr"/>
+      <limit effort="1.4" lower="-3" upper="3" velocity="1"/>
+      <dynamics damping="0.01" friction="0.01"/>
+    </joint>
+
+</robot>

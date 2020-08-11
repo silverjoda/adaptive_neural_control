@@ -9,7 +9,7 @@ from gym import spaces
 import src.my_utils as my_utils
 
 
-class HangPoleGoalContVariableBulletEnv(gym.Env):
+class QuadrotorBulletEnv(gym.Env):
     def __init__(self, animate=False, max_steps=200, action_input=False, latent_input=False, is_variable=False):
         if (animate):
           p.connect(p.GUI)
@@ -228,5 +228,5 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
 
 
 if __name__ == "__main__":
-    env = HangPoleGoalContVariableBulletEnv(animate=True)
+    env = QuadrotorBulletEnv(animate=True)
     env.demo()
