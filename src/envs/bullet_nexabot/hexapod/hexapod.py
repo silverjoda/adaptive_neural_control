@@ -22,6 +22,10 @@ class HexapodBulletEnv(gym.Env):
         if seed is not None:
             np.random.seed(seed)
             T.manual_seed(seed)
+        else:
+            rnd_seed = int((time.time() % 1) * 10000000)
+            np.random.seed(rnd_seed)
+            T.manual_seed(rnd_seed + 1)
 
         if (animate):
             self.client_ID = p.connect(p.GUI)

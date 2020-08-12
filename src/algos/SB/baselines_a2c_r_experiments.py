@@ -39,7 +39,7 @@ if __name__ == "__main__":
               "batchsize": 60,
               "max_steps": 200,
               "gamma": 0.99,
-              "policy_lr": 0.0005,
+              "policy_lr": 0.001,
               "normalize_rewards": False,
               "animate": False,
               "is_variable": True,
@@ -50,8 +50,8 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
-    n_envs = 6
+    TRAIN = False
+    n_envs = 8
 
     if TRAIN or socket.gethostname() == "goedel":
         if socket.gethostname() == "goedel": n_envs = 8
@@ -62,7 +62,7 @@ if __name__ == "__main__":
                     env=env,
                     learning_rate=params["policy_lr"],
                     verbose=1,
-                    n_steps=50,
+                    n_steps=60,
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',
@@ -99,18 +99,21 @@ if __name__ == "__main__":
     env = SubprocVecEnv(env_list, start_method='fork')
 
     if not TRAIN:
-        #model = A2C.load("agents/42")
-        model = A2C.load("agents_cp/42T_29100000_steps.zip")
+        model = A2C.load("agents/826_SB_policy.zip")
+        #model = A2C.load("agents_cp/42T_29100000_steps.zip")
 
     obs = env.reset()
     for _ in range(100):
         cum_rew = 0
+
         for i in range(100):
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
             cum_rew += reward[0]
+            time.sleep(0.01)
             if done[0]:
                 obs = env.reset()
                 print(cum_rew)
                 break
+
     env.close()

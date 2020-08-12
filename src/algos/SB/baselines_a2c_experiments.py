@@ -48,11 +48,11 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
-        n_envs = 6
+        n_envs = 8
         if socket.gethostname() == "goedel": n_envs = 8
         env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
         policy_kwargs = dict(net_arch=[int(96), int(96)])
@@ -61,7 +61,7 @@ if __name__ == "__main__":
                     env=env,
                     learning_rate=params["policy_lr"],
                     verbose=1,
-                    n_steps=30,
+                    n_steps=60,
                     ent_coef=0.0,
                     vf_coef=0.5,
                     lr_schedule='linear',
@@ -102,10 +102,11 @@ if __name__ == "__main__":
     env = env_fun(animate=True,
                   max_steps=params["max_steps"],
                   action_input=True,
-                  latent_input=False)
+                  latent_input=False,
+                  is_variable=params["is_variable"])
 
     if not TRAIN:
-        model = A2C.load("agents/7Y7_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = A2C.load("agents/BJ8_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
 
     obs = env.reset()
     for _ in range(100):

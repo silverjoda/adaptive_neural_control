@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 
 import gym
 import numpy as np
@@ -15,6 +16,8 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
+
+        np.random.seed(int((time.time() % 1) * 10000000))
 
         self.animate = animate
         self.latent_input = latent_input

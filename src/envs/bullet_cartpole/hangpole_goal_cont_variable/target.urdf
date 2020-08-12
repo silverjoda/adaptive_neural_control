@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot name="target">
 
-  <link name="pole">
+  <link name="target">
     <visual>
       <geometry>
         <sphere radius="0.1"/>
