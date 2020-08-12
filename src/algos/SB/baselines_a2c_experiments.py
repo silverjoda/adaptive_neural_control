@@ -33,7 +33,7 @@ if __name__ == "__main__":
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 30000000,
+    params = {"iters": 50000000,
               "batchsize": 60,
               "max_steps": 200,
               "gamma": 0.99,

@@ -33,7 +33,7 @@ def lr_fun(step):
     return 1e-3 / np.power(1 + 9e-7, step)
 
 if __name__ == "__main__":
-    args = ["None", "tiles", "straight"]
+    args = ["None", "perlin", "straight_rough"]
     if len(sys.argv) > 1:
         args = sys.argv
 
@@ -57,6 +57,8 @@ if __name__ == "__main__":
     print(params)
     TRAIN = False
     CONTINUE = False
+
+    # TODO: Make a OU or GP noise which is suitable for hexapod
 
     if TRAIN or socket.gethostname() == "goedel":
         env = env_fun(animate=params["animate"],
@@ -111,7 +113,7 @@ if __name__ == "__main__":
                   variable_velocity=False)
 
     if not TRAIN:
-        model = TD3.load("agents/0WF_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = TD3.load("agents/ZFU_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
         #model = TD3.load("agents_cp/09T_300000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 

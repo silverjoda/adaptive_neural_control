@@ -5,21 +5,9 @@ import torch.nn.functional as F
 from copy import deepcopy
 import logging
 import matplotlib.pyplot as plt
+from stable_baselines import A2C
 import random
 import string
-
-class SinPolicy(nn.Module):
-    def __init__(self, hidden=24):
-        super(SinPolicy, self).__init__()
-        self.linear1 = nn.Linear(1, hidden)
-        self.linear2 = nn.Linear(hidden, hidden)
-        self.linear3 = nn.Linear(hidden, 1)
-
-    def forward(self, x):
-        h_relu = self.linear1(x).clamp(min=0)
-        h_relu = self.linear2(h_relu).clamp(min=0)
-        y_pred = self.linear3(h_relu)
-        return y_pred
 
 class PyTorchMlp(nn.Module):
 
@@ -61,9 +49,47 @@ class PyTorchLSTM(nn.Module):
         return x, h
 
 class MAMLModelTrainer:
-
-    def __init__(self, env):
+    def __init__(self, env, policy, params):
         self.env = env
+        self.policy = policy
+
+    def get_env_dataset(self):
+        episode_observations_trn = []
+        episode_actions_trn = []
+        episode_observations_tst = []
+        episode_actions_tst = []
+        for i in range(params["dataset_episodes"]):
+            observations = []
+            actions = []
+            obs = env.reset(randomize=True)
+            for j in range(params["max_steps"]):
+                action, _states = policy.predict(obs, deterministic=True)
+                action = action + np.random.randn(env.act_dim)
+                observations.append(obs)
+                actions.append(action)
+                obs, reward, done, info = env.step(action)
+
+                if done:
+                    episode_observations_trn.append(observations)
+                    episode_actions_trn.append(actions)
+                    break
+
+            observations = []
+            actions = []
+            obs = env.reset(randomize=False)
+            for j in range(params["max_steps"]):
+                action, _states = policy.predict(obs, deterministic=True)
+                action = action + np.random.randn(env.act_dim)
+                observations.append(obs)
+                actions.append(action)
+                obs, reward, done, info = env.step(action)
+
+                if done:
+                    episode_observations_tst.append(observations)
+                    episode_actions_tst.append(actions)
+                    break
+
+        return episode_observations_trn, episode_actions_trn, episode_observations_tst, episode_actions_tst
 
     def meta_train_model(self, param_dict, meta_policy):
         meta_trn_opt = T.optim.SGD(meta_policy.parameters(),
@@ -76,16 +102,15 @@ class MAMLModelTrainer:
             meta_trn_opt.zero_grad()
 
             # Sample tasks
-            env_list = [env_fun() for _ in range(param_dict["batch_tasks"])]
-            dataset_list = [env.get_dataset(param_dict["batch_trn"]) for env in env_list]
+            dataset_list = [self.get_env_dataset()]
 
             # Updated params list
             copied_meta_policy_list = []
 
             trn_losses = []
-            for ei, env in enumerate(env_list):
+            for d in dataset_list:
                 # Get data
-                Xtrn, Ytrn, _, _ = dataset_list[ei]
+                Xtrn, Ytrn, _, _ = d
 
                 # Copy parameters to new network
                 copied_meta_policy = deepcopy(meta_policy)
@@ -105,7 +130,7 @@ class MAMLModelTrainer:
 
             tst_losses = []
             # Calculate loss on test task
-            for env, policy_i, dataset in zip(env_list, copied_meta_policy_list, dataset_list):
+            for policy_i, dataset in zip(copied_meta_policy_list, dataset_list):
                 _, _, Xtst, Ytst = dataset
                 Yhat = policy_i(T.from_numpy(Xtst).unsqueeze(1))
                 loss = F.mse_loss(Yhat, T.from_numpy(Ytst).unsqueeze(1))
@@ -235,7 +260,8 @@ if __name__ == "__main__":
                   latent_input=False,
                   is_variable=True)
 
+    rollout_policy = A2C('MlpPolicy', env)
     meta_policy = PyTorchMlp(n_inputs=env.obs_dim, n_hidden=25, n_actions=env.act_dim)
-    maml_model_trainer = MAMLModelTrainer(env)
+    maml_model_trainer = MAMLModelTrainer(env, rollout_policy, params)
     meta_trained_policy = maml_model_trainer.meta_train_model(params, meta_policy)
     T.save(meta_trained_policy.state_dict(), "meta_agents/meta_regressor_{}".format(params["ID"]))

@@ -120,7 +120,7 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
         ctrl_pen = np.square(ctrl[0]) * 0.1
         r = target_rew / (1 + 2.0 * vel_pen) - ctrl_pen  # Agent is rewarded only if low velocity near target
 
-        done = (self.step_ctr > self.max_steps)# or abs(theta) > 0.6
+        done = (self.step_ctr > self.max_steps) # or abs(theta) > 0.6
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("Theta: % 3.3f" % (theta), [-1, 0, 2])
@@ -139,7 +139,6 @@ class HangPoleGoalContVariableBulletEnv(gym.Env):
             obs = np.concatenate((obs, ctrl))
 
         return obs, r, done, {}
-
 
     def reset(self):
         self.step_ctr = 0

@@ -70,8 +70,8 @@
 
     <joint name="boom_motor_fl" type="fixed">
       <origin xyz="0.0 0.2 0" rpy="0 0 0"/>
-      <parent link="base"/>
-      <child link="boom_fl"/>
+      <parent link="boom_fl"/>
+      <child link="motor_fl"/>
     </joint>
 
     <joint name="base_boom_fl" type="fixed">
@@ -122,12 +122,12 @@
 
     <joint name="boom_motor_fr" type="fixed">
       <origin xyz="0.0 0.2 0" rpy="0 0 0"/>
-      <parent link="base"/>
-      <child link="boom_fr"/>
+      <parent link="boom_fr"/>
+      <child link="motor_fr"/>
     </joint>
 
     <joint name="base_boom_fr" type="fixed">
-      <origin xyz="0.0 0.0 0" rpy="0 0 -0.7854"/>
+      <origin xyz="0.0 0.0 0" rpy="0 0 -2.3562"/>
       <parent link="base"/>
       <child link="boom_fr"/>
     </joint>
@@ -173,15 +173,9 @@
     </link>
 
     <joint name="boom_motor_rl" type="fixed">
-      <origin xyz="0.0 0.2 0" rpy="0 0 -0.7854"/>
-      <parent link="base"/>
-      <child link="boom_rl"/>
-    </joint>
-
-    <joint name="base_boom_rl" type="fixed">
-      <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
-      <parent link="base"/>
-      <child link="boom_rl"/>
+      <origin xyz="0.0 0.2 0" rpy="0 0 0"/>
+      <parent link="boom_rl"/>
+      <child link="motor_rl"/>
     </joint>
 
     <joint name="base_boom_rl" type="fixed">
@@ -232,8 +226,8 @@
 
     <joint name="boom_motor_rr" type="fixed">
       <origin xyz="0.0 0.2 0" rpy="0 0 -0.7854"/>
-      <parent link="base"/>
-      <child link="boom_rr"/>
+      <parent link="boom_rr"/>
+      <child link="motor_rr"/>
     </joint>
 
     <joint name="base_boom_rr" type="fixed">
@@ -242,12 +236,5 @@
       <child link="boom_rr"/>
     </joint>
 
-    <joint name="base_boom_rr" type="fixed">
-      <origin xyz="0.0 0.0 0" rpy="0 0 2.3562"/>
-      <parent link="base"/>
-      <child link="boom_rr"/>
-      <limit effort="1.4" lower="-3" upper="3" velocity="1"/>
-      <dynamics damping="0.01" friction="0.01"/>
-    </joint>
 
 </robot>

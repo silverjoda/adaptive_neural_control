@@ -27,6 +27,21 @@ class PyTorchMlp(nn.Module):
         x = self.fc3(x)
         return x
 
+class PyTorchMlpCst(nn.Module):
+
+    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
+        nn.Module.__init__(self)
+        self.n_inputs = n_inputs
+        self.n_actions = n_actions
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.Linear(n_hidden, n_hidden)
+        self.fc3 = nn.Linear(n_hidden, n_actions)
+        self.activ_fn = nn.Tanh()
+        self.out_activ = nn.Softmax(dim=0)
+
+    def forward(self, x):
+        return x[:, :, self.n_actions]
+
 class PyTorchLSTM(nn.Module):
     def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
         nn.Module.__init__(self)
@@ -207,6 +222,19 @@ def run_experiment(params, LOAD_POLICY, LOAD_REGRESSOR, TRAIN_REGRESSOR, LSTM_PO
                   is_variable=VARIABLE_EVAL)
     return evaluate_model(params, env, policy, regressor)
 
+def run_baseline(params, LOAD_POLICY, VARIABLE_EVAL):
+    # Evaluate the agent
+    env = env_fun(animate=params["animate"],
+                  max_steps=params["max_steps"],
+                  action_input=False,
+                  latent_input=False,
+                  is_variable=VARIABLE_EVAL)
+    policy = A2C('MlpPolicy', env)
+    if LOAD_POLICY:
+        policy_dir = "agents/xxx.zip"
+        policy = A2C.load(policy_dir)  # 2Q5
+    regressor = PyTorchMlpCst(env.obs_dim + env.act_dim, 24, env.obs_dim)
+    return evaluate_model(params, env, policy, regressor)
 
 if __name__ == "__main__":
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
@@ -244,6 +272,15 @@ if __name__ == "__main__":
 
     print("Final results ====================================================")
     print("==================================================================")
+
+
+    # TODO: DEBUG AND TEST BASELINE EVALUATION
+    mean_mse_cst, min_mse_cst, max_mse_cst = run_baseline(params, LOAD_POLICY=LOAD_POLICY, VARIABLE_EVAL=False)
+    print("Constant Regressor (just predict previous state): VARIABLE_EVAL: False, Results: mean_mse: {}, min_mse: {}, max_mse: {}".format(
+        mean_mse_cst, min_mse_cst, max_mse_cst))
+    mean_mse_cst, min_mse_cst, max_mse_cst = run_baseline(params, LOAD_POLICY=LOAD_POLICY, VARIABLE_EVAL=True)
+    print("Constant Regressor (just predict previous state): VARIABLE_EVAL: True, Results: mean_mse: {}, min_mse: {}, max_mse: {}".format(
+        mean_mse_cst, min_mse_cst, max_mse_cst))
 
     for r in results:
         LSTM_POLICY, VARIABLE_TRAIN, VARIABLE_EVAL, mean_mse, min_mse, max_mse = r
