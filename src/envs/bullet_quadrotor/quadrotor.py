@@ -24,9 +24,9 @@ class QuadrotorBulletEnv(gym.Env):
         # Simulator parameters
         self.max_steps = max_steps
         self.animate = animate
-        self.latent_dim = 1
-        self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
-        self.act_dim = 1
+        self.latent_dim = 1 # ?
+        self.obs_dim = 10 + self.latent_dim * int(self.latent_input) + int(self.action_input) # Orientation quaternion, linear + angular velocities
+        self.act_dim = 4 # Motor commands (4)
 
         self.timeStep = 0.02
 

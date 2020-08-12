@@ -273,7 +273,6 @@ if __name__ == "__main__":
     print("Final results ====================================================")
     print("==================================================================")
 
-
     # TODO: DEBUG AND TEST BASELINE EVALUATION
     mean_mse_cst, min_mse_cst, max_mse_cst = run_baseline(params, LOAD_POLICY=LOAD_POLICY, VARIABLE_EVAL=False)
     print("Constant Regressor (just predict previous state): VARIABLE_EVAL: False, Results: mean_mse: {}, min_mse: {}, max_mse: {}".format(

@@ -37,7 +37,7 @@ if __name__ == "__main__":
               "batchsize": 60,
               "max_steps": 200,
               "gamma": 0.99,
-              "policy_lr": 0.0005,
+              "policy_lr": 0.0001,
               "normalize_rewards": False,
               "animate": False,
               "is_variable": True,
@@ -106,7 +106,7 @@ if __name__ == "__main__":
                   is_variable=params["is_variable"])
 
     if not TRAIN:
-        model = A2C.load("agents/BJ8_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        model = A2C.load("agents/1UK_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
 
     obs = env.reset()
     for _ in range(100):

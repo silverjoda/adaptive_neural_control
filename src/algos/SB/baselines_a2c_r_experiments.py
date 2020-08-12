@@ -39,7 +39,7 @@ if __name__ == "__main__":
               "batchsize": 60,
               "max_steps": 200,
               "gamma": 0.99,
-              "policy_lr": 0.001,
+              "policy_lr": 0.0001,
               "normalize_rewards": False,
               "animate": False,
               "is_variable": True,
