@@ -1,10 +1,14 @@
-import math
-def p(t, d):
-    p = []
-    for k in range(d//2):
-        w_k = 1 / math.pow(1e5, 2 * k / d)
-        p.append(math.sin(w_k * t))
-        p.append(math.cos(w_k * t))
-    return p
+import argparse
 
-print([p(t, 2) for t in range(30)])
+def parse_args():
+    parser = argparse.ArgumentParser(description='Pass in parameters. ')
+    parser.add_argument('--n_steps', type=int, required=True, help='Number of training steps .')
+    parser.add_argument('--terrain_type', type=str, default="flat", help='Type of terrain for training .')
+    parser.add_argument('--lr', type=int, default=0.001, help='Learning rate .')
+    parser.add_argument('--batchsize', type=int, default=32, help='Batchsize .')
+
+    args = parser.parse_args()
+    return args.__dict__
+
+args = parse_args()
+print(args)

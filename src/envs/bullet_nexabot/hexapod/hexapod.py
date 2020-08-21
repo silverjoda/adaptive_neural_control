@@ -631,5 +631,5 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="stairs_up", training_mode="straight_rough")
+    env = HexapodBulletEnv(animate=True, terrain_name="perlin", training_mode="straight_rough")
     env.test_leg_coordination()
