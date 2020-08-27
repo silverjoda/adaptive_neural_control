@@ -156,7 +156,7 @@ if __name__ == "__main__":
     env_config = read_config("dummypath_env")
     print(env_config)
 
-    TRAIN = algo_con
+    TRAIN = False
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":

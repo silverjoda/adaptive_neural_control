@@ -55,10 +55,8 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = False
+    TRAIN = True
     CONTINUE = False
-
-    # TODO: Make a OU or GP noise which is suitable for hexapod
 
     if TRAIN or socket.gethostname() == "goedel":
         env = env_fun(animate=params["animate"],

@@ -103,10 +103,12 @@ class HexapodBulletEnv(gym.Env):
         if self.training_mode.endswith("wide_range"):
             self.urdf_name = "hexapod_wide_range.urdf"
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
-        self.generate_rnd_env()
 
         if self.terrain_name == "flat":
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        else:
+            self.generate_rnd_env()
+
 
         # Change contact friction for legs and torso
         for i in range(6):
@@ -523,6 +525,25 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self):
+        t1 = time.time()
+        if False:
+            p.removeBody(self.robot)
+
+            self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
+            print("RobotID", self.robot)
+
+            p.removeBody(self.terrain)
+
+            if self.terrain_name == "flat":
+                self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+            self.generate_rnd_env()
+            print("terrainID", self.terrain)
+
+            # Change contact friction for legs and torso
+            for i in range(6):
+                p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
+            p.changeDynamics(self.robot, -1, lateralFriction=self.lateral_friction)
+
         # Reset episodal vars
         self.step_ctr = 0
         self.episode_ctr += 1
@@ -584,6 +605,9 @@ class HexapodBulletEnv(gym.Env):
             p.stepSimulation(physicsClientId=self.client_ID)
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
+
+        t2 = time.time()
+        print("Time taken to reset: {} ".format(t2-t1))
 
         return obs
 

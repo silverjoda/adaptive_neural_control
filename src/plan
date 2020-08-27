@@ -1,4 +1,6 @@
 Hexapod training:
+# TODO: Check how long reset takes with and without reloading the models (takes almost same time, error removing body.)
+# TODO: Make a OU or GP noise which is suitable for hexapod
 # TODO: Try learning leg model in air using random policy and see if the model regression is as accurate under a different policy (non-random)
 # TODO: Add callback for id and NOTE reporting.
 # TODO: Add callback for symmetry penalty using gradient descent
@@ -34,15 +36,13 @@ Adaptation research:
 
 Research: Steps
 # TODO: Prepare environments for training and testing. All environments must be in the same form as gym, but also sample-able upon reset
-# TODO: Environments are utimately the following: Cartpole, Cartpole swing up, Hexapod, Quadcopter stabilize, Quadcopter waypoints, Buggie, Airplane waypoints, Airplane land, Sailboat waypoint
+# TODO: Environments are for now the following: Cartpole, Cartpole swing up, Hexapod, Quadcopter stabilize, Quadcopter waypoints, Buggie, Airplane waypoints, Airplane land, Sailboat waypoint
+# TODO: Make robotic platforms: Hexapod, Buggie, Quad and their respective simulations
 # TODO: Test model learning for all envs. Is random exploration enough? How does a randomly trained model performance generalize to
 # TODO: a state distribution induced by a policy learned by RL? Does learning using state visitation stratification help? Also compare to
 # TODO: learning a model and a policy at the same time so that we are sampling from a relevant state distribution
 # TODO: Can a model learning using RNN adapt to various parameter changes?
 # TODO: Make a MAML and/or ANIL implementation which accepts our environments as input
-
-Paper:
-# TODO: 1 per day
 
 Quad:
 # TODO: Add feedforward reg to compensate yaw effect when pitching or rolling. Test Quad
