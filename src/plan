@@ -1,5 +1,4 @@
 Hexapod training:
-# TODO: Check how long reset takes with and without reloading the models (takes almost same time, error removing body.)
 # TODO: Make a OU or GP noise which is suitable for hexapod
 # TODO: Try learning leg model in air using random policy and see if the model regression is as accurate under a different policy (non-random)
 # TODO: Add callback for id and NOTE reporting.

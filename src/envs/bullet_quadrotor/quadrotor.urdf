@@ -5,7 +5,15 @@
   </material>
 
   <material name="blue">
-        <color rgba="0 .0 1 1"/>
+        <color rgba="0 0 1 1"/>
+  </material>
+
+  <material name="yellow">
+        <color rgba="1 1 0 1"/>
+  </material>
+
+  <material name="pink">
+        <color rgba="0.5 0 0.5 1"/>
   </material>
 
   <material name="black">
@@ -51,7 +59,7 @@
           <geometry>
             <sphere radius="0.025"/>
           </geometry>
-          <material name="blue"/>
+          <material name="green"/>
         </visual>
 
         <collision>
@@ -155,7 +163,7 @@
         <geometry>
           <sphere radius="0.025"/>
         </geometry>
-        <material name="blue"/>
+        <material name="yellow"/>
       </visual>
 
       <collision>
@@ -207,7 +215,7 @@
         <geometry>
           <sphere radius="0.025"/>
         </geometry>
-        <material name="blue"/>
+        <material name="pink"/>
       </visual>
 
       <collision>
@@ -225,13 +233,13 @@
     </link>
 
     <joint name="boom_motor_rr" type="fixed">
-      <origin xyz="0.0 0.2 0" rpy="0 0 -0.7854"/>
+      <origin xyz="0.0 0.2 0" rpy="0 0 0"/>
       <parent link="boom_rr"/>
       <child link="motor_rr"/>
     </joint>
 
     <joint name="base_boom_rr" type="fixed">
-      <origin xyz="0.0 0.0 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.0 0" rpy="0 0 2.3562"/>
       <parent link="base"/>
       <child link="boom_rr"/>
     </joint>
