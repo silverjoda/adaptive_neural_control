@@ -1,6 +1,4 @@
 Hexapod training:
-# TODO: Make a OU or GP noise which is suitable for hexapod
-# TODO: Try learning leg model in air using random policy and see if the model regression is as accurate under a different policy (non-random)
 # TODO: Add callback for id and NOTE reporting.
 # TODO: Add callback for symmetry penalty using gradient descent
 # TODO: Keep training straight and stairs policy
@@ -8,8 +6,6 @@ Hexapod training:
 # TODO: Make proper input argument parser
 # TODO: Custom callback for symmetry <-
 # TODO: Make additional tensorboard logs to debug action, observation and gradient distributions during training
-# TODO: Make a OU or GP noise which is suitable for hexapod
-# TODO: ADD PROPER ARGUMENTS INPUTS USING ARGPARSE
 
 Hexapod HW:
 # TODO: Make contact sensors

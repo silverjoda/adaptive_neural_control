@@ -119,42 +119,41 @@ class CustomCallback(BaseCallback):
 
 def make_env(params):
     def _init():
-        env = env_fun(animate=params["animate"],
-                      max_steps=params["max_steps"],
-                      step_counter=True,
-                      terrain_name=params["terrain"],
-                      training_mode=params["r_type"],
-                      variable_velocity=params["variable_velocity"])
+        env = env_fun(params)
         return env
     return _init
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
-    parser.add_argument('--n_steps', type=int, required=False, help='Number of training steps .')
-    parser.add_argument('--terrain_type', type=str, default="flat", required=False, help='Type of terrain for training .')
-    parser.add_argument('--lr', type=int, default=0.001, required=False, help='Learning rate .')
-    parser.add_argument('--batchsize', type=int, default=32, required=False, help='Batchsize .')
+    # parser.add_argument('--n_steps', type=int, required=False, help='Number of training steps .')
+    # parser.add_argument('--terrain_type', type=str, default="flat", required=False, help='Type of terrain for training .')
+    # parser.add_argument('--lr', type=int, default=0.001, required=False, help='Learning rate .')
+    # parser.add_argument('--batchsize', type=int, default=32, required=False, help='Batchsize .')
+    parser.add_argument('--config', type=str, default="default_config.yaml", required=False, help='Config flie name .')
 
     args = parser.parse_args()
     return args.__dict__
 
 def read_config(path):
-    with open('items.yaml') as f:
+    with open(path) as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
-        print(data)
+    return data
 
+def import_env(name):
+    if name == "hexapod":
+        from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
 if __name__ == "__main__":
-    args = parse_args()
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-
-    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-
-    # Read configuration from yaml
+    # Read configurations from yaml
     algo_config = read_config("dummypath_algo")
     print(algo_config)
     env_config = read_config("dummypath_env")
     print(env_config)
+
+    # Import correct env by name
+    import_env(env_config["env_name"])
+
+    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     TRAIN = False
     CONTINUE = False
