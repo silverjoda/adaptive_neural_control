@@ -17,6 +17,25 @@ import numpy as np
 from stable_baselines.td3.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
+from stable_baselines.common.noise import ActionNoise
+from opensimplex import OpenSimplex
+
+class SimplexNoise(ActionNoise):
+    """
+    A simplex action noise
+    """
+    def __init__(self, dim):
+        super().__init__()
+        self.idx = 0
+        self.dim = dim
+        self.noisefun = OpenSimplex(seed=int((time.time() % 1) * 10000000))
+
+    def __call__(self) -> np.ndarray:
+        self.idx += 1
+        return [(self.noisefun.noise2d(x=self.idx / 10, y=i*10) + self.noisefun.noise2d(x=self.idx / 50, y=i*10)) * 0 for i in range(self.dim)]
+
+    def __repr__(self) -> str:
+        return 'Opensimplex Noise()'.format()
 
 def make_env(params):
     def _init():
@@ -55,7 +74,7 @@ if __name__ == "__main__":
               "ID": ID}
 
     print(params)
-    TRAIN = True
+    TRAIN = False
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
@@ -67,10 +86,7 @@ if __name__ == "__main__":
                       variable_velocity=False)
 
         n_actions = env.action_space.shape[-1]
-        action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions),
-                                                    sigma=0.2 * np.ones(n_actions),
-                                                    theta=0.15,
-                                                    dt=0.01)
+        action_noise = SimplexNoise(n_actions)
 
         model = TD3('MlpPolicy',
                     env=env,

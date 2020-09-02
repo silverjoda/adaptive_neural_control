@@ -109,7 +109,6 @@ class HexapodBulletEnv(gym.Env):
         else:
             self.generate_rnd_env()
 
-
         # Change contact friction for legs and torso
         for i in range(6):
             p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
@@ -300,8 +299,8 @@ class HexapodBulletEnv(gym.Env):
         ctct_leg_6 = int(len(p.getContactPoints(self.robot, self.terrain, 17, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
-        #contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4, ctct_leg_5, ctct_leg_6]
-        contacts = np.zeros(6)
+        contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4, ctct_leg_5, ctct_leg_6]
+        #contacts = np.zeros(6)
 
         # Joints
         obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
@@ -590,7 +589,6 @@ class HexapodBulletEnv(gym.Env):
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         t2 = time.time()
-        print("Time taken to reset: {} ".format(t2-t1))
 
         return obs
 
