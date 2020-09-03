@@ -133,14 +133,14 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = TD3.load("agents/ZFU_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = TD3.load("agents_cp/A8L_2000000_steps.zip")  # 2Q5
+        model = TD3.load("agents_cp/JSK_5000000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
     for _ in range(100):
         cum_rew = 0
         for i in range(800):
-            action, _states = model.predict(obs, deterministic=True)
+            action, _states = model.predict(obs, deterministic=False)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()

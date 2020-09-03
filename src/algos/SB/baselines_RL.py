@@ -194,6 +194,10 @@ def make_model(config, env, action_noise_fun):
     assert model is not None, "Alg name not found, exiting. "
     return model
 
+def make_action_noise_fun(config):
+
+    return None
+
 if __name__ == "__main__":
     # Read script input arguments
     args = parse_args()
@@ -215,7 +219,9 @@ if __name__ == "__main__":
         if socket.gethostname() == "goedel": n_envs = 10
         env = SubprocVecEnv([make_env(env_config, env_fun) for _ in range(n_envs)], start_method='fork')
 
-        model = make_model(algo_config, env)
+        model = make_model(algo_config, env, action_noise_fun)
+
+        # TODO make configs for envs
 
         # Save a checkpoint every 1000000 steps
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
