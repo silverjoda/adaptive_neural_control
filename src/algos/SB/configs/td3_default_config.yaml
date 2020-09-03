@@ -1,14 +1,21 @@
 "algo_name" : "TD3"
 "is_train" : True
 "is_test" : False
-"iters" : 1000000
-"max_steps": 90
-"batchsize" : 60
-"policy_lr" : 0.001
-"gamma" : 0.99
-"verbose" : 1
-"lr_schedule" : "linear"
-"full_tensorboard_log" : False
-"policy_kwargs" : dict(layers=[160, 140])
 "test_agent" : "FAP.zip"
 
+"iters" : 1000000
+"gamma" : 0.99
+"learning_rate" : 0.001,
+"buffer_size" : 1000000,
+"learning_starts" : 10000,
+"train_freq" : 1000
+"gradient_steps" : 1000
+"batch_size" : 128
+"tau" : 0.005
+"policy_delay" : 2
+"action_noise" : action_noise
+"target_policy_noise" : 0.2
+"target_noise_clip" : 0.5
+"verbose" : 1
+"tensorboard_log" : "./tb/{}/".format(ID)
+"policy_kwargs" : dict(layers=[160, 140])

@@ -1,0 +1,18 @@
+"algo_name" : "TD3"
+"is_train" : True
+"is_test" : False
+"test_agent" : "FAP.zip"
+
+"gamma" : 0.99
+"n_steps" : 50
+"vf_coef" : 0.5
+"ent_coef" : 0.0
+"max_grad_norm" : 0.5
+"learning_rate" : 0.001
+"alpha" : 0.99
+"epsilon" : 1e-5
+"lr_schedule" : "linear"
+"verbose" : 1
+"tensorboard_log" : "./tb/{}/".format(ID)
+"full_tensorboard_log" : False
+"policy_kwargs" : dict(layers=[160, 140])

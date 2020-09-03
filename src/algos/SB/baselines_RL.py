@@ -2,7 +2,7 @@ import gym
 import sys
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2, DQN, A2C
+from stable_baselines import PPO2, DQN, A2C, TD3
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import make_vec_env
@@ -153,20 +153,46 @@ def import_env(name):
     assert env_fun is not None, "Env name not found, exiting. "
     return env_fun
 
-def make_model(config):
-    A2C('MlpPolicy',
-        env=env,
-        learning_rate=algo_config["policy_lr"],
-        verbose=algo_config["verbose"],
-        n_steps=algo_config["n_steps"],
-        ent_coef=algo_config["ent_coef"],
-        vf_coef=algo_config["vf_coef"],
-        lr_schedule=algo_config["lr_schedule"],
-        tensorboard_log="./tb/{}/".format(ID),
-        full_tensorboard_log=algo_config["full_tensorboard_log"],
-        gamma=algo_config["gamma"],
-        policy_kwargs=algo_config["policy_kwargs"])
-    return None
+def make_model(config, env, action_noise_fun):
+    model = None
+    if config["algo_name"] == "TD3":
+        model = TD3('MlpPolicy',
+                    env=env,
+                    gamma=config["gamma"],
+                    learning_rate=config["learning_rate"],
+                    buffer_size=config["buffer_size"],
+                    learning_starts=config["learning_starts"],
+                    train_freq=config["train_freq"],
+                    gradient_steps=config["gradient_steps"],
+                    batch_size=config["batch_size"],
+                    tau=config["tau"],
+                    policy_delay=config["policy_delay"],
+                    action_noise=action_noise_fun,
+                    target_policy_noise=config["target_policy_noise"],
+                    target_noise_clip=config["target_noise_clip"],
+                    verbose=config["verbose"],
+                    tensorboard_log="./tb/{}/".format(ID),
+                    policy_kwargs=config["policy_kwargs"])
+
+    if config["algo_name"] == "A2C":
+        A2C('MlpPolicy',
+            env=env,
+            gamma=algo_config["gamma"],
+            n_steps=algo_config["n_steps"],
+            vf_coef=algo_config["vf_coef"],
+            ent_coef = algo_config["ent_coef"],
+            max_grad_norm=algo_config["max_grad_norm"],
+            learning_rate=algo_config["learning_rate"],
+            alpha=algo_config["alpha"],
+            epsilon=algo_config["epsilon"],
+            lr_schedule=algo_config["lr_schedule"],
+            verbose=algo_config["verbose"],
+            tensorboard_log="./tb/{}/".format(ID),
+            full_tensorboard_log=algo_config["full_tensorboard_log"],
+            policy_kwargs=algo_config["policy_kwargs"])
+
+    assert model is not None, "Alg name not found, exiting. "
+    return model
 
 if __name__ == "__main__":
     # Read script input arguments
@@ -189,7 +215,7 @@ if __name__ == "__main__":
         if socket.gethostname() == "goedel": n_envs = 10
         env = SubprocVecEnv([make_env(env_config, env_fun) for _ in range(n_envs)], start_method='fork')
 
-        model = make_model(algo_config)
+        model = make_model(algo_config, env)
 
         # Save a checkpoint every 1000000 steps
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',

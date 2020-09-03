@@ -98,11 +98,14 @@ if __name__ == "__main__":
                     learning_starts=10000,
                     train_freq=1000,
                     gradient_steps=1000,
-                    batch_size=100,
+                    batch_size=128,
+                    tau=0.005,
+                    policy_delay=2,
                     action_noise=action_noise,
-                    tensorboard_log="./tb/{}/".format(ID),
+                    target_policy_noise=0.2,
+                    target_noise_clip=0.5,
                     verbose=1,
-                    full_tensorboard_log=False,
+                    tensorboard_log="./tb/{}/".format(ID),
                     policy_kwargs=dict(layers=[160, 140]))
 
         # Save a checkpoint every 1000000 steps
