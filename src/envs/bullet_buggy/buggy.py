@@ -10,7 +10,7 @@ from gym import spaces
 import src.my_utils as my_utils
 
 # Variable params: Mass, boom length, motor "inertia", motor max_force
-class QuadrotorBulletEnv(gym.Env):
+class BuggyBulletEnv(gym.Env):
     def __init__(self, animate=False, max_steps=300, action_input=False, latent_input=False, is_variable=False):
         if (animate):
           self.client_ID = p.connect(p.GUI)

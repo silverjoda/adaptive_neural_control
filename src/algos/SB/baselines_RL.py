@@ -117,7 +117,7 @@ class CustomCallback(BaseCallback):
         """
         pass
 
-def make_env(params):
+def make_env(params, env_fun):
     def _init():
         env = env_fun(params)
         return env
@@ -129,7 +129,10 @@ def parse_args():
     # parser.add_argument('--terrain_type', type=str, default="flat", required=False, help='Type of terrain for training .')
     # parser.add_argument('--lr', type=int, default=0.001, required=False, help='Learning rate .')
     # parser.add_argument('--batchsize', type=int, default=32, required=False, help='Batchsize .')
-    parser.add_argument('--config', type=str, default="default_config.yaml", required=False, help='Config flie name .')
+    parser.add_argument('--algo_config', type=str, default="default_algo_config.yaml", required=False,
+                        help='Algorithm config flie name .')
+    parser.add_argument('--env_config', type=str, default="default_env_config.yaml", required=False,
+                        help='Env config flie name .')
 
     args = parser.parse_args()
     return args.__dict__
@@ -140,88 +143,78 @@ def read_config(path):
     return data
 
 def import_env(name):
+    env_fun = None
     if name == "hexapod":
         from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    if name == "quadrotor":
+        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
+    if name == "buggy":
+        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
+    assert env_fun is not None, "Env name not found, exiting. "
+    return env_fun
+
+def make_model(config):
+    A2C('MlpPolicy',
+        env=env,
+        learning_rate=algo_config["policy_lr"],
+        verbose=algo_config["verbose"],
+        n_steps=algo_config["n_steps"],
+        ent_coef=algo_config["ent_coef"],
+        vf_coef=algo_config["vf_coef"],
+        lr_schedule=algo_config["lr_schedule"],
+        tensorboard_log="./tb/{}/".format(ID),
+        full_tensorboard_log=algo_config["full_tensorboard_log"],
+        gamma=algo_config["gamma"],
+        policy_kwargs=algo_config["policy_kwargs"])
+    return None
 
 if __name__ == "__main__":
+    # Read script input arguments
+    args = parse_args()
+    print(args)
+
     # Read configurations from yaml
-    algo_config = read_config("dummypath_algo")
+    algo_config = read_config(args["algo_config"])
     print(algo_config)
-    env_config = read_config("dummypath_env")
+    env_config = read_config("env_config")
     print(env_config)
 
     # Import correct env by name
-    import_env(env_config["env_name"])
+    env_fun = import_env(env_config["env_name"])
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    TRAIN = False
-    CONTINUE = False
-
-    if TRAIN or socket.gethostname() == "goedel":
+    if algo_config["is_train"] or socket.gethostname() == "goedel":
         n_envs = 1
         if socket.gethostname() == "goedel": n_envs = 10
-        env = SubprocVecEnv([make_env(params) for _ in range(n_envs)], start_method='fork')
-        policy_kwargs = dict(net_arch=[int(196), int(196)])
+        env = SubprocVecEnv([make_env(env_config, env_fun) for _ in range(n_envs)], start_method='fork')
 
-        if CONTINUE:
-            ID = "FXX" # FXX
-            print("Continuing training with : {}".format(ID))
-            params["ID"] = ID
-            model = A2C.load("agents/{}_SB_policy.zip".format(ID))  # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-            model.env = env
-            model.tensorboard_log="./tb/{}/".format(ID)
-            model.lr_schedule = 'linear'
-            model.learning_rate = params["policy_lr"] / 5.
-            model.n_steps = 30
-            model.ent_coef = 0.0
-            model.vf_coef = 0.5
-        else:
-            model = A2C('MlpPolicy',
-                        env=env,
-                        learning_rate=params["policy_lr"],
-                        verbose=1,
-                        n_steps=30,
-                        ent_coef=0.0,
-                        vf_coef=0.5,
-                        lr_schedule='linear',
-                        tensorboard_log="./tb/{}/".format(ID),
-                        full_tensorboard_log=False,
-                        gamma=params["gamma"],
-                        policy_kwargs=policy_kwargs)
+        model = make_model(algo_config)
 
         # Save a checkpoint every 1000000 steps
         checkpoint_callback = CheckpointCallback(save_freq=50000, save_path='agents_cp/',
-                                                 name_prefix=params["ID"], verbose=1)
+                                                 name_prefix=ID, verbose=1)
 
         custom_callback = CustomCallback()
         callback = CallbackList([checkpoint_callback])
 
         # Train the agent
         t1 = time.time()
-        model.learn(total_timesteps=int(params["iters"]), callback=callback)
+        model.learn(total_timesteps=int(algo_config["iters"]), callback=callback)
         t2 = time.time()
         print("Training time: {}".format(t2-t1))
-        print(params)
-        model.save("agents/{}_SB_policy".format(params["ID"]))
+        print(algo_config)
+        model.save("agents/{}_SB_policy".format(ID))
         env.close()
 
     if socket.gethostname() == "goedel":
         exit()
 
-    env = env_fun(animate=True,
-                  max_steps=params["max_steps"],
-                  step_counter=True,
-                  terrain_name=params["terrain"],
-                  training_mode=params["r_type"],
-                  variable_velocity=False)
+    env = make_env(env_config, env_fun)
 
-    if not TRAIN:
-        model = A2C.load("agents/ZFU_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        #model = A2C.load("agents_cp/QTR_30000000_steps.zip")  # 2Q5
-    #print(evaluate_policy(model, env, n_eval_episodes=3))
+    if not algo_config["is_train"]:
+        model = A2C.load("agents/{}".format(algo_config["test_agent"]))
 
-    obs = env.reset()
     for _ in range(100):
         cum_rew = 0
         for i in range(800):

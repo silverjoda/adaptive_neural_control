@@ -65,7 +65,7 @@ if __name__ == "__main__":
               "gamma": 0.99,
               "policy_lr": 0.001,
               "weight_decay": 0.0001,
-              "animate": False,
+              "animate": True,
               "variable_velocity": False,
               "train": True,
               "terrain" : args[1],
@@ -78,6 +78,8 @@ if __name__ == "__main__":
     CONTINUE = False
 
     if TRAIN or socket.gethostname() == "goedel":
+        if socket.gethostname() == "goedel":
+            params["animate"] = False
         env = env_fun(animate=params["animate"],
                       max_steps=params["max_steps"],
                       step_counter=True,
@@ -128,7 +130,7 @@ if __name__ == "__main__":
 
     if not TRAIN:
         #model = TD3.load("agents/ZFU_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = TD3.load("agents_cp/DU9_700000_steps.zip")  # 2Q5
+        model = TD3.load("agents_cp/A8L_2000000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()

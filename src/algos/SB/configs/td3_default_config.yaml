@@ -1,0 +1,14 @@
+"algo_name" : "TD3"
+"is_train" : True
+"is_test" : False
+"iters" : 1000000
+"max_steps": 90
+"batchsize" : 60
+"policy_lr" : 0.001
+"gamma" : 0.99
+"verbose" : 1
+"lr_schedule" : "linear"
+"full_tensorboard_log" : False
+"policy_kwargs" : dict(layers=[160, 140])
+"test_agent" : "FAP.zip"
+
