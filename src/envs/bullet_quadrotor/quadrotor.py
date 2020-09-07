@@ -6,35 +6,46 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 from gym import spaces
+import torch as T
 
 import src.my_utils as my_utils
 
 # Variable params: Mass, boom length, motor "inertia", motor max_force
 class QuadrotorBulletEnv(gym.Env):
-    def __init__(self, animate=False, max_steps=300, action_input=False, latent_input=False, is_variable=False):
-        if (animate):
+    def __init__(self, config):
+        self.seed = config["seed"]
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            T.manual_seed(self.seed)
+        else:
+            rnd_seed = int((time.time() % 1) * 10000000)
+            np.random.seed(rnd_seed)
+            T.manual_seed(rnd_seed + 1)
+
+        self.animate = config["animate"]
+        self.max_steps = config["max_steps"]
+        self.latent_input = config["latent_input"]
+        self.action_input = config["action_input"]
+        self.is_variable = config["is_variable"]
+        self.sim_timestep = config["sim_timestep"]
+        self.propeller_parasitic_torque_coeff = config["propeller_parasitic_torque_coeff"]
+
+        self.obs_dim = 10 + int(self.action_input) * 4  # Orientation quaternion, linear + angular velocities
+        self.act_dim = 4 # Motor commands (4)
+        self.parasitic_torque_dir_vec = [1,-1,-1,1]
+
+        # Episode variables
+        self.step_ctr = 0
+        self.current_motor_velocity_vec = np.array([0,0,0,0])
+
+        if (self.animate):
           self.client_ID = p.connect(p.GUI)
         else:
           self.client_ID = p.connect(p.DIRECT)
 
-        self.animate = animate
-        self.latent_input = latent_input
-        self.action_input = action_input
-        self.is_variable = is_variable
-
-        # Simulator parameters
-        self.max_steps = max_steps
-        self.animate = animate
-        self.latent_dim = 3
-        self.obs_dim = 10 + self.latent_dim * int(self.latent_input) + int(self.action_input) # Orientation quaternion, linear + angular velocities
-        self.act_dim = 4 # Motor commands (4)
-
-        self.timeStep = 0.02
-        self.step_ctr = 0
-
         p.setGravity(0, 0, -9.8)
-        p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
+        p.setTimeStep(self.sim_timestep)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.load_robot()
@@ -45,7 +56,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def load_robot(self):
         # Randomize robot params
-        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia": 1.0, "motor_max_force": 1.0}
+        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia": 10.0, "motor_max_force": 1.0}
 
         # Write params to URDF file
         # ...
@@ -58,12 +69,20 @@ class QuadrotorBulletEnv(gym.Env):
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
         return torso_pos, torso_quat, torso_vel, torso_angular_vel
 
+    def update_motor_vel(self, ctrl):
+        self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec +
+                                                  (np.array(ctrl) * 2 - np.ones(4)) / self.robot_params["motor_inertia"], 0, 1)
+
     def render(self, close=False):
         pass
 
     def step(self, ctrl):
+        self.update_motor_vel(ctrl)
         for i in range(4):
-            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, ctrl[i]], posObj=[0, 0, 0], flags=p.LINK_FRAME)
+            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, self.current_motor_velocity_vec[i]],
+                                 posObj=[0, 0, 0], flags=p.LINK_FRAME)
+            p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
+                                  flags=p.LINK_FRAME)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -137,5 +156,9 @@ class QuadrotorBulletEnv(gym.Env):
 
 
 if __name__ == "__main__":
-    env = QuadrotorBulletEnv(animate=True)
+    import yaml
+    with open("../../algos/SB/configs/quadrotor_config.yaml") as f:
+        env_config = yaml.load(f, Loader=yaml.FullLoader)
+    env_config["animate"] = True
+    env = QuadrotorBulletEnv(env_config)
     env.demo()
