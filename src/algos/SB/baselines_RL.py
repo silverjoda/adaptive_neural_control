@@ -26,14 +26,16 @@ def make_env(config, env_fun):
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
     parser.add_argument('--train', type=bool, default=False, required=False,
-                        help='Flag indicating whether the training process is to be run .')
+                        help='Flag indicating whether the training process is to be run. ')
     parser.add_argument('--test', type=bool, default=False, required=False,
-                        help='Flag indicating whether the testing process is to be run .')
+                        help='Flag indicating whether the testing process is to be run. ')
+    parser.add_argument('--test_agent_path', type=str, default=".", required=False,
+                        help='Path of test agent. ')
     parser.add_argument('--algo_config', type=str, default="default_algo_config.yaml", required=False,
-                        help='Algorithm config flie name .')
+                        help='Algorithm config flie name. ')
     parser.add_argument('--env_config', type=str, default="default_env_config.yaml", required=False,
-                        help='Env config file name .')
-    parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps .')
+                        help='Env config file name. ')
+    parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
     args = parser.parse_args()
     return args.__dict__
@@ -98,6 +100,20 @@ def make_model(config, env, action_noise_fun):
 def make_action_noise_fun(config):
     return None
 
+def test_agent(env, model, deterministic=True):
+    for _ in range(100):
+        obs = env.reset()
+        cum_rew = 0
+        while True:
+            action, _states = model.predict(obs, deterministic=deterministic)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            env.render()
+            if done:
+                print(cum_rew)
+                break
+    env.close()
+
 if __name__ == "__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])
@@ -135,24 +151,10 @@ if __name__ == "__main__":
         model.save("agents/{}_SB_policy".format(session_ID))
         env.close()
 
-    if socket.gethostname() == "goedel":
-        exit()
-
-    if args["test"] or socket.gethostname() == "goedel":
+    if args["test"] and socket.gethostname() != "goedel":
         env = make_env(env_config, env_fun)
 
-        if not algo_config["is_train"]:
-            model = A2C.load("agents/{}".format(algo_config["test_agent"]))
+        if not args["train"]:
+            model = A2C.load("agents/{}".format(args["test_agent_path"]))
 
-        for _ in range(100):
-            cum_rew = 0
-            for i in range(800):
-                action, _states = model.predict(obs, deterministic=True)
-                obs, reward, done, info = env.step(action)
-                cum_rew += reward
-                env.render()
-                if done:
-                    obs = env.reset()
-                    print(cum_rew)
-                    break
-        env.close()
+        test_agent(env, model, deterministic=True)
