@@ -1,8 +1,4 @@
-"algo_name" : "TD3"
-"is_train" : True
-"is_test" : False
-"test_agent" : "FAP.zip"
-
+"algo_name" : "A3C"
 "gamma" : 0.99
 "n_steps" : 50
 "vf_coef" : 0.5

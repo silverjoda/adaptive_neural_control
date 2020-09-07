@@ -20,22 +20,22 @@ from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActi
 from stable_baselines.common.noise import ActionNoise
 from opensimplex import OpenSimplex
 
-class SimplexNoise(ActionNoise):
-    """
-    A simplex action noise
-    """
-    def __init__(self, dim):
-        super().__init__()
-        self.idx = 0
-        self.dim = dim
-        self.noisefun = OpenSimplex(seed=int((time.time() % 1) * 10000000))
-
-    def __call__(self) -> np.ndarray:
-        self.idx += 1
-        return [(self.noisefun.noise2d(x=self.idx / 10, y=i*10) + self.noisefun.noise2d(x=self.idx / 50, y=i*10)) * 0 for i in range(self.dim)]
-
-    def __repr__(self) -> str:
-        return 'Opensimplex Noise()'.format()
+# class SimplexNoise(ActionNoise):
+#     """
+#     A simplex action noise
+#     """
+#     def __init__(self, dim):
+#         super().__init__()
+#         self.idx = 0
+#         self.dim = dim
+#         self.noisefun = OpenSimplex(seed=int((time.time() % 1) * 10000000))
+#
+#     def __call__(self) -> np.ndarray:
+#         self.idx += 1
+#         return [(self.noisefun.noise2d(x=self.idx / 10, y=i*10) + self.noisefun.noise2d(x=self.idx / 50, y=i*10)) * 0 for i in range(self.dim)]
+#
+#     def __repr__(self) -> str:
+#         return 'Opensimplex Noise()'.format()
 
 def make_env(params):
     def _init():
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 6000000,
+    params = {"iters": 5000,
               "batchsize": 60,
               "max_steps": 90,
               "gamma": 0.99,
@@ -88,7 +88,7 @@ if __name__ == "__main__":
                       variable_velocity=False)
 
         n_actions = env.action_space.shape[-1]
-        action_noise = SimplexNoise(n_actions)
+        action_noise = None #SimplexNoise(n_actions)
 
         model = TD3('MlpPolicy',
                     env=env,
@@ -131,9 +131,11 @@ if __name__ == "__main__":
                   training_mode=params["r_type"],
                   variable_velocity=False)
 
+    from stable_baselines.common.noise import ActionNoise, SimplexNoise
+
     if not TRAIN:
-        #model = TD3.load("agents/ZFU_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
-        model = TD3.load("agents_cp/JSK_5000000_steps.zip")  # 2Q5
+        model = TD3.load("agents/P19_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt
+        #model = TD3.load("agents_cp/JSK_5000000_steps.zip")  # 2Q5
     #print(evaluate_policy(model, env, n_eval_episodes=3))
 
     obs = env.reset()
