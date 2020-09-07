@@ -16,6 +16,7 @@ import socket
 import numpy as np
 import argparse
 import yaml
+import os
 
 def make_env(config, env_fun):
     def _init():
@@ -31,9 +32,11 @@ def parse_args():
                         help='Flag indicating whether the testing process is to be run. ')
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
-    parser.add_argument('--algo_config', type=str, default="default_algo_config.yaml", required=False,
+    parser.add_argument('--animate', type=bool, default=False, required=False,
+                        help='Flag indicating whether the environment will be rendered. ')
+    parser.add_argument('--algo_config', type=str, default="td3_default_config.yaml", required=False,
                         help='Algorithm config flie name. ')
-    parser.add_argument('--env_config', type=str, default="default_env_config.yaml", required=False,
+    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
                         help='Env config file name. ')
     parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
@@ -41,7 +44,7 @@ def parse_args():
     return args.__dict__
 
 def read_config(path):
-    with open(path) as f:
+    with open(os.path.join('configs/', path)) as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
@@ -117,7 +120,8 @@ def test_agent(env, model, deterministic=True):
 if __name__ == "__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])
-    env_config = read_config("env_config")
+    env_config = read_config(args["env_config"])
+    aug_env_config = {**args, **env_config}
 
     print(args)
     print(algo_config)
@@ -132,7 +136,7 @@ if __name__ == "__main__":
     if args["train"] or socket.gethostname() == "goedel":
         n_envs = 10 if socket.gethostname() == "goedel" else 1
 
-        env = SubprocVecEnv([make_env(env_config, env_fun) for _ in range(n_envs)], start_method='fork')
+        env = SubprocVecEnv([make_env(aug_env_config, env_fun) for _ in range(n_envs)], start_method='fork')
         model = make_model(algo_config, env, None)
 
         checkpoint_callback = CheckpointCallback(save_freq=50000,
@@ -152,7 +156,7 @@ if __name__ == "__main__":
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
-        env = make_env(env_config, env_fun)
+        env = make_env(aug_env_config, env_fun)
 
         if not args["train"]:
             model = A2C.load("agents/{}".format(args["test_agent_path"]))

@@ -18,46 +18,45 @@ class HexapodBulletEnv(gym.Env):
         'render.modes': ['human'],
     }
 
-    def __init__(self, animate=False, max_steps=100, seed=None, step_counter=False, terrain_name=None, training_mode="straight", variable_velocity=False):
-        if seed is not None:
-            np.random.seed(seed)
-            T.manual_seed(seed)
+    def __init__(self, config):
+        self.seed = config["seed"]
+        if self.seed is not None:
+            np.random.seed(self.seed)
+            T.manual_seed(self.seed)
         else:
             rnd_seed = int((time.time() % 1) * 10000000)
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
-        if (animate):
+        self.animate = config["animate"]
+        self.max_steps = config["max_steps"]
+        self.step_counter = config["step_counter"]
+        self.terrain_name = config["terrain_name"]
+        self.training_mode = config["training_mode"]
+        self.variable_velocity = config["variable_velocity"]
+        self.force_target_velocity = config["force_target_velocity"]
+        self.forced_target_velocity = config["forced_target_velocity"]
+        self.env_change_prob = config["env_change_prob"]
+
+        # Simulation parameters
+        self.env_width = config["env_width"]
+        self.env_length = self.max_steps
+        self.max_joint_force = config["max_joint_force"]
+        self.target_vel = config["target_vel"]
+        self.target_vel_range = config["target_vel_range"]
+        self.sim_steps_per_iter = config["sim_steps_per_iter"]
+        self.mesh_scale_lat = config["mesh_scale_lat"]
+        self.mesh_scale_vert = config["mesh_scale_vert"]
+        self.lateral_friction = config["lateral_friction"]
+        self.training_difficulty = config["training_difficulty"]
+        self.training_difficulty_increment = config["training_difficulty_increment"]
+
+        if (self.animate):
             self.client_ID = p.connect(p.GUI)
             print(" --Starting GUI mode-- ")
         else:
             self.client_ID = p.connect(p.DIRECT)
         assert self.client_ID != -1, "Physics client failed to connect"
-
-        self.animate = animate
-        self.max_steps = max_steps
-        self.seed = seed
-        self.step_counter = step_counter
-        self.terrain_name = terrain_name
-        self.training_mode = training_mode
-        self.variable_velocity = variable_velocity
-        self.force_target_velocity = False
-        self.forced_target_vel = 0.15
-        self.env_change_prob = 0.1
-
-        # Simulation parameters
-        self.env_width = 60
-        self.env_length = self.max_steps
-        self.max_joint_force = 1.5
-        self.target_vel = 0.15
-        self.target_vel_nn_input = 0
-        self.target_vel_range = [0.1, 0.3]
-        self.sim_steps_per_iter = 24
-        self.mesh_scale_lat = 0.1 # 0.1
-        self.mesh_scale_vert = 2 # 0.2
-        self.lateral_friction = 1.2 # 1.2
-        self.training_difficulty = 0.99 # 0.0 initial
-        self.training_difficulty_increment = 0.0001 # 0.0001
 
         if self.terrain_name.startswith("stairs"):
             self.env_width *= 4
@@ -66,14 +65,14 @@ class HexapodBulletEnv(gym.Env):
             self.target_vel = 0.15
 
         # Environment parameters
-        self.obs_dim = 18 + 6 + 4 + int(step_counter) + int(variable_velocity)
+        self.obs_dim = 18 + 6 + 4 + int(self.step_counter) + int(self.variable_velocity)
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
         # Normal mode
-        self.joints_rads_low = np.array([-0.4, -1.6, 0.9] * 6)
-        self.joints_rads_high = np.array([0.4, -0.6, 1.9] * 6)
+        self.joints_rads_low = np.array(config["joints_rads_low"] * 6)
+        self.joints_rads_high = np.array(config["joints_rads_high"] * 6)
 
         if self.training_mode.endswith("extreme"):
             # Extreme mode
@@ -125,6 +124,7 @@ class HexapodBulletEnv(gym.Env):
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
         self.max_dist_travelled = 0
+        self.target_vel_nn_input = 0
 
     def make_heightfield(self, height_map=None):
         if self.terrain_name == "flat":
@@ -549,7 +549,7 @@ class HexapodBulletEnv(gym.Env):
             self.target_vel = 0.5 * (self.target_vel_nn_input + 1) * (max(self.target_vel_range) - min(self.target_vel_range)) + min(self.target_vel_range)
 
         if self.force_target_velocity or True:
-            self.target_vel = self.forced_target_vel
+            self.target_vel = self.forced_target_velocity
             self.target_vel_nn_input = 2 * ((self.target_vel - min(self.target_vel_range)) / (max(self.target_vel_range) - min(self.target_vel_range))) - 1
 
         if self.episode_ctr % 100 == 0 and self.episode_ctr > 100:
@@ -638,5 +638,9 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
-    env = HexapodBulletEnv(animate=True, terrain_name="perlin", training_mode="straight_rough")
+    import yaml
+    with open("../../../algos/SB/configs/hexapod_config.yaml") as f:
+        env_config = yaml.load(f, Loader=yaml.FullLoader)
+    env_config["animate"] = True
+    env = HexapodBulletEnv(env_config)
     env.test_leg_coordination()

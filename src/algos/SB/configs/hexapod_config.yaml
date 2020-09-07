@@ -2,5 +2,23 @@
 "max_steps" : 90
 "step_counter" : True
 "terrain_name" : perlin
-"training_mode" : "straight"
+"training_mode" : straight
 "variable_velocity" : False
+"force_target_velocity" : False
+"forced_target_velocity" : 0.15
+"env_change_prob" : 0.1
+"env_width" : 60
+"max_joint_force" : 1.5
+"target_vel" : 0.15
+"target_vell_nn_input" : 0
+"target_vel_range" : [0.1, 0.3]
+"sim_steps_per_iter" : 24
+"mesh_scale_lat" : 0.1
+"mesh_scale_vert" : 2
+"lateral_friction" : 1.2
+"training_difficulty" : 0.99
+"training_difficulty_increment" : 0.0001
+"joints_rads_low" : [-0.4, -1.6, 0.9]
+"joints_rads_high" : [0.4, -0.6, 1.9]
+"urdf_name" : hexapod_normal.urdf
+"seed" :
