@@ -37,7 +37,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Episode variables
         self.step_ctr = 0
-        self.current_motor_velocity_vec = np.array([0,0,0,0])
+        self.current_motor_velocity_vec = np.array([0.,0.,0.,0.])
 
         if (self.animate):
           self.client_ID = p.connect(p.GUI)
@@ -57,7 +57,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def load_robot(self):
         # Randomize robot params
-        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia": 10.0, "motor_force_multiplier": 1.0}
+        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia_coeff": 0.9, "motor_force_multiplier": 50.0}
 
         # Write params to URDF file
         with open(self.urdf_name, "r") as in_file:
@@ -90,16 +90,31 @@ class QuadrotorBulletEnv(gym.Env):
         return torso_pos, torso_quat, torso_vel, torso_angular_vel
 
     def update_motor_vel(self, ctrl):
-        self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec +
-                                                  (np.array(ctrl) * 2 - np.ones(4)) / self.robot_params["motor_inertia"], 0, 1)
+        self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.robot_params["motor_inertia_coeff"] +
+                                                  np.array(ctrl) * (1 - self.robot_params["motor_inertia_coeff"]), 0, 1)
 
     def render(self, close=False):
         pass
 
+    def calc_turbulence_coeffs(self, height_vec):
+        height_vec_arr = np.array(height_vec)
+        scaled_height_arr = np.clip(((height_vec_arr - 0.15) ** 2) / 0.15, 0, 0.15) * 2
+        turb_coeff = (np.random.rand(len(height_vec)) * 2 - 1) * scaled_height_arr
+        return turb_coeff
+
     def step(self, ctrl):
+        # Take into account motor delay
         self.update_motor_vel(ctrl)
+
+        # Make turbulence near ground
+        motor_positions_near_ground = p.getLinkStates(self.robot, linkIndices=[1, 3, 5, 7])
+        turbulence_coeffs = self.calc_turbulence_coeffs([pos[0][2] for pos in motor_positions_near_ground])
+
+        # Apply forces
         for i in range(4):
-            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, self.current_motor_velocity_vec[i] * self.robot_params["motor_force_multiplier"]],
+            motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] + self.current_motor_velocity_vec[i] * turbulence_coeffs[i], 0, 1)
+            motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
+            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, motor_force_scaled],
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
@@ -159,7 +174,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def demo(self):
         for i in range(100):
-            act = np.array([0.1, 0.1, 0.1, 0.1]) * 44
+            act = np.array([0.1, 0.1, 0.1, 0.1])
 
             for i in range(self.max_steps):
                 obs, r, done, _ = self.step(act)
