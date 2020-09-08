@@ -49,6 +49,7 @@ class QuadrotorBulletEnv(gym.Env):
         p.setTimeStep(self.sim_timestep)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
+        self.robot = None
         self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
@@ -56,8 +57,15 @@ class QuadrotorBulletEnv(gym.Env):
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
     def load_robot(self):
+        # Remove old robot
+        if self.robot is not None:
+            p.removeBody(self.robot)
+
         # Randomize robot params
-        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia_coeff": 0.9, "motor_force_multiplier": 50.0}
+        self.robot_params = {"mass": 1 + np.random.rand() * 0.5,
+                             "boom": 0.1 + np.random.rand() * 0.5,
+                             "motor_inertia_coeff": 0.7 + np.random.rand() * 0.25,
+                             "motor_force_multiplier": 60 + np.random.rand() * 30}
 
         # Write params to URDF file
         with open(self.urdf_name, "r") as in_file:
