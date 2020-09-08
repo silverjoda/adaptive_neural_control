@@ -10,10 +10,8 @@ import random
 import string
 
 class PyTorchMlp(nn.Module):
-
     def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
         nn.Module.__init__(self)
-
         self.fc1 = nn.Linear(n_inputs, n_hidden)
         self.fc2 = nn.Linear(n_hidden, n_hidden)
         self.fc3 = nn.Linear(n_hidden, n_actions)
@@ -230,7 +228,7 @@ class MAMLModelTrainer:
 
 
 if __name__ == "__main__":
-    policy = SinPolicy(24)
+    policy = PyTorchMlp(24)
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import \
         HangPoleGoalContVariableBulletEnv as env_fun
 
@@ -254,6 +252,15 @@ if __name__ == "__main__":
     # TODO: Make maml into form which accepts envs for supervised model learning
     # TODO: Make maml into form which accepts envs for RL
     # TODO: Make maml into form which accepts envs for RL exploration policy
+
+    # TODO: Idea 1: Try RL MAML with recurrent policy and compare performance with normal (task=qudruped with various leg lengths)
+    # TODO: Idea 2: Try RL MAML with reactive policy + recurrent exploration policy. Exploration policy is trained using a) RL with a numerical rew at the end
+    # TODO: of the episode b) Using gradients an RNN predictor of the numerical rew at the end of the episode (which itself is learned using supervised learning)
+    # TODO: Idea 3: Compare model learning performance using the following: gaussian noise, simplex noise, learned RNN noise which maximizes error of model (adversarial), RNN noise which maximizes state visitation using hash dicts, concurrently learning RL policy.
+    # TODO: Question 1: On such a learned model (Idea 3) using non-adversarial noise, can we learn an adversarial policy which significantly impacts performance of model predictor.
+    # TODO: Question 2: Can any of the models from idea 3 be used for something useful? Such as planning, accelerated learning (credit assignment using backprop), or imagination?
+    # TODO: Idea 4: Try MAML learn a model using gaussian, simplex noise concurrently learned adversarial policy and state visitation maximization policy.
+
     env = env_fun(animate=False,
                   max_steps=200,
                   action_input=False,

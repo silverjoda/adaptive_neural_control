@@ -12,7 +12,6 @@ class SinTask:
         self.b = np.random.rand() * np.pi
         self.dataset_generated = False
 
-
     def get_dataset(self, n):
         if not self.dataset_generated:
             self.X = np.linspace(-np.pi, np.pi, 2 * n).astype(np.float32)
@@ -29,7 +28,6 @@ class SinTask:
 
         return self.X_trn, self.Y_trn, self.X_tst, self.Y_tst
 
-
     def get_dataset_halfsin(self, n):
         Xtrn = np.linspace(-np.pi, 0, n).astype(np.float32)
         Xtst = np.linspace(0, np.pi, n).astype(np.float32)
@@ -37,12 +35,10 @@ class SinTask:
         Ytst = self.a * np.sin(self.b + Xtst)
         return Xtrn, Ytrn, Xtst, Ytst
 
-
     def plot_trn_set(self):
         if not self.dataset_generated:
             self.get_dataset(30)
         return plt.plot(self.X_trn, self.Y_trn, 'ro', self.X_tst, self.Y_tst, 'go')
-
 
     def plot_trn_set_halfsin(self):
         X_trn, Y_trn, X_tst, Y_tst = self.get_dataset_halfsin(15)
