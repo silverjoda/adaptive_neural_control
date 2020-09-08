@@ -29,6 +29,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.is_variable = config["is_variable"]
         self.sim_timestep = config["sim_timestep"]
         self.propeller_parasitic_torque_coeff = config["propeller_parasitic_torque_coeff"]
+        self.urdf_name = config["urdf_name"]
 
         self.obs_dim = 10 + int(self.action_input) * 4  # Orientation quaternion, linear + angular velocities
         self.act_dim = 4 # Motor commands (4)
@@ -56,13 +57,32 @@ class QuadrotorBulletEnv(gym.Env):
 
     def load_robot(self):
         # Randomize robot params
-        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia": 10.0, "motor_max_force": 1.0}
+        self.robot_params = {"mass": 1, "boom": 0.2, "motor_inertia": 10.0, "motor_force_multiplier": 1.0}
 
         # Write params to URDF file
-        # ...
+        with open(self.urdf_name, "r") as in_file:
+            buf = in_file.readlines()
+
+        index = self.urdf_name.find('.urdf')
+        output_urdf = self.urdf_name[:index] + '_rnd' + self.urdf_name[index:]
+
+        # Change link lengths in urdf
+        with open(output_urdf, "w") as out_file:
+            for line in buf:
+                if "<cylinder radius" in line:
+                    out_file.write(f'          <cylinder radius="0.015" length="{self.robot_params["boom"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--boomorigin-->'):
+                    out_file.write(f'        <origin xyz="0 {self.robot_params["boom"] / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
+                elif line.rstrip('\n').endswith('<!--motorpos-->'):
+                    out_file.write(f'      <origin xyz="0 {self.robot_params["boom"]} 0" rpy="0 0 0"/><!--motorpos-->\n')
+                else:
+                    out_file.write(line)
 
         # Load urdf
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadrotor.urdf"), physicsClientId=self.client_ID)
+        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+
+        # Change base mass
+        p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -79,7 +99,7 @@ class QuadrotorBulletEnv(gym.Env):
     def step(self, ctrl):
         self.update_motor_vel(ctrl)
         for i in range(4):
-            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, self.current_motor_velocity_vec[i]],
+            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, self.current_motor_velocity_vec[i] * self.robot_params["motor_force_multiplier"]],
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)

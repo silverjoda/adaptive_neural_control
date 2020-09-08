@@ -96,7 +96,7 @@ class HexapodBulletEnv(gym.Env):
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.urdf_name = "hexapod_normal.urdf"
+        self.urdf_name = config["urdf_name"]
         if self.training_mode.endswith("extreme"):
             self.urdf_name = "hexapod_extreme.urdf"
         if self.training_mode.endswith("wide_range"):
