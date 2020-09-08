@@ -1,3 +1,10 @@
 "env_name" : buggy
-"max_steps" : 200
+"max_steps" : 1000
 "step_counter" : True
+"latent_input" : False
+"action_input" : False
+"is_variable" : False
+"sim_timestep" : 0.01
+"env_change_prob" : 0.1
+"urdf_name" : buggy.urdf
+"seed" :
