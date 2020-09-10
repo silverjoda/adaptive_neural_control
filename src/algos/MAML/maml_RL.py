@@ -162,8 +162,17 @@ class MAMLRLTrainer:
             targets = T.cat(list(reversed(targets)))
         return targets
 
-    def comp_gradient_on_env_sample(self, policy_copy, trn_opt):
+    def comp_gradient_on_env_sample(self, policy):
         # Returns gradient with respect to meta parameters.
+
+        # Make copy policy from meta params
+        policy_copy = deepcopy(policy)
+
+        # Make optimizer for this policy
+        policy_copy_opt = T.optim.SGD(policy_copy.parameters(),
+                              lr=self.config["learning_rate"],
+                              momentum=self.config["momentum"],
+                              weight_decay=self.config["w_decay"])
 
         # Randomize environment
         self.env.reset(randomize=True)
@@ -187,18 +196,17 @@ class MAMLRLTrainer:
             batch_terminals.append(terminals)
 
             batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
-            _ = self.update_policy(policy_copy, trn_opt, batch_observations, batch_actions, batch_advantages)
+            _ = self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages)
 
         # Now test
         observations, next_observations, actions, rewards, terminals = self.make_rollout(self.env, policy_copy)
-        batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
+        batch_advantages = self.calc_advantages_MC(self.config["gamma"], rewards, terminals)
 
         # Get action log probabilities
-        log_probs = policy.log_probs(batch_states, batch_actions)
+        log_probs = policy.log_probs(observations, actions)
 
         # Calculate loss function
         loss = -T.mean(log_probs * batch_advantages)
-
 
 
     def meta_train(self, n_meta_iters=10000):
@@ -216,17 +224,8 @@ class MAMLRLTrainer:
 
             # Calculate gradient for * env samples
             for _ in range(self.config["meta_batchsize"]):
-                # Make copy policy from meta params
-                policy_copy = deepcopy(policy)
-
-                # Make optimizer for this policy
-                trn_opt = T.optim.SGD(policy_copy.parameters(),
-                                      lr=self.config["learning_rate"],
-                                      momentum=self.config["momentum"],
-                                      weight_decay=self.config["w_decay"])
-
                 # Make n_rollouts on env sample
-                meta_grad, mean_trn_loss, mean_tst_loss = self.comp_gradient_on_env_sample(policy_copy, trn_opt)
+                meta_grad, mean_trn_loss, mean_tst_loss = self.comp_gradient_on_env_sample(policy)
                 meta_grads.append(meta_grad)
                 mean_trn_losses.append(mean_trn_loss)
                 mean_tst_losses.append(mean_tst_loss)
