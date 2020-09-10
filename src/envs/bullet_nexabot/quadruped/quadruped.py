@@ -104,6 +104,8 @@ class QuadrupedBulletEnv(gym.Env):
                              "tibia_rr": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
                              "max_joint_force": 1.4 + np.random.rand() * 1.}
 
+        # TODO: There is still one parameter than has to be written in URDF so links are correctly positioned
+
         # Write params to URDF file
         with open(self.config["urdf_name"], "r") as in_file:
             buf = in_file.readlines()
