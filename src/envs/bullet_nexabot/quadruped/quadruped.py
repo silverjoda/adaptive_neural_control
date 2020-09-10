@@ -45,8 +45,8 @@ class QuadrupedBulletEnv(gym.Env):
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "quadruped.urdf"),
-                                physicsClientId=self.client_ID)
+        self.robot = None
+        self.load_robot(randomize=config["is_variable"])
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         for i in range(4):
@@ -87,16 +87,22 @@ class QuadrupedBulletEnv(gym.Env):
     def norm_to_rads(self, action):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
-    def load_robot(self):
+    def load_robot(self, randomize=False):
         # Remove old robot
-        if self.robot is not None:
+        if self.robot is not None and randomize:
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + np.random.rand() * 0.5,
-                             "boom": 0.1 + np.random.rand() * 0.5,
-                             "motor_inertia_coeff": 0.7 + np.random.rand() * 0.25,
-                             "motor_force_multiplier": 60 + np.random.rand() * 30}
+        self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * randomize,
+                             "coxa_fl": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
+                             "coxa_fr": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
+                             "coxa_rl": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
+                             "coxa_rr": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
+                             "tibia_fl": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
+                             "tibia_fr": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
+                             "tibia_rl": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
+                             "tibia_rr": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
+                             "max_joint_force": 1.4 + np.random.rand() * 1.}
 
         # Write params to URDF file
         with open(self.config["urdf_name"], "r") as in_file:
@@ -108,12 +114,30 @@ class QuadrupedBulletEnv(gym.Env):
         # Change link lengths in urdf
         with open(output_urdf, "w") as out_file:
             for line in buf:
-                if "<cylinder radius" in line:
-                    out_file.write(f'          <cylinder radius="0.015" length="{self.robot_params["boom"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--boomorigin-->'):
-                    out_file.write(f'        <origin xyz="0 {self.robot_params["boom"] / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
-                elif line.rstrip('\n').endswith('<!--motorpos-->'):
-                    out_file.write(f'      <origin xyz="0 {self.robot_params["boom"]} 0" rpy="0 0 0"/><!--motorpos-->\n')
+                if line.rstrip('\n').endswith('<!--coxa_fl-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_fl"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_fr-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_fr"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_rl-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_rl"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_rr-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_rr"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_fl_joint-->'):
+                    out_file.write(f'      <origin xyz="0.0 {self.robot_params["coxa_fl"] / 2.} 0"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_fr_joint-->'):
+                    out_file.write(f'      <origin xyz="0.0 {-self.robot_params["coxa_fr"] / 2.} 0"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_rl_joint-->'):
+                    out_file.write(f'      <origin xyz="0.0 {self.robot_params["coxa_rl"] / 2.} 0"/>\n')
+                elif line.rstrip('\n').endswith('<!--coxa_rr_joint-->'):
+                    out_file.write(f'      <origin xyz="0.0 {-self.robot_params["coxa_rr"] / 2.} 0"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_fl-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_fl"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_fr-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_fr"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_rl-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_rl"]}"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_rr-->'):
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_rr"]}"/>\n')
                 else:
                     out_file.write(line)
 
@@ -133,7 +157,7 @@ class QuadrupedBulletEnv(gym.Env):
                                     jointIndices=range(12),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
-                                    forces=[self.config["max_joint_force"]] * 12,
+                                    forces=[self.robot_params["max_joint_force"]] * 12,
                                     positionGains=[0.01] * 12,
                                     velocityGains=[0.07] * 12,
                                     physicsClientId=self.client_ID)
@@ -179,7 +203,7 @@ class QuadrupedBulletEnv(gym.Env):
         self.step_ctr = 0
 
         if self.config["is_variable"] or randomize:
-            self.load_robot()
+            self.load_robot(True)
 
         joint_init_pos_list = self.norm_to_rads([0] * 12)
         [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(12)]

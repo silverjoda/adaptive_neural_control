@@ -1,11 +1,11 @@
 "env_name" : quadruped
 "max_steps" : 300
 "step_counter" : True
-"is_variable" : False
+"is_variable" : True
 "env_change_prob" : 0.1
-"max_joint_force" : 1.8
 "target_vel" : 0.2
 "lateral_friction" : 1.2
+"max_joint_force" : 1.6
 "joints_rads_low" : [-0.5, -1.8, 1.4]
 "joints_rads_high" : [0.5, -0.2, 2.6]
 "urdf_name" : quadruped.urdf
