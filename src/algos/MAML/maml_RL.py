@@ -20,12 +20,6 @@ import os
 #for p in model.parameters():
 #    p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
 
-def make_env(config, env_fun):
-    def _init():
-        env = env_fun(config)
-        return env
-    return _init
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
     parser.add_argument('--train', type=bool, default=False, required=False,
@@ -36,11 +30,11 @@ def parse_args():
                         help='Path of test agent. ')
     parser.add_argument('--animate', type=bool, default=False, required=False,
                         help='Flag indicating whether the environment will be rendered. ')
-    parser.add_argument('--algo_config', type=str, default="td3_default_config.yaml", required=False,
-                        help='Algorithm config flie name. ')
+    parser.add_argument('--algo_config', type=str, default="maml_default_config.yaml", required=False,
+                        help='Algorithm config file name. ')
     parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
                         help='Env config file name. ')
-    parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
+    parser.add_argument('--n_meta_iters', type=int, required=False, default=10000, help='Number of meta training steps. ')
 
     args = parser.parse_args()
     return args.__dict__
@@ -63,7 +57,22 @@ def import_env(name):
     assert env_fun is not None, "Env name not found, exiting. "
     return env_fun
 
-def make_action_noise_fun(config):
+def make_env(config, env_fun):
+    def _init():
+        env = env_fun(config)
+        return env
+    return _init
+
+def make_policy(env, config):
+    if config["policy_type"] == "mlp":
+        import policies.NN_PG as policy_class
+    elif config["policy_type"] == "rnn":
+        import policies.NN_RNN as policy_class
+    else:
+        raise TypeError
+    return policy_class(env, config)
+
+def make_action_noise_policy(env, config):
     return None
 
 def test_agent(env, model, deterministic=True):
@@ -81,49 +90,11 @@ def test_agent(env, model, deterministic=True):
     env.close()
 
 class MAMLRLTrainer:
-    def __init__(self, env, policy, params):
+    def __init__(self, algo_config, env_config, env, policy):
         self.env = env
         self.policy = policy
 
-    def get_env_dataset(self):
-        episode_observations_trn = []
-        episode_actions_trn = []
-        episode_observations_tst = []
-        episode_actions_tst = []
-        for i in range(params["dataset_episodes"]):
-            observations = []
-            actions = []
-            obs = env.reset(randomize=True)
-            for j in range(params["max_steps"]):
-                action, _states = policy.predict(obs, deterministic=True)
-                action = action + np.random.randn(env.act_dim)
-                observations.append(obs)
-                actions.append(action)
-                obs, reward, done, info = env.step(action)
-
-                if done:
-                    episode_observations_trn.append(observations)
-                    episode_actions_trn.append(actions)
-                    break
-
-            observations = []
-            actions = []
-            obs = env.reset(randomize=False)
-            for j in range(params["max_steps"]):
-                action, _states = policy.predict(obs, deterministic=True)
-                action = action + np.random.randn(env.act_dim)
-                observations.append(obs)
-                actions.append(action)
-                obs, reward, done, info = env.step(action)
-
-                if done:
-                    episode_observations_tst.append(observations)
-                    episode_actions_tst.append(actions)
-                    break
-
-        return episode_observations_trn, episode_actions_trn, episode_observations_tst, episode_actions_tst
-
-    def meta_train_model(self, param_dict, meta_policy):
+    def meta_train(self, param_dict, meta_policy):
         meta_trn_opt = T.optim.SGD(meta_policy.parameters(),
                                    lr=param_dict["lr_meta"],
                                    momentum=param_dict["momentum_meta"],
@@ -263,17 +234,19 @@ if __name__ == "__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])
     env_config = read_config(args["env_config"])
-    aug_env_config = {**args, **env_config}
+    aug_config = {**args, **algo_config, **env_config}
 
     print(args)
     print(algo_config)
     print(env_config)
 
     env_fun = import_env(env_config["env_name"])
-    noise_fun = make_action_noise_fun(algo_config)
+    env = make_env(env_config, env_fun)
+    noise_policy = make_action_noise_policy(env, aug_config)
+    policy = make_policy(env, aug_config)
 
     session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    maml_rl_trainer = MAMLRLTrainer(algo_config, env_config, env_fun)
-    maml_rl_trainer.meta_train(n_meta_iters=algo_config["n_meta_iters"])
+    maml_rl_trainer = MAMLRLTrainer(env, policy, noise_policy, aug_config)
+    maml_rl_trainer.meta_train(n_meta_iters=args["n_meta_iters"])
     maml_rl_trainer.test()

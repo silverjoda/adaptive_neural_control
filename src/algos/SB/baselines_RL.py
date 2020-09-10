@@ -49,14 +49,14 @@ def read_config(path):
     return data
 
 def import_env(name):
-    env_fun = None
     if name == "hexapod":
         from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-    if name == "quadrotor":
+    elif name == "quadrotor":
         from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
-    if name == "buggy":
+    elif name == "buggy":
         from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
-    assert env_fun is not None, "Env name not found, exiting. "
+    else:
+        raise TypeError
     return env_fun
 
 def make_model(config, env, action_noise_fun):

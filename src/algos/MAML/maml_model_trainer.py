@@ -226,7 +226,6 @@ class MAMLModelTrainer:
         return policy
 
 
-
 if __name__ == "__main__":
     policy = PyTorchMlp(24)
     from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import \

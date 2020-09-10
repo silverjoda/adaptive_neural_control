@@ -6,7 +6,7 @@ from copy import deepcopy
 
 
 class NN_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True, obs_dim=None, act_dim=None):
+    def __init__(self, env, config):
         super(NN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
@@ -77,7 +77,7 @@ class NN_PG(nn.Module):
 
 
 class RNN_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, memory_dim=64, n_temp=3, tanh=False, to_gpu=False):
+    def __init__(self, env, config):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
