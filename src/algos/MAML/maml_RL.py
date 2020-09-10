@@ -96,13 +96,110 @@ class MAMLRLTrainer:
         self.noise_policy = noise_policy
         self.config = config
 
+    def make_rollout(self, env, policy):
+        obs = self.env.reset(randomize=False)
+        observations = []
+        next_observations = []
+        actions = []
+        rewards = []
+        while True:
+            observations.append(obs)
+            act = policy.sample_act(obs)
+            obs, r, done, _ = env.step(act)
+            actions.append(act)
+            rewards.append(r)
+            next_observations.append(obs)
+            if done: break
+        terminals = [False] * len(observations)
+        terminals[-1] = True
+        return observations, next_observations, actions, rewards, terminals
+
+    def update_policy_ppo(self, policy, policy_optim, batch_states, batch_actions, batch_advantages,
+                          update_iters):
+        log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
+        c_eps = 0.2
+        loss = None
+
+        # Do ppo_update
+        for k in range(update_iters):
+            log_probs_new = policy.log_probs(batch_states, batch_actions)
+            r = T.exp(log_probs_new - log_probs_old)
+            loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
+            policy_optim.zero_grad()
+            loss.backward()
+            T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
+            policy_optim.step()
+
+        return loss.data
+
+    def update_policy(self, policy, policy_optim, batch_states, batch_actions, batch_advantages):
+
+        # Get action log probabilities
+        log_probs = policy.log_probs(batch_states, batch_actions)
+
+        # Calculate loss function
+        loss = -T.mean(log_probs * batch_advantages)
+
+        # Backward pass on policy
+        policy_optim.zero_grad()
+        loss.backward()
+
+        # Step policy update
+        policy_optim.step()
+
+        return loss.data
+
+    def calc_advantages_MC(self, gamma, batch_rewards, batch_terminals):
+        # Monte carlo estimate of targets
+        targets = []
+        with T.no_grad():
+            for r, t in zip(reversed(batch_rewards), reversed(batch_terminals)):
+                if t:
+                    R = r
+                else:
+                    R = r + gamma * R
+                targets.append(R.view(1, 1))
+            targets = T.cat(list(reversed(targets)))
+        return targets
+
     def comp_gradient_on_env_sample(self, policy_copy, trn_opt):
         # Returns gradient with respect to meta parameters.
 
-        # trn_opt.zero_grad()
-        # loss.backward(create_graph=True)
-        # trn_opt.step()
-        pass
+        # Randomize environment
+        self.env.reset(randomize=True)
+
+        # Do k updates
+        for _ in range(self.config["k"]):
+            # Perform rollouts
+            batch_observations = []
+            batch_actions = []
+            batch_rewards = []
+            batch_next_observations = []
+            batch_terminals = []
+
+            for i in range(self.config["batchsize"]):
+                observations, next_observations, actions, rewards, terminals = self.make_rollout(self.env, policy_copy)
+
+            batch_observations.append(observations)
+            batch_next_observations.append(next_observations)
+            batch_actions.append(actions)
+            batch_rewards.append(rewards)
+            batch_terminals.append(terminals)
+
+            batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
+            _ = self.update_policy(policy_copy, trn_opt, batch_observations, batch_actions, batch_advantages)
+
+        # Now test
+        observations, next_observations, actions, rewards, terminals = self.make_rollout(self.env, policy_copy)
+        batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
+
+        # Get action log probabilities
+        log_probs = policy.log_probs(batch_states, batch_actions)
+
+        # Calculate loss function
+        loss = -T.mean(log_probs * batch_advantages)
+
+
 
     def meta_train(self, n_meta_iters=10000):
         meta_trn_opt = T.optim.SGD(policy.parameters(),
