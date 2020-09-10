@@ -8,45 +8,79 @@ import matplotlib.pyplot as plt
 from stable_baselines import A2C
 import random
 import string
+import time
+import random
+import string
+import socket
+import numpy as np
+import argparse
+import yaml
+import os
 
-class PyTorchMlp(nn.Module):
-    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
-        nn.Module.__init__(self)
-        self.fc1 = nn.Linear(n_inputs, n_hidden)
-        self.fc2 = nn.Linear(n_hidden, n_hidden)
-        self.fc3 = nn.Linear(n_hidden, n_actions)
-        self.activ_fn = nn.Tanh()
-        self.out_activ = nn.Softmax(dim=0)
+#for p in model.parameters():
+#    p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
 
-    def forward(self, x):
-        x = self.activ_fn(self.fc1(x))
-        x = self.activ_fn(self.fc2(x))
-        x = self.fc3(x)
-        return x
+def make_env(config, env_fun):
+    def _init():
+        env = env_fun(config)
+        return env
+    return _init
 
-class PyTorchLSTM(nn.Module):
-    def __init__(self, n_inputs=30, n_hidden=24, n_actions=18):
-        nn.Module.__init__(self)
+def parse_args():
+    parser = argparse.ArgumentParser(description='Pass in parameters. ')
+    parser.add_argument('--train', type=bool, default=False, required=False,
+                        help='Flag indicating whether the training process is to be run. ')
+    parser.add_argument('--test', type=bool, default=False, required=False,
+                        help='Flag indicating whether the testing process is to be run. ')
+    parser.add_argument('--test_agent_path', type=str, default=".", required=False,
+                        help='Path of test agent. ')
+    parser.add_argument('--animate', type=bool, default=False, required=False,
+                        help='Flag indicating whether the environment will be rendered. ')
+    parser.add_argument('--algo_config', type=str, default="td3_default_config.yaml", required=False,
+                        help='Algorithm config flie name. ')
+    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
+                        help='Env config file name. ')
+    parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
-        self.fc1 = nn.Linear(n_inputs, n_hidden)
-        self.fc2 = nn.LSTM(n_hidden, n_hidden, batch_first=True)
-        self.fc3 = nn.Linear(n_hidden, n_actions)
-        self.activ_fn = nn.Tanh()
-        self.out_activ = nn.Softmax(dim=0)
+    args = parser.parse_args()
+    return args.__dict__
 
-    def forward(self, x):
-        x = self.activ_fn(self.fc1(x))
-        x, h = self.fc2(x)
-        x = self.fc3(x)
-        return x
+def read_config(path):
+    with open(os.path.join('configs/', path)) as f:
+        data = yaml.load(f, Loader=yaml.FullLoader)
+    return data
 
-    def forward_step(self, x, h):
-        x = self.activ_fn(self.fc1(x))
-        x, h = self.fc2(x, h)
-        x = self.fc3(x)
-        return x, h
+def import_env(name):
+    env_fun = None
+    if name == "hexapod":
+        from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    if name == "quadruped":
+        from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    if name == "quadrotor":
+        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
+    if name == "buggy":
+        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
+    assert env_fun is not None, "Env name not found, exiting. "
+    return env_fun
 
-class MAMLModelTrainer:
+def make_action_noise_fun(config):
+    return None
+
+def test_agent(env, model, deterministic=True):
+    for _ in range(100):
+        obs = env.reset()
+        cum_rew = 0
+        while True:
+            action, _states = model.predict(obs, deterministic=deterministic)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            env.render()
+            if done:
+                print(cum_rew)
+                break
+    env.close()
+
+class MAMLRLTrainer:
     def __init__(self, env, policy, params):
         self.env = env
         self.policy = policy
@@ -225,38 +259,21 @@ class MAMLModelTrainer:
 
         return policy
 
-
-
 if __name__ == "__main__":
-    policy = PyTorchMlp(24)
-    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import \
-        HangPoleGoalContVariableBulletEnv as env_fun
+    args = parse_args()
+    algo_config = read_config(args["algo_config"])
+    env_config = read_config(args["env_config"])
+    aug_env_config = {**args, **env_config}
 
-    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"meta_training_iters" : 25000,
-                  "reptile_training_iters": 1500,
-                  "reptile_k" : 5,
-                  "training_iters": 1, # 3
-                  "hidden" : 24, # 24
-                  "batch_tasks" : 1, # 24
-                  "batch_trn" : 16, # 16
-                  "lr" : 0.01, # 0.01
-                  "lr_meta" : 0.002, # 0.001
-                  "lr_reptile" : 0.04,
-                  "momentum_trn" : 0.95, # 0.95
-                  "momentum_meta" : 0.95, # 0.95
-                  "w_decay" : 0.001, # 0.001
-                  "w_decay_meta" : 0.001,
-                  "ID" : ID}
+    print(args)
+    print(algo_config)
+    print(env_config)
 
-    env = env_fun(animate=False,
-                  max_steps=200,
-                  action_input=False,
-                  latent_input=False,
-                  is_variable=True)
+    env_fun = import_env(env_config["env_name"])
+    noise_fun = make_action_noise_fun(algo_config)
 
-    rollout_policy = A2C('MlpPolicy', env)
-    meta_policy = PyTorchMlp(n_inputs=env.obs_dim, n_hidden=25, n_actions=env.act_dim)
-    maml_model_trainer = MAMLModelTrainer(env, rollout_policy, params)
-    meta_trained_policy = maml_model_trainer.meta_train_model(params, meta_policy)
-    T.save(meta_trained_policy.state_dict(), "meta_agents/meta_regressor_{}".format(params["ID"]))
+    session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+
+    maml_rl_trainer = MAMLRLTrainer(algo_config, env_config, env_fun)
+    maml_rl_trainer.meta_train(n_meta_iters=algo_config["n_meta_iters"])
+    maml_rl_trainer.test()
