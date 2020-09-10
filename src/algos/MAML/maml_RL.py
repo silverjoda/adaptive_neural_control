@@ -90,143 +90,68 @@ def test_agent(env, model, deterministic=True):
     env.close()
 
 class MAMLRLTrainer:
-    def __init__(self, algo_config, env_config, env, policy):
+    def __init__(self, env, policy, noise_policy, config):
         self.env = env
         self.policy = policy
+        self.noise_policy = noise_policy
+        self.config = config
 
-    def meta_train(self, param_dict, meta_policy):
-        meta_trn_opt = T.optim.SGD(meta_policy.parameters(),
-                                   lr=param_dict["lr_meta"],
-                                   momentum=param_dict["momentum_meta"],
-                                   weight_decay=param_dict["w_decay_meta"])
+    def comp_gradient_on_env_sample(self, policy_copy, trn_opt):
+        # Returns gradient with respect to meta parameters.
 
-        for mt in range(param_dict["meta_training_iters"]):
-            # Clear meta gradients
+        # trn_opt.zero_grad()
+        # loss.backward(create_graph=True)
+        # trn_opt.step()
+        pass
+
+    def meta_train(self, n_meta_iters=10000):
+        meta_trn_opt = T.optim.SGD(policy.parameters(),
+                                   lr=self.config["learning_rate_meta"],
+                                   momentum=self.config["momentum_meta"],
+                                   weight_decay=self.config["w_decay_meta"])
+
+        # Perform * iters of meta training
+        for mt in range(n_meta_iters):
             meta_trn_opt.zero_grad()
+            meta_grads = []
+            mean_trn_losses = []
+            mean_tst_losses = []
 
-            # Sample tasks
-            dataset_list = [self.get_env_dataset()]
+            # Calculate gradient for * env samples
+            for _ in range(self.config["meta_batchsize"]):
+                # Make copy policy from meta params
+                policy_copy = deepcopy(policy)
 
-            # Updated params list
-            copied_meta_policy_list = []
+                # Make optimizer for this policy
+                trn_opt = T.optim.SGD(policy_copy.parameters(),
+                                      lr=self.config["learning_rate"],
+                                      momentum=self.config["momentum"],
+                                      weight_decay=self.config["w_decay"])
 
-            trn_losses = []
-            for d in dataset_list:
-                # Get data
-                Xtrn, Ytrn, _, _ = d
+                # Make n_rollouts on env sample
+                meta_grad, mean_trn_loss, mean_tst_loss = self.comp_gradient_on_env_sample(policy_copy, trn_opt)
+                meta_grads.append(meta_grad)
+                mean_trn_losses.append(mean_trn_loss)
+                mean_tst_losses.append(mean_tst_loss)
 
-                # Copy parameters to new network
-                copied_meta_policy = deepcopy(meta_policy)
-                copied_meta_policy_list.append(copied_meta_policy)
-
-                # Evaluate gradient and updated parameter th_i on sampled task
-                trn_opt = T.optim.SGD(copied_meta_policy.parameters(), lr=param_dict["lr"],
-                                      momentum=param_dict["momentum_trn"], weight_decay=param_dict["w_decay"])
-
-                for t in range(param_dict["training_iters"]):
-                    Yhat = copied_meta_policy(T.from_numpy(Xtrn).unsqueeze(1))
-                    loss = F.mse_loss(Yhat, T.from_numpy(Ytrn).unsqueeze(1))
-                    trn_losses.append(loss.detach().numpy())
-                    trn_opt.zero_grad()
-                    loss.backward(create_graph=True)
-                    trn_opt.step()
-
-            tst_losses = []
-            # Calculate loss on test task
-            for policy_i, dataset in zip(copied_meta_policy_list, dataset_list):
-                _, _, Xtst, Ytst = dataset
-                Yhat = policy_i(T.from_numpy(Xtst).unsqueeze(1))
-                loss = F.mse_loss(Yhat, T.from_numpy(Ytst).unsqueeze(1))
-                tst_losses.append(loss.detach().numpy())
-                loss.backward()
-
+            # Aggregate all meta_gradients
+            for meta_grad in meta_grads:
                 # Add to meta gradients
-                for p1, p2 in zip(meta_policy.parameters(), policy_i.parameters()):
-                    if p1.grad is None:
-                        p1.grad = p2.grad.clone()
+                for mg, p in zip(meta_grad, policy.parameters()):
+                    if p.grad is None:
+                        p.grad = mg.clone()
                     else:
-                        p1.grad += p2.grad.clone()
+                        p.grad += mg.clone()
 
             # Divide gradient by batchsize
-            for p in meta_policy.parameters():
-                p.grad /= param_dict["batch_tasks"]
+            for p in policy.parameters():
+                p.grad /= self.config["meta_batchsize"]
 
             # Update meta parameters
             meta_trn_opt.step()
 
-            print("Meta iter: {}/{}, trn_mean_loss: {}, tst_mean_loss: {}".format(mt,
-                                                                                  param_dict["meta_training_iters"],
-                                                                                  np.mean(trn_losses),
-                                                                                  np.mean(tst_losses)))
-
-        plt.ion()
-
-        # Test the meta learned policy to adapt to a new task after n gradient steps
-        test_env_1 = env_fun()
-        Xtrn_1, Ytrn_1, Xtst_1, Ytst_1 = test_env_1.get_dataset(param_dict["batch_trn"])
-        # Do training and evaluation on normal dataset
-        policy_test_1 = deepcopy(meta_policy)
-        opt_test_1 = T.optim.SGD(policy_test_1.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"],
-                                 weight_decay=param_dict["w_decay"])
-        policy_baseline_1 = SinPolicy(param_dict["hidden"])
-        opt_baseline_1 = T.optim.SGD(policy_baseline_1.parameters(), lr=param_dict["lr"],
-                                     momentum=param_dict["momentum_trn"], weight_decay=param_dict["w_decay"])
-        for t in range(param_dict["training_iters"]):
-            Yhat = policy_test_1(T.from_numpy(Xtrn_1).unsqueeze(1))
-            loss = F.mse_loss(Yhat, T.from_numpy(Ytrn_1).unsqueeze(1))
-            opt_test_1.zero_grad()
-            loss.backward()
-            opt_test_1.step()
-
-            Yhat_baseline_1 = policy_baseline_1(T.from_numpy(Xtrn_1).unsqueeze(1))
-            loss_baseline_1 = F.mse_loss(Yhat_baseline_1, T.from_numpy(Ytrn_1).unsqueeze(1))
-            opt_baseline_1.zero_grad()
-            loss_baseline_1.backward()
-            opt_baseline_1.step()
-
-        Yhat_tst_1 = policy_test_1(T.from_numpy(Xtst_1).unsqueeze(1)).detach().numpy()
-        Yhat_baseline_1 = policy_baseline_1(T.from_numpy(Xtst_1).unsqueeze(1)).detach().numpy()
-
-        test_env_2 = env_fun()
-        Xtrn_2, Ytrn_2, Xtst_2, Ytst_2 = test_env_2.get_dataset_halfsin(param_dict["batch_trn"])
-        # Do training and evaluation on hardcore dataset
-        policy_test_2 = deepcopy(meta_policy)
-        opt_test_2 = T.optim.SGD(policy_test_2.parameters(), lr=param_dict["lr"], momentum=param_dict["momentum_trn"],
-                                 weight_decay=param_dict["w_decay"])
-        policy_baseline_2 = SinPolicy(param_dict["hidden"])
-        opt_baseline_2 = T.optim.SGD(policy_baseline_2.parameters(), lr=param_dict["lr"],
-                                     momentum=param_dict["momentum_trn"], weight_decay=param_dict["w_decay"])
-        for t in range(param_dict["training_iters"]):
-            Yhat = policy_test_2(T.from_numpy(Xtrn_2).unsqueeze(1))
-            loss = F.mse_loss(Yhat, T.from_numpy(Ytrn_2).unsqueeze(1))
-            opt_test_2.zero_grad()
-            loss.backward()
-            opt_test_2.step()
-
-            Yhat_baseline_2 = policy_baseline_1(T.from_numpy(Xtrn_2).unsqueeze(1))
-            loss_baseline_2 = F.mse_loss(Yhat_baseline_2, T.from_numpy(Ytrn_2).unsqueeze(1))
-            opt_baseline_2.zero_grad()
-            loss_baseline_2.backward()
-            opt_baseline_2.step()
-
-        Yhat_tst_2 = policy_test_2(T.from_numpy(Xtst_2).unsqueeze(1)).detach().numpy()
-        Yhat_baseline_2 = policy_baseline_2(T.from_numpy(Xtst_2).unsqueeze(1)).detach().numpy()
-
-        plt.figure()
-        test_env_1.plot_trn_set()
-        plt.plot(Xtst_1, Yhat_tst_1, "bo")
-        plt.plot(Xtst_1, Yhat_baseline_1, "ko")
-        plt.title("Env_1")
-        plt.show()
-        plt.pause(.001)
-
-        plt.figure()
-        plt.title("Env_2")
-        test_env_2.plot_trn_set_halfsin()
-        plt.plot(Xtst_2, Yhat_tst_2, "bo")
-        plt.plot(Xtst_2, Yhat_baseline_2, "ko")
-        plt.show()
-        plt.pause(1000)
+            print("Meta iter: {}/{}, trn_mean_loss: {}, tst_mean_loss: {}".
+                  format(mt, self.config["n_meta_iters"], np.mean(mean_trn_losses), np.mean(mean_tst_losses)))
 
         return policy
 

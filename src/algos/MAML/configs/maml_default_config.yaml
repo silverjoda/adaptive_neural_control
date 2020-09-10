@@ -5,5 +5,10 @@
 "n_steps" : 50
 "max_grad_norm" : 0.7
 "learning_rate" : 0.001
+"meta_learning_rate" : 0.001
+"momentum" : 0.001
+"momentum_meta" : 0.001
+"w_decay" : 0.001
+"w_decay_meta" : 0.001
 "lr_schedule" : "linear"
 "tensorboard_log" : "./tb/{}/".format(ID)
