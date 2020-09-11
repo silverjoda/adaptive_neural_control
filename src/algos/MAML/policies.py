@@ -30,7 +30,7 @@ class NN_PG(nn.Module):
         T.nn.init.zeros_(self.fc1.bias)
         T.nn.init.zeros_(self.fc2.bias)
         T.nn.init.zeros_(self.fc3.bias)
-        T.nn.init.kaiming_normal(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
         T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
         T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
@@ -70,50 +70,74 @@ class RNN_PG(nn.Module):
         self.act_dim = env.act_dim
 
         self.tanh = config["policy_lastlayer_tanh"]
-        self.hid_dim = config["policy_hid_dim"]
+        self.policy_memory_dim = config["policy_memory_dim"]
         self.policy_grad_clip_value = config["policy_grad_clip_value"]
-        self.n_lstm_temporal_layers = config["policy_n_lstm_temporal_layers"]
         self.activation_fun = F.leaky_relu
 
-        self.fc_x_h_1 = nn.Linear(self.obs_dim, self.memory_dim)
-        self.fc_x_h_2 = nn.Linear(self.obs_dim, self.memory_dim)
-        self.fc_x_h_3 = nn.Linear(self.obs_dim, self.memory_dim)
+        self.fc_x_h_1 = nn.Linear(self.obs_dim, self.policy_memory_dim)
+        self.fc_x_h_2 = nn.Linear(self.obs_dim, self.policy_memory_dim)
+        self.fc_x_h_3 = nn.Linear(self.obs_dim, self.policy_memory_dim)
 
-        self.rnn_1 = nn.LSTM(self.memory_dim, self.memory_dim, batch_first=True)
-        self.m_rnn_1 = nn.LayerNorm(self.memory_dim)
-        self.rnn_2 = nn.LSTM(self.memory_dim, self.memory_dim, batch_first=True)
-        self.m_rnn_2 = nn.LayerNorm(self.memory_dim)
-        self.rnn_3 = nn.LSTM(self.memory_dim, self.memory_dim, batch_first=True)
+        self.rnn_1 = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, batch_first=True)
+        self.m_rnn_1 = nn.LayerNorm(self.policy_memory_dim)
+        self.rnn_2 = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, batch_first=True)
+        self.m_rnn_2 = nn.LayerNorm(self.policy_memory_dim)
+        self.rnn_3 = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, batch_first=True)
 
-        self.fc_h_y_1 = nn.Linear(self.memory_dim, self.memory_dim)
-        self.fc_h_y_2 = nn.Linear(self.memory_dim, self.memory_dim)
-        self.fc_h_y_3 = nn.Linear(self.memory_dim, self.memory_dim)
-        self.fc_res = nn.Linear(self.obs_dim, self.memory_dim)
+        self.fc_h_y_1 = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_h_y_2 = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_h_y_3 = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_res = nn.Linear(self.obs_dim, self.policy_memory_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
+        self.activation_fun = F.leaky_relu
 
-        T.nn.init.zeros_(self.fc1.bias)
-        T.nn.init.zeros_(self.fc2.bias)
-        T.nn.init.zeros_(self.fc3.bias)
-        T.nn.init.kaiming_normal(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
+        T.nn.init.zeros_(self.fc_x_h_1.bias)
+        T.nn.init.zeros_(self.fc_x_h_2.bias)
+        T.nn.init.zeros_(self.fc_x_h_3.bias)
+        T.nn.init.zeros_(self.fc_h_y_1.bias)
+        T.nn.init.zeros_(self.fc_h_y_2.bias)
+        T.nn.init.zeros_(self.fc_h_y_3.bias)
+        T.nn.init.kaiming_normal_(self.fc_x_h_1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_x_h_2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_x_h_3.weight, mode='fan_in', nonlinearity='linear')
+        T.nn.init.kaiming_normal_(self.fc_h_y_1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_h_y_2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_h_y_3.weight, mode='fan_in', nonlinearity='linear')
+
+        T.nn.init.zeros_(self.rnn_1.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn_1.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn_1.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn_1.weight_hh_l0)
+
+        T.nn.init.zeros_(self.rnn_2.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn_2.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn_2.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn_2.weight_hh_l0)
+
+        T.nn.init.zeros_(self.rnn_3.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn_3.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn_3.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn_3.weight_hh_l0)
 
         for p in self.parameters():
             p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
 
     def forward(self, input):
         x, h = input
-        rnn_features = F.selu(self.m1(self.fc1(x)))
 
-        output, h = self.rnn(rnn_features, h)
+        h_1, h_1_trans = self.rnn_1(self.fc_x_h_1(x))
+        h_2, h_2_trans = self.rnn_2(h_1 + self.fc_x_h_2(x))
+        h_3, h_3_trans = self.rnn_3(h_2 + self.fc_x_h_3(x))
 
-        f = F.selu(self.m2(self.fc2(T.cat((output, x), 2))))
+        y = self.fc_h_y_1(h_1) + self.fc_h_y_2(h_2) + self.fc_h_y_3(h_3) + self.fc_res(x)
+
         if self.tanh:
-            f = T.tanh(self.fc3(f))
-        else:
-            f = self.fc3(f)
-        return f, h
+            y = T.tanh(y)
+
+        hidden_concat = T.cat((h_1_trans, h_2_trans, h_3_trans), dim=1)
+
+        return y, hidden_concat
 
     def sample_action(self, s):
         x, h = self.forward(s)
@@ -134,3 +158,8 @@ class RNN_PG(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(2, keepdim=True)
+
+if __name__ == "__main__":
+    env = type('',(object,),{'obs_dim':12,'act_dim':6})()
+    config = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
+    RNN_PG(env, config)
