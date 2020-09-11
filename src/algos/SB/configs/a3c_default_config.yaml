@@ -16,5 +16,4 @@
 "policy_hid_dim" : 256
 "policy_memory_dim" : 128
 "policy_grad_clip_value" : 1.0
-
 "policy_residual_connection" : False
