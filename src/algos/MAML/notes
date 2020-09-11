@@ -5,3 +5,7 @@
 # TODO: Question 1: On such a learned model (Idea 3) using non-adversarial noise, can we learn an adversarial policy which significantly impacts performance of model predictor.
 # TODO: Question 2: Can any of the models from idea 3 be used for something useful? Such as planning, accelerated learning (credit assignment using backprop), or imagination?
 # TODO: Idea 4: Try MAML learn a model using gaussian, simplex noise concurrently learned adversarial policy and state visitation maximization policy.
+
+
+# Continue MAML + quadruped
+# Continue quadcopter + buggy

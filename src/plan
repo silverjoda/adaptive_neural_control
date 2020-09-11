@@ -6,6 +6,7 @@ Hexapod training:
 # TODO: Make proper input argument parser
 # TODO: Custom callback for symmetry <-
 # TODO: Make additional tensorboard logs to debug action, observation and gradient distributions during training
+# TODO: ADD MOMENTUM TO SB algos
 
 Hexapod HW:
 # TODO: Make contact sensors
