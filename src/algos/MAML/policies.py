@@ -74,6 +74,70 @@ class RNN_PG(nn.Module):
         self.policy_grad_clip_value = config["policy_grad_clip_value"]
         self.activation_fun = F.leaky_relu
 
+        self.fc_in = nn.Linear(self.obs_dim, self.policy_memory_dim)
+        self.rnn = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, 3, batch_first=True)
+        self.fc_out = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_res = nn.Linear(self.obs_dim, self.policy_memory_dim)
+
+        self.log_std = T.zeros(1, self.act_dim)
+        self.activation_fun = F.leaky_relu
+
+        T.nn.init.zeros_(self.fc_in.bias)
+        T.nn.init.kaiming_normal_(self.fc_in.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.zeros_(self.fc_out.bias)
+        T.nn.init.kaiming_normal_(self.fc_out.weight, mode='fan_in', nonlinearity='linear')
+
+        T.nn.init.zeros_(self.rnn.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn.weight_hh_l0)
+
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
+
+    def forward(self, input):
+        x, h = input
+        rnn_features = self.activation_fun(self.fc1(x))
+
+        rnn_output, h = self.rnn(rnn_features, h)
+
+        y = self.fc_out(F.tanh(self.fc_res(x)) + rnn_output)
+        if self.tanh:
+            y = T.tanh(y)
+
+        return y, h
+
+    def sample_action(self, s):
+        x, h = self.forward(s)
+        return T.normal(x[0], T.exp(self.log_std_cpu)), h
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means, _ = self.forward((batch_states, None))
+
+        # Calculate probabilities
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
+
+class RNN_RES_PG(nn.Module):
+    def __init__(self, env, config):
+        super(RNN_RES_PG, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.tanh = config["policy_lastlayer_tanh"]
+        self.policy_memory_dim = config["policy_memory_dim"]
+        self.policy_grad_clip_value = config["policy_grad_clip_value"]
+        self.activation_fun = F.leaky_relu
+
         self.fc_x_h_1 = nn.Linear(self.obs_dim, self.policy_memory_dim)
         self.fc_x_h_2 = nn.Linear(self.obs_dim, self.policy_memory_dim)
         self.fc_x_h_3 = nn.Linear(self.obs_dim, self.policy_memory_dim)
