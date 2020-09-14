@@ -39,7 +39,7 @@
   <!-- FL leg (1) /-->
     <link name="coxa_fl">
       <visual>
-        <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0"/><!--coxa_fl_2-->
         <geometry>
           <cylinder radius="0.01" length="0.02"/><!--coxa_fl-->
         </geometry>
@@ -47,7 +47,7 @@
       </visual>
 
       <inertial>
-        <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0" /><!--coxa_fl_2-->
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
@@ -71,7 +71,7 @@
 
     <link name="tibia_fl">
       <visual>
-        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" /><!--tibia_fl_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_fl-->
         </geometry>
@@ -79,14 +79,14 @@
       </visual>
 
       <collision>
-        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" /><!--tibia_fl_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_fl-->
         </geometry>
       </collision>
 
       <inertial>
-        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" /><!--tibia_fl_2-->
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
@@ -103,7 +103,7 @@
 
     <joint name="coxa_femur_fl" type="revolute">
       <axis xyz="-1 0 0"/>
-      <origin xyz="0.0 0.01 0"/><!--coxa_fl_joint-->
+      <origin xyz="0.0 0.02 0"/><!--coxa_fl_joint-->
       <parent link="coxa_fl"/>
       <child link="femur_fl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -112,7 +112,7 @@
 
     <joint name="femur_tibia_fl" type="revolute">
       <axis xyz="-1 0 0"/>
-      <origin xyz="0.0 0.06 0"/>
+      <origin xyz="0.0 0.06 0"/><!--femur_fl_joint-->
       <parent link="femur_fl"/>
       <child link="tibia_fl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -122,7 +122,7 @@
     <!-- FR leg (2) /-->
     <link name="coxa_fr">
       <visual>
-        <origin xyz=".0 -.01 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.01 0.0" rpy="1.5708 0 0" /><!--coxa_fr_2-->
         <geometry>
           <cylinder radius="0.01" length="0.02"/><!--coxa_fr-->
         </geometry>
@@ -130,7 +130,7 @@
       </visual>
 
       <inertial>
-        <origin xyz=".0 -.01 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.01 0.0" rpy="1.5708 0 0" /><!--coxa_fr_2-->
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
@@ -154,7 +154,7 @@
 
     <link name="tibia_fr">
       <visual>
-        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" /><!--tibia_fr_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_fr-->
         </geometry>
@@ -162,14 +162,14 @@
       </visual>
 
       <collision>
-        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" /><!--tibia_fr_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_fr-->
         </geometry>
       </collision>
 
       <inertial>
-        <origin xyz=".0 -.05 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" /><!--tibia_fr_2-->
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
@@ -186,7 +186,7 @@
 
     <joint name="coxa_femur_fr" type="revolute">
       <axis xyz="1 0 0"/>
-      <origin xyz="0.0 -0.01 0"/><!--coxa_fr_joint-->
+      <origin xyz="0.0 -0.02 0"/><!--coxa_fr_joint-->
       <parent link="coxa_fr"/>
       <child link="femur_fr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -195,7 +195,7 @@
 
     <joint name="femur_tibia_fr" type="revolute">
       <axis xyz="1 0 0"/>
-      <origin xyz="0.0 -0.06 0"/>
+      <origin xyz="0.0 -0.06 0"/><!--femur_fr_joint-->
       <parent link="femur_fr"/>
       <child link="tibia_fr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -205,7 +205,7 @@
     <!-- RL leg (3) /-->
     <link name="coxa_rl">
       <visual>
-        <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .01 0.0" rpy="-1.5708 0 0" /><!--coxa_fl_2-->
         <geometry>
           <cylinder radius="0.01" length="0.02"/><!--coxa_rl-->
         </geometry>
@@ -237,7 +237,7 @@
 
     <link name="tibia_rl">
       <visual>
-        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" /><!--tibia_rl_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_rl-->
         </geometry>
@@ -245,14 +245,14 @@
       </visual>
 
       <collision>
-        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" /><!--tibia_rl_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_rl-->
         </geometry>
       </collision>
 
       <inertial>
-        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" />
+        <origin xyz=".0 .06 0.0" rpy="-1.5708 0 0" /><!--tibia_rl_2-->
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
@@ -269,7 +269,7 @@
 
     <joint name="coxa_femur_rl" type="revolute">
       <axis xyz="-1 0 0"/>
-      <origin xyz="0.0 0.01 0"/><!--coxa_rl_joint-->
+      <origin xyz="0.0 0.02 0"/><!--coxa_rl_joint-->
       <parent link="coxa_rl"/>
       <child link="femur_rl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -278,7 +278,7 @@
 
     <joint name="femur_tibia_rl" type="revolute">
       <axis xyz="-1 0 0"/>
-      <origin xyz="0.0 0.06 0"/>
+      <origin xyz="0.0 0.06 0"/><!--femur_rl_joint-->
       <parent link="femur_rl"/>
       <child link="tibia_rl"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -321,7 +321,7 @@
 
     <link name="tibia_rr">
       <visual>
-        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" /><!--tibia_rr_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_rr-->
         </geometry>
@@ -329,14 +329,14 @@
       </visual>
 
       <collision>
-        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" /><!--tibia_rr_2-->
         <geometry>
           <cylinder radius="0.01" length="0.12"/><!--tibia_rr-->
         </geometry>
       </collision>
 
       <inertial>
-        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" />
+        <origin xyz=".0 -.06 0.0" rpy="1.5708 0 0" /><!--tibia_rr_2-->
         <mass value="0.1"/>
         <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
       </inertial>
@@ -353,7 +353,7 @@
 
     <joint name="coxa_femur_rr" type="revolute">
       <axis xyz="1 0 0"/>
-      <origin xyz="0.0 -0.01 0"/><!--coxa_rr_joint-->
+      <origin xyz="0.0 -0.02 0"/><!--coxa_rr_joint-->
       <parent link="coxa_rr"/>
       <child link="femur_rr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>
@@ -362,7 +362,7 @@
 
     <joint name="femur_tibia_rr" type="revolute">
       <axis xyz="1 0 0"/>
-      <origin xyz="0.0 -0.06 0"/>
+      <origin xyz="0.0 -0.06 0"/><!--femur_rr_joint-->
       <parent link="femur_rr"/>
       <child link="tibia_rr"/>
       <limit effort="2.0" lower="-3" upper="3" velocity="5"/>

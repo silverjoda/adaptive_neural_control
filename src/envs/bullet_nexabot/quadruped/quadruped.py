@@ -98,13 +98,11 @@ class QuadrupedBulletEnv(gym.Env):
                              "coxa_fr": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
                              "coxa_rl": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
                              "coxa_rr": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
-                             "tibia_fl": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
-                             "tibia_fr": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
-                             "tibia_rl": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
-                             "tibia_rr": 0.12 + (np.random.rand() * 0.16 - 0.08) * randomize,
+                             "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
+                             "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
+                             "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
+                             "tibia_rr": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
                              "max_joint_force": 1.4 + np.random.rand() * 1.}
-
-        # TODO: There is still one parameter than has to be written in URDF so links are correctly positioned
 
         # Write params to URDF file
         with open(self.config["urdf_name"], "r") as in_file:
@@ -116,30 +114,24 @@ class QuadrupedBulletEnv(gym.Env):
         # Change link lengths in urdf
         with open(output_urdf, "w") as out_file:
             for line in buf:
-                if line.rstrip('\n').endswith('<!--coxa_fl-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_fl"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_fr-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_fr"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_rl-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_rl"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_rr-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["coxa_rr"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_fl_joint-->'):
-                    out_file.write(f'      <origin xyz="0.0 {self.robot_params["coxa_fl"] / 2.} 0"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_fr_joint-->'):
-                    out_file.write(f'      <origin xyz="0.0 {-self.robot_params["coxa_fr"] / 2.} 0"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_rl_joint-->'):
-                    out_file.write(f'      <origin xyz="0.0 {self.robot_params["coxa_rl"] / 2.} 0"/>\n')
-                elif line.rstrip('\n').endswith('<!--coxa_rr_joint-->'):
-                    out_file.write(f'      <origin xyz="0.0 {-self.robot_params["coxa_rr"] / 2.} 0"/>\n')
-                elif line.rstrip('\n').endswith('<!--tibia_fl-->'):
+                if line.rstrip('\n').endswith('<!--tibia_fl-->'):
                     out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_fl"]}"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_fr-->'):
                     out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_fr"]}"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rl-->'):
                     out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_rl"]}"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rr-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_rr"]}"/>\n')
+                    out_file.write(f'          <cylinder radius="0.01e" length="{self.robot_params["tibia_rr"]}"/>\n')
+
+                elif line.rstrip('\n').endswith('<!--tibia_fl_2-->'):
+                    out_file.write(f'        <origin xyz=".0 {self.robot_params["tibia_fl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_fr_2-->'):
+                    out_file.write(f'        <origin xyz=".0 {-self.robot_params["tibia_fr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_rl_2-->'):
+                    out_file.write(f'        <origin xyz=".0 {self.robot_params["tibia_rl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                elif line.rstrip('\n').endswith('<!--tibia_rr_2-->'):
+                    out_file.write(f'        <origin xyz=".0 {-self.robot_params["tibia_rr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+
                 else:
                     out_file.write(line)
 
