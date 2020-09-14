@@ -208,7 +208,6 @@ class MAMLRLTrainer:
         # Calculate loss function
         loss = -T.mean(log_probs * batch_advantages)
 
-
     def meta_train(self, n_meta_iters=10000):
         meta_trn_opt = T.optim.SGD(policy.parameters(),
                                    lr=self.config["learning_rate_meta"],
