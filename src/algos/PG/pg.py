@@ -200,12 +200,12 @@ def import_env(name):
 def make_action_noise_fun(config):
     return None
 
-def test_agent(env, policy, deterministic=True):
+def test_agent(env, policy):
     for _ in range(100):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action, _states = policy.forward(obs, deterministic=deterministic)
+            action = policy.sample_action(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
@@ -220,9 +220,7 @@ if __name__=="__main__":
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
-    print(args)
-    print(algo_config)
-    print(env_config)
+    print(config)
 
     # Import correct env by name
     env_fun = import_env(config["env_name"])
@@ -232,6 +230,7 @@ if __name__=="__main__":
     config["ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     policy = policies.NN_PG(env, config)
+    # policy = policies.RNN_PG(env, 18)
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()
@@ -239,16 +238,11 @@ if __name__=="__main__":
         t2 = time.time()
 
         print("Training time: {}".format(t2 - t1))
-        print(args)
-        print(algo_config)
-        print(env_config)
+        print(config)
 
     if config["test"] and socket.gethostname() != "goedel":
-        env = make_env(config, env_fun)
         if not args["train"]:
-            policy = policies.NN_PG(env, config)
-            # policy = policies.RNN_PG(env, 18)
-            policy.load_state_dict(T.load(config["test_agent"]))
-        test_agent(env, policy, deterministic=True)
+            policy.load_state_dict(T.load(config["test_agent_path"]))
+        test_agent(env, policy)
 
 

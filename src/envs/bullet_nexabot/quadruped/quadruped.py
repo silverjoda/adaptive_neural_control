@@ -46,7 +46,7 @@ class QuadrupedBulletEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = None
-        self.load_robot(randomize=config["is_variable"])
+        self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         for i in range(4):
@@ -87,18 +87,18 @@ class QuadrupedBulletEnv(gym.Env):
     def norm_to_rads(self, action):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
-    def load_robot(self, randomize=False):
+    def load_robot(self):
         # Remove old robot
-        if self.robot is not None and randomize:
+        if self.robot is not None and self.config["is_variable"]:
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * randomize,
-                             "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
-                             "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
-                             "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
-                             "tibia_rr": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
-                             "max_joint_force": 1.4 + np.random.rand() * 1.}
+        self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["is_variable"],
+                             "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
+                             "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
+                             "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
+                             "tibia_rr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
+                             "max_joint_force": 1.4 + np.random.rand() * 1. * self.config["is_variable"]}
 
         # Write params to URDF file
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
@@ -133,7 +133,7 @@ class QuadrupedBulletEnv(gym.Env):
         # Load urdf
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
 
-        if randomize:
+        if self.config["is_variable"]:
             # Change base mass
             p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
 
@@ -176,13 +176,13 @@ class QuadrupedBulletEnv(gym.Env):
         r_neg = np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.05 + \
                 np.square(roll) * 0.05 + \
-                torque_pen * 0.000 + \
+                torque_pen * 0.0001 + \
                 np.square(zd) * 0.05
-        r_pos = velocity_rew * 7
+        r_pos = velocity_rew * 5
         r = np.clip(r_pos - r_neg, -3, 3)
 
         scaled_joint_angles = self.rads_to_norm(joint_angles)
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
+        env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts)).astype(np.float32)
 
         self.step_ctr += 1
         done = self.step_ctr > self.config["max_steps"]or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
