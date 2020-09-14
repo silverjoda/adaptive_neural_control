@@ -251,23 +251,24 @@ class MAMLRLTrainer:
 
         return policy
 
+    def test(self):
+        pass
+
 if __name__ == "__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])
     env_config = read_config(args["env_config"])
-    aug_config = {**args, **algo_config, **env_config}
+    config = {**args, **algo_config, **env_config}
 
-    print(args)
-    print(algo_config)
-    print(env_config)
+    print(config)
 
-    env_fun = import_env(env_config["env_name"])
-    env = make_env(env_config, env_fun)
-    noise_policy = make_action_noise_policy(env, aug_config)
-    policy = make_policy(env, aug_config)
+    env_fun = import_env(config["env_name"])
+    env = env_fun(config)
+    noise_policy = make_action_noise_policy(env, config)
+    policy = make_policy(env, config)
 
     session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    maml_rl_trainer = MAMLRLTrainer(env, policy, noise_policy, aug_config)
+    maml_rl_trainer = MAMLRLTrainer(env, policy, noise_policy, config)
     maml_rl_trainer.meta_train(n_meta_iters=args["n_meta_iters"])
     maml_rl_trainer.test()

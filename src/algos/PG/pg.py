@@ -16,6 +16,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 def train(env, policy, config):
     policy_optim = T.optim.RMSprop(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"],
                                    eps=1e-8, momentum=config["momentum"])
+    #policy_optim = T.optim.SGD(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"], momentum=config["momentum"])
+    #policy_optim = T.optim.Adam(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
 
     batch_states = []
     batch_actions = []
@@ -214,6 +216,17 @@ def test_agent(env, policy):
                 break
     env.close()
 
+def make_policy(env, config):
+    if config["policy_type"] == "mlp":
+        return policies.MLP_PG(env, config)
+    elif config["policy_type"] == "nn":
+        return policies.NN_PG(env, config)
+    elif config["policy_type"] == "rnn":
+        return policies.RNN_PG(env, config)
+    else:
+        raise TypeError
+
+
 if __name__=="__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])
@@ -229,8 +242,7 @@ if __name__=="__main__":
     # Random ID of this session
     config["ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    policy = policies.NN_PG(env, config)
-    # policy = policies.RNN_PG(env, 18)
+    policy = make_policy(env, config)
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()

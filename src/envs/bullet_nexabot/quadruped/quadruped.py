@@ -176,9 +176,9 @@ class QuadrupedBulletEnv(gym.Env):
         r_neg = np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.05 + \
                 np.square(roll) * 0.05 + \
-                torque_pen * 0.0001 + \
+                torque_pen * 0.000 + \
                 np.square(zd) * 0.05
-        r_pos = velocity_rew * 5
+        r_pos = velocity_rew * 7
         r = np.clip(r_pos - r_neg, -3, 3)
 
         scaled_joint_angles = self.rads_to_norm(joint_angles)
