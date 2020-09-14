@@ -55,6 +55,8 @@ def import_env(name):
         from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
     elif name == "buggy":
         from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
+    elif name == "quadruped":
+        from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     else:
         raise TypeError
     return env_fun

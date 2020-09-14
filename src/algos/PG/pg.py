@@ -8,6 +8,8 @@ import src.policies as policies
 import random
 import string
 import socket
+import argparse
+import yaml
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
@@ -195,53 +197,101 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
         targets = T.cat(list(reversed(targets)))
     return targets
 
-if __name__=="__main__":
-    args = ["None", "flat", "straight", "symmetry_pen"]
-    if len(sys.argv) > 1:
-        args = sys.argv
+def make_env(config, env_fun):
+    def _init():
+        env = env_fun(config)
+        return env
+    return _init
 
-    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000,
-              "batchsize": 60,
-              "max_steps": 80,
-              "gamma": 0.99,
-              "policy_lr": 0.001,
-              "weight_decay": 0.0001,
-              "ppo_update_iters": 1,
-              "normalize_rewards": False,
-              "symmetry_pen": args[3],
-              "animate": True,
-              "train": False,
-              "variable_velocity": True,
-              "terrain": args[1],
-              "r_type": args[2],
-              "note": "Training: {}, {}, |Straight, just range difficulty increase| ".format(args[1], args[2]),
-              "ID": ID}
+def parse_args():
+    parser = argparse.ArgumentParser(description='Pass in parameters. ')
+    parser.add_argument('--train', type=bool, default=False, required=False,
+                        help='Flag indicating whether the training process is to be run. ')
+    parser.add_argument('--test', type=bool, default=False, required=False,
+                        help='Flag indicating whether the testing process is to be run. ')
+    parser.add_argument('--test_agent_path', type=str, default=".", required=False,
+                        help='Path of test agent. ')
+    parser.add_argument('--animate', type=bool, default=False, required=False,
+                        help='Flag indicating whether the environment will be rendered. ')
+    parser.add_argument('--algo_config', type=str, default="td3_default_config.yaml", required=False,
+                        help='Algorithm config flie name. ')
+    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
+                        help='Env config file name. ')
+    parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
-    if socket.gethostname() == "goedel":
-        params["animate"] = False
-        params["train"] = True
+    args = parser.parse_args()
+    return args.__dict__
 
-    #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
-    #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    #env = env_fun(animate=params["animate"])
+def read_config(path):
+    with open(os.path.join('configs/', path)) as f:
+        data = yaml.load(f, Loader=yaml.FullLoader)
+    return data
 
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
-    env = env_fun(animate=params["animate"], max_steps=params["max_steps"], step_counter=True, terrain_name=args[1], training_mode=args[2], variable_velocity=params["variable_velocity"])
-
-    # Test
-    if params["train"]:
-        print("Training")
-        policy = policies.NN_PG(env, 96)
-        print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
-        train(env, policy, params)
+def import_env(name):
+    if name == "hexapod":
+        from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    elif name == "quadrotor":
+        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
+    elif name == "buggy":
+        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
+    elif name == "quadruped":
+        from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
     else:
-        print("Testing")
-        policy_name = "4PE" #
-        policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
-        policy = policies.NN_PG(env, 96)
-        #policy = policies.PyTorchMlp(29, 18)
-        policy.load_state_dict(T.load(policy_path))
-        env.test(policy)
-        print(policy_path)
+        raise TypeError
+    return env_fun
+
+def make_action_noise_fun(config):
+    return None
+
+def test_agent(env, policy, deterministic=True):
+    for _ in range(100):
+        obs = env.reset()
+        cum_rew = 0
+        while True:
+            action, _states = policy.forward(obs, deterministic=deterministic)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            env.render()
+            if done:
+                print(cum_rew)
+                break
+    env.close()
+
+if __name__=="__main__":
+    args = parse_args()
+    algo_config = read_config(args["algo_config"])
+    env_config = read_config(args["env_config"])
+    config = {**args, **algo_config, **env_config}
+
+    print(args)
+    print(algo_config)
+    print(env_config)
+
+    # Import correct env by name
+    env_fun = import_env(config["env_name"])
+    env = env_fun(config)
+
+    # Random ID of this session
+    session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+
+    policy = policies.NN_PG(env, config)
+
+    if config["train"] or socket.gethostname() == "goedel":
+        t1 = time.time()
+        train(env_fun(config), policy, config)
+        t2 = time.time()
+
+        print("Training time: {}".format(t2 - t1))
+        print(args)
+        print(algo_config)
+        print(env_config)
+
+    if config["test"] and socket.gethostname() != "goedel":
+        env = make_env(config, env_fun)
+        if not args["train"]:
+            policy = policies.NN_PG(env, config)
+            # policy = policies.RNN_PG(env, 18)
+            policy.load_state_dict(T.load(config["test_agent"]))
+        test_agent(env, policy, deterministic=True)
+
+

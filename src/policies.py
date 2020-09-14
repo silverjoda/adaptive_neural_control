@@ -4,70 +4,112 @@ import torch as T
 import numpy as np
 from copy import deepcopy
 
-
-class RNN_V3_LN_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, memory_dim=64, n_temp=3, tanh=False, to_gpu=False):
-        super(RNN_V3_LN_PG, self).__init__()
+class NN_PG(nn.Module):
+    def __init__(self, env, config):
+        super(NN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = hid_dim
-        self.memory_dim = memory_dim
-        self.tanh = tanh
-        self.to_gpu = to_gpu
 
-        self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
-        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
-        self.m1 = nn.LayerNorm(self.obs_dim)
-        self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
+        self.tanh = config["policy_lastlayer_tanh"]
+        self.hid_dim = config["policy_hid_dim"]
+        self.grad_clip_value = config["policy_grad_clip_value"]
+        self.policy_residual_connection = config["policy_residual_connection"]
+        self.activation_fun = F.leaky_relu
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.m1 = nn.LayerNorm(self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
         self.m2 = nn.LayerNorm(self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
-        if to_gpu:
-            self.log_std_gpu = T.zeros(1, self.act_dim).cuda()
-        else:
-            self.log_std_cpu = T.zeros(1, self.act_dim)
+        if self.policy_residual_connection:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
 
+        self.log_std = T.zeros(1, self.act_dim)
 
-    def print_info(self):
-        pass
-
-
-    def soft_clip_grads(self, bnd=0.5):
-        # Find maximum
-        maxval = 0
+        T.nn.init.zeros_(self.fc1.bias)
+        T.nn.init.zeros_(self.fc2.bias)
+        T.nn.init.zeros_(self.fc3.bias)
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
         for p in self.parameters():
-            if p.grad is None: continue
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
+            p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
 
-        if maxval > bnd:
-            #print("Soft clipping grads")
+    def forward(self, x):
+        x = self.activation_fun(self.m1(self.fc1(x)))
+        x = self.activation_fun(self.m2(self.fc2(x)))
+        if self.policy_residual_connection:
+            x = self.fc3(x) + self.fc_res(x)
+        else:
+            x = self.fc3(x)
+        if self.tanh:
+            x = T.tanh(x)
+        return x
 
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
 
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+class RNN_PG(nn.Module):
+    def __init__(self, env, config):
+        super(RNN_PG, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.tanh = config["policy_lastlayer_tanh"]
+        self.policy_memory_dim = config["policy_memory_dim"]
+        self.policy_grad_clip_value = config["policy_grad_clip_value"]
+        self.activation_fun = F.leaky_relu
+
+        self.fc_in = nn.Linear(self.obs_dim, self.policy_memory_dim)
+        self.rnn = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, 3, batch_first=True)
+        self.fc_out = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_res = nn.Linear(self.obs_dim, self.policy_memory_dim)
+
+        self.log_std = T.zeros(1, self.act_dim)
+        self.activation_fun = F.leaky_relu
+
+        T.nn.init.zeros_(self.fc_in.bias)
+        T.nn.init.kaiming_normal_(self.fc_in.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.zeros_(self.fc_out.bias)
+        T.nn.init.kaiming_normal_(self.fc_out.weight, mode='fan_in', nonlinearity='linear')
+
+        T.nn.init.zeros_(self.rnn.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn.weight_hh_l0)
+
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
 
     def forward(self, input):
         x, h = input
-        rnn_features = F.selu(self.m1(self.fc1(x)))
+        rnn_features = self.activation_fun(self.fc1(x))
 
-        output, h = self.rnn(rnn_features, h)
+        rnn_output, h = self.rnn(rnn_features, h)
 
-        f = F.selu(self.m2(self.fc2(T.cat((output, x), 2))))
+        y = self.fc_out(F.tanh(self.fc_res(x)) + rnn_output)
         if self.tanh:
-            f = T.tanh(self.fc3(f))
-        else:
-            f = self.fc3(f)
-        return f, h
+            y = T.tanh(y)
 
+        return y, h
 
     def sample_action(self, s):
         x, h = self.forward(s)
         return T.normal(x[0], T.exp(self.log_std_cpu)), h
-
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -85,175 +127,103 @@ class RNN_V3_LN_PG(nn.Module):
 
         return log_density.sum(2, keepdim=True)
 
-
-class Linear_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True, obs_dim=None, act_dim=None):
-        super(Linear_PG, self).__init__()
+class RNN_RES_PG(nn.Module):
+    def __init__(self, env, config):
+        super(RNN_RES_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        if obs_dim is not None:
-            self.obs_dim = obs_dim
+        self.tanh = config["policy_lastlayer_tanh"]
+        self.policy_memory_dim = config["policy_memory_dim"]
+        self.policy_grad_clip_value = config["policy_grad_clip_value"]
+        self.activation_fun = F.leaky_relu
 
-        if act_dim is not None:
-            self.act_dim = act_dim
+        self.fc_x_h_1 = nn.Linear(self.obs_dim, self.policy_memory_dim)
+        self.fc_x_h_2 = nn.Linear(self.obs_dim, self.policy_memory_dim)
+        self.fc_x_h_3 = nn.Linear(self.obs_dim, self.policy_memory_dim)
 
-        self.fc1 = nn.Linear(self.obs_dim, self.act_dim)
+        self.rnn_1 = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, batch_first=True)
+        self.m_rnn_1 = nn.LayerNorm(self.policy_memory_dim)
+        self.rnn_2 = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, batch_first=True)
+        self.m_rnn_2 = nn.LayerNorm(self.policy_memory_dim)
+        self.rnn_3 = nn.LSTM(self.policy_memory_dim, self.policy_memory_dim, batch_first=True)
 
-        if std_fixed:
-            self.log_std = T.zeros(1, self.act_dim)
-        else:
-            self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
+        self.fc_h_y_1 = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_h_y_2 = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_h_y_3 = nn.Linear(self.policy_memory_dim, self.policy_memory_dim)
+        self.fc_res = nn.Linear(self.obs_dim, self.policy_memory_dim)
 
+        self.log_std = T.zeros(1, self.act_dim)
+        self.activation_fun = F.leaky_relu
 
-    def forward(self, x):
-        x = self.fc1(x)
-        return x
+        T.nn.init.zeros_(self.fc_x_h_1.bias)
+        T.nn.init.zeros_(self.fc_x_h_2.bias)
+        T.nn.init.zeros_(self.fc_x_h_3.bias)
+        T.nn.init.zeros_(self.fc_h_y_1.bias)
+        T.nn.init.zeros_(self.fc_h_y_2.bias)
+        T.nn.init.zeros_(self.fc_h_y_3.bias)
+        T.nn.init.kaiming_normal_(self.fc_x_h_1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_x_h_2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_x_h_3.weight, mode='fan_in', nonlinearity='linear')
+        T.nn.init.kaiming_normal_(self.fc_h_y_1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_h_y_2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc_h_y_3.weight, mode='fan_in', nonlinearity='linear')
 
+        T.nn.init.zeros_(self.rnn_1.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn_1.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn_1.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn_1.weight_hh_l0)
 
-    def soft_clip_grads(self, bnd=1):
-        # Find maximum
-        maxval = 0
+        T.nn.init.zeros_(self.rnn_2.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn_2.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn_2.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn_2.weight_hh_l0)
+
+        T.nn.init.zeros_(self.rnn_3.bias_hh_l0)
+        T.nn.init.zeros_(self.rnn_3.bias_ih_l0)
+        T.nn.init.kaiming_normal_(self.rnn_3.weight_ih_l0, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.orthogonal_(self.rnn_3.weight_hh_l0)
 
         for p in self.parameters():
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
+            p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
 
-        if maxval > bnd:
-            # print("Soft clipping grads")
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
+    def forward(self, input):
+        x, h = input
 
+        h_1, h_1_trans = self.rnn_1(self.fc_x_h_1(x))
+        h_2, h_2_trans = self.rnn_2(h_1 + self.fc_x_h_2(x))
+        h_3, h_3_trans = self.rnn_3(h_2 + self.fc_x_h_3(x))
 
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
+        y = self.fc_h_y_1(h_1) + self.fc_h_y_2(h_2) + self.fc_h_y_3(h_3) + self.fc_res(x)
 
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-
-class NN_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True, obs_dim=None, act_dim=None):
-        super(NN_PG, self).__init__()
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-
-        if obs_dim is not None:
-            self.obs_dim = obs_dim
-
-        if act_dim is not None:
-            self.act_dim = act_dim
-
-        self.tanh = tanh
-
-        self.fc1 = nn.Linear(self.obs_dim, hid_dim)
-        self.m1 = nn.LayerNorm(hid_dim)
-        self.fc2 = nn.Linear(hid_dim, hid_dim)
-        self.m2 = nn.LayerNorm(hid_dim)
-        self.fc3 = nn.Linear(hid_dim, self.act_dim)
-
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-        if std_fixed:
-            self.log_std = T.zeros(1, self.act_dim)
-        else:
-            self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
-
-
-    def forward(self, x):
-        x = F.leaky_relu(self.m1(self.fc1(x)))
-        x = F.leaky_relu(self.m2(self.fc2(x)))
         if self.tanh:
-            x = T.tanh(self.fc3(x))
-        else:
-            x = self.fc3(x)
-        return x
+            y = T.tanh(y)
 
+        hidden_concat = T.cat((h_1_trans, h_2_trans, h_3_trans), dim=1)
 
-    def soft_clip_grads(self, bnd=1):
-        # Find maximum
-        maxval = 0
-
-        for p in self.parameters():
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
-
-
-        if maxval > bnd:
-            # print("Soft clipping grads")
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
+        return y, hidden_concat
 
     def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
+        x, h = self.forward(s)
+        return T.normal(x[0], T.exp(self.log_std_cpu)), h
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
-        action_means = self.forward(batch_states)
+        action_means, _ = self.forward((batch_states, None))
 
         # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
         std = T.exp(log_std_batch)
         var = std.pow(2)
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
-        return log_density.sum(1, keepdim=True)
+        return log_density.sum(2, keepdim=True)
 
-
-class NN_PG_VF(nn.Module):
-    def __init__(self, env, hid_dim=64):
-        super(NN_PG_VF, self).__init__()
-
-        self.obs_dim = env.obs_dim + 1
-        self.hid_dim = hid_dim
-
-        self.fc1 = nn.Linear(self.obs_dim, hid_dim)
-        self.fc2 = nn.Linear(hid_dim, hid_dim)
-        self.fc3 = nn.Linear(hid_dim, 1)
-
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-
-    def forward(self, x):
-        x = F.leaky_relu(self.fc1(x))
-        x = F.leaky_relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-
-class PyTorchMlp(nn.Module):
-
-    def __init__(self, n_inputs=30, n_actions=18):
-        nn.Module.__init__(self)
-
-        self.fc1 = nn.Linear(n_inputs, 96)
-        self.fc2 = nn.Linear(96, 96)
-        self.fc3 = nn.Linear(96, n_actions)
-        self.activ_fn = nn.Tanh()
-        self.out_activ = nn.Softmax(dim=0)
-
-    def forward(self, x):
-        x = self.activ_fn(self.fc1(x))
-        x = self.activ_fn(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
+if __name__ == "__main__":
+    env = type('',(object,),{'obs_dim':12,'act_dim':6})()
+    config = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
+    RNN_PG(env, config)

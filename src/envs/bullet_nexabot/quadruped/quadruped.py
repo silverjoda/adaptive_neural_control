@@ -94,10 +94,6 @@ class QuadrupedBulletEnv(gym.Env):
 
         # Randomize robot params
         self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * randomize,
-                             "coxa_fl": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
-                             "coxa_fr": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
-                             "coxa_rl": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
-                             "coxa_rr": 0.06 + (np.random.rand() * 0.08 - 0.04) * randomize,
                              "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
                              "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
                              "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * randomize,
@@ -131,15 +127,15 @@ class QuadrupedBulletEnv(gym.Env):
                     out_file.write(f'        <origin xyz=".0 {self.robot_params["tibia_rl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rr_2-->'):
                     out_file.write(f'        <origin xyz=".0 {-self.robot_params["tibia_rr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
-
                 else:
                     out_file.write(line)
 
         # Load urdf
         self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
 
-        # Change base mass
-        p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
+        if randomize:
+            # Change base mass
+            p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
 
     def render(self, close=False):
         pass
@@ -261,7 +257,7 @@ class QuadrupedBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("../../../algos/SB/configs/quadruped_config.yaml") as f:
+    with open("configs/quadruped_config.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrupedBulletEnv(env_config)

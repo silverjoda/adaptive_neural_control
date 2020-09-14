@@ -200,7 +200,7 @@ class BuggyBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("../../algos/SB/configs/buggy_config.yaml") as f:
+    with open("configs/buggy_config.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
