@@ -24,7 +24,7 @@ class QuadrupedBulletEnv(gym.Env):
 
         self.config = config
 
-        if (self.config["animate"]):
+        if self.config["animate"]:
             self.client_ID = p.connect(p.GUI)
             print(" --Starting GUI mode-- ")
         else:
@@ -101,11 +101,11 @@ class QuadrupedBulletEnv(gym.Env):
                              "max_joint_force": 1.4 + np.random.rand() * 1.}
 
         # Write params to URDF file
-        with open(self.config["urdf_name"], "r") as in_file:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
             buf = in_file.readlines()
 
-        index = self.config["urdf_name"].find('.urdf')
-        output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
+        index = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]).find('.urdf')
+        output_urdf = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"])[:index] + '_rnd' + os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"])[index:]
 
         # Change link lengths in urdf
         with open(output_urdf, "w") as out_file:
