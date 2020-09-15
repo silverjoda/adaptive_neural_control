@@ -10,7 +10,6 @@ import torch as T
 
 import src.my_utils as my_utils
 
-# Variable params: Mass, boom length, motor "inertia", motor max_force
 class BuggyBulletEnv(gym.Env):
     def __init__(self, config):
         self.seed = config["seed"]
@@ -22,32 +21,26 @@ class BuggyBulletEnv(gym.Env):
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
-        self.animate = config["animate"]
-        self.max_steps = config["max_steps"]
-        self.latent_input = config["latent_input"]
-        self.action_input = config["action_input"]
-        self.is_variable = config["is_variable"]
-        self.sim_timestep = config["sim_timestep"]
-        self.urdf_name = config["urdf_name"]
+        self.config = config
 
-        self.obs_dim = 10 + int(self.action_input) * 2  # Orientation quaternion, linear + angular velocities
-        self.act_dim = 2  # Motor commands
+        self.obs_dim = 9
+        self.act_dim = 2
 
         # Episode variables
         self.step_ctr = 0
 
-        if (self.animate):
+        if (self.config["animate"]):
             self.client_ID = p.connect(p.GUI)
         else:
             self.client_ID = p.connect(p.DIRECT)
 
         p.setGravity(0, 0, -9.8)
         p.setRealTimeSimulation(0)
-        p.setTimeStep(self.sim_timestep)
+        p.setTimeStep(self.config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = None
-        self.load_robot()
+        self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         self.observation_space = spaces.Box(low=np.array([-1] * self.obs_dim), high=np.array([1] * self.obs_dim))
@@ -60,9 +53,17 @@ class BuggyBulletEnv(gym.Env):
         for wheel in self.inactive_wheels:
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
-        self.targetVelocitySlider = p.addUserDebugParameter("wheelVelocity", -100, 100, 0)
-        self.maxForceSlider = p.addUserDebugParameter("maxForce", 0, 100, 10)
-        self.steeringSlider = p.addUserDebugParameter("steering", -0.5, 0.5, 0)
+        # self.targetVelocitySlider = p.addUserDebugParameter("wheelVelocity", -100, 100, 0)
+        # self.maxForceSlider = p.addUserDebugParameter("maxForce", 0, 100, 10)
+        # self.steeringSlider = p.addUserDebugParameter("steering", -0.5, 0.5, 0)
+
+        self.target_A = self.target_B = None
+        self.target_visualshape = p.createVisualShape(shapeType=p.GEOM_SPHERE,
+                                                      radius=0.1,
+                                                      rgbaColor=[1,0,0,1],
+                                                      physicsClientId=self.client_ID)
+        self.update_targets()
+
 
     def load_robot(self):
         # Remove old robot
@@ -70,121 +71,106 @@ class BuggyBulletEnv(gym.Env):
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + np.random.rand() * 0.5,
-                             "wheel_base" : 1 + np.random.rand() * 0.5,
-                             "wheel_width": 1 + np.random.rand() * 0.5,
-                             "front_wheels_friction": 0.5 + np.random.rand() * 2.5,
-                             "motor_force_multiplier": 50 + np.random.rand() * 30}
+        self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["is_variable"],
+                             "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["is_variable"],
+                             "wheel_width": 1 + np.random.rand() * 0.5 * self.config["is_variable"],
+                             "front_wheels_friction": 0.5 + np.random.rand() * 2.5 * self.config["is_variable"],
+                             "motor_force_multiplier": 50 + np.random.rand() * 30 * self.config["is_variable"]}
+
+        if not self.config["is_variable"]:
+            robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+                               physicsClientId=self.client_ID)
+            return robot
 
         # Write params to URDF file
-        with open(self.urdf_name, "r") as in_file:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
             buf = in_file.readlines()
 
-        index = self.urdf_name.find('.urdf')
-        output_urdf = self.urdf_name[:index] + '_rnd' + self.urdf_name[index:]
-
-        # Change link lengths in urdf
-        # with open(output_urdf, "w") as out_file:
-        #     for line in buf:
-        #         if "<cylinder radius" in line:
-        #             out_file.write(f'          <cylinder radius="0.015" length="{self.robot_params["boom"]}"/>\n')
-        #         elif line.rstrip('\n').endswith('<!--boomorigin-->'):
-        #             out_file.write(
-        #                 f'        <origin xyz="0 {self.robot_params["boom"] / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
-        #         elif line.rstrip('\n').endswith('<!--motorpos-->'):
-        #             out_file.write(
-        #                 f'      <origin xyz="0 {self.robot_params["boom"]} 0" rpy="0 0 0"/><!--motorpos-->\n')
-        #         else:
-        #             out_file.write(line)
+        index = self.config["urdf_name"].find('.urdf')
+        output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
 
         # Load urdf
-        self.robot = p.loadURDF("buggy.urdf", physicsClientId=self.client_ID)
+        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), physicsClientId=self.client_ID)
 
         # Change params
         #p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
+        return robot
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
         return torso_pos, torso_quat, torso_vel, torso_angular_vel
 
+    def update_targets(self):
+        if self.target_A is None:
+            self.target_A = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
+                "target_dispersal_distance"] / 2
+            self.target_B = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
+                "target_dispersal_distance"] / 2
+
+            self.target_A_body = p.createMultiBody(baseMass=0,
+                                                   baseVisualShapeIndex=self.target_visualshape,
+                                                   basePosition=[self.target_A[0], self.target_A[1], 0],
+                                                   physicsClientId=self.client_ID)
+            self.target_B_body = p.createMultiBody(baseMass=0,
+                                                   baseVisualShapeIndex=self.target_visualshape,
+                                                   basePosition=[self.target_B[0], self.target_B[1], 0],
+                                                   physicsClientId=self.client_ID)
+        else:
+            self.target_A = self.target_B
+            self.target_B = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
+                "target_dispersal_distance"] / 2
+            p.resetBasePositionAndOrientation(self.target_A_body, [self.target_A[0], self.target_A[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
+            p.resetBasePositionAndOrientation(self.target_B_body, [self.target_B[0], self.target_B[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
+
     def render(self, close=False):
         pass
 
     def step(self, ctrl):
-        maxForce = p.readUserDebugParameter(self.maxForceSlider)
-        targetVelocity = p.readUserDebugParameter(self.targetVelocitySlider)
-        steeringAngle = p.readUserDebugParameter(self.steeringSlider)
+        # maxForce = p.readUserDebugParameter(self.maxForceSlider)
+        # targetVelocity = p.readUserDebugParameter(self.targetVelocitySlider)
+        # steeringAngle = p.readUserDebugParameter(self.steeringSlider)
 
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
-                                    targetVelocity=targetVelocity,
-                                    force=maxForce)
+                                    targetVelocity=ctrl[0] * self.config["velocity_scaler"],
+                                    force=self.config["max_force"])
 
         for steer in self.steering:
-            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=steeringAngle)
+            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=ctrl[1])
 
         p.stepSimulation()
-
         self.step_ctr += 1
 
-        torso_pos, torso_quat, torso_vel, torso_angular_vel = obs = self.get_obs()
+        torso_pos, torso_quat, torso_vel, torso_angular_vel = self.get_obs()
+        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
-        r = 0
+        # Check if the agent has reached a target
+        target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
+        r = -target_dist
 
-        done = (self.step_ctr > self.max_steps) # or abs(theta) > 0.6
+        if target_dist < self.config["target_proximity_threshold"]:
+            self.update_targets()
+        done = (self.step_ctr > self.config["max_steps"])
+
+        obs = np.concatenate((torso_pos[0:2], [yaw], torso_vel[0:2], self.target_A, self.target_B))
 
         return obs, r, done, {}
 
     def reset(self):
         self.step_ctr = 0
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
-    def test(self, policy, slow=True, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        self.render_prob = 1.0
-        total_rew = 0
-        for i in range(100):
-            obs = self.reset()
-            cr = 0
-            for j in range(self.max_steps):
-                action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, od, = self.step(action[0].numpy())
-                cr += r
-                total_rew += r
-                if slow:
-                    time.sleep(0.01)
-            print("Total episode reward: {}".format(cr))
-        print("Total reward: {}".format(total_rew))
-
-    def test_recurrent(self, policy, slow=True, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        total_rew = 0
-        for i in range(100):
-            obs = self.reset()
-            h = None
-            cr = 0
-            for j in range(self.max_steps):
-                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, od, = self.step(action[0][0].detach().numpy())
-                cr += r
-                total_rew += r
-                if slow:
-                    time.sleep(0.01)
-            print("Total episode reward: {}".format(cr))
-        print("Total reward: {}".format(total_rew))
-
     def demo(self):
         for i in range(100):
-            act = np.array([0.1, 0.1]) * 10
+            act = np.random.rand(2) * 2 - 1
 
-            for i in range(self.max_steps):
+            for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
                 #print(obs)
                 time.sleep(0.01)

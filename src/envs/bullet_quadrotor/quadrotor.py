@@ -65,14 +65,14 @@ class QuadrotorBulletEnv(gym.Env):
             return robot
 
         # Write params to URDF file
-        with open(self.config["urdf_name"], "r") as in_file:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
             buf = in_file.readlines()
 
         index = self.config["urdf_name"].find('.urdf')
         output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
 
         # Change link lengths in urdf
-        with open(output_urdf, "w") as out_file:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), "w") as out_file:
             for line in buf:
                 if "<cylinder radius" in line:
                     out_file.write(f'          <cylinder radius="0.015" length="{self.robot_params["boom"]}"/>\n')
