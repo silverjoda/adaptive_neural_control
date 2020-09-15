@@ -22,35 +22,27 @@ class QuadrotorBulletEnv(gym.Env):
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
-        self.animate = config["animate"]
-        self.max_steps = config["max_steps"]
-        self.latent_input = config["latent_input"]
-        self.action_input = config["action_input"]
-        self.is_variable = config["is_variable"]
-        self.sim_timestep = config["sim_timestep"]
-        self.propeller_parasitic_torque_coeff = config["propeller_parasitic_torque_coeff"]
-        self.urdf_name = config["urdf_name"]
-
-        self.obs_dim = 10 + int(self.action_input) * 4  # Orientation quaternion, linear + angular velocities
-        self.act_dim = 4 # Motor commands (4)
+        self.config = config
+        self.obs_dim = 16
+        self.act_dim = 4
         self.parasitic_torque_dir_vec = [1,-1,-1,1]
 
         # Episode variables
         self.step_ctr = 0
         self.current_motor_velocity_vec = np.array([0.,0.,0.,0.])
 
-        if (self.animate):
+        if (config["animate"]):
           self.client_ID = p.connect(p.GUI)
         else:
           self.client_ID = p.connect(p.DIRECT)
 
         p.setGravity(0, 0, -9.8)
         p.setRealTimeSimulation(0)
-        p.setTimeStep(self.sim_timestep)
+        p.setTimeStep(config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = None
-        self.load_robot()
+        self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         self.observation_space = spaces.Box(low=np.array([-1] * self.obs_dim), high=np.array([1] * self.obs_dim))
@@ -62,17 +54,22 @@ class QuadrotorBulletEnv(gym.Env):
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + np.random.rand() * 0.5,
-                             "boom": 0.1 + np.random.rand() * 0.5,
-                             "motor_inertia_coeff": 0.7 + np.random.rand() * 0.25,
-                             "motor_force_multiplier": 60 + np.random.rand() * 30}
+        self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["is_variable"],
+                             "boom": 0.1 + np.random.rand() * 0.5 * self.config["is_variable"],
+                             "motor_inertia_coeff": 0.7 + np.random.rand() * 0.25 * self.config["is_variable"],
+                             "motor_force_multiplier": 60 + np.random.rand() * 30 * self.config["is_variable"]}
+
+        if not self.config["is_variable"]:
+            robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+                               physicsClientId=self.client_ID)
+            return robot
 
         # Write params to URDF file
-        with open(self.urdf_name, "r") as in_file:
+        with open(self.config["urdf_name"], "r") as in_file:
             buf = in_file.readlines()
 
-        index = self.urdf_name.find('.urdf')
-        output_urdf = self.urdf_name[:index] + '_rnd' + self.urdf_name[index:]
+        index = self.config["urdf_name"].find('.urdf')
+        output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
 
         # Change link lengths in urdf
         with open(output_urdf, "w") as out_file:
@@ -87,10 +84,12 @@ class QuadrotorBulletEnv(gym.Env):
                     out_file.write(line)
 
         # Load urdf
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
 
         # Change base mass
-        p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
+        p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
+
+        return robot
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -110,6 +109,19 @@ class QuadrotorBulletEnv(gym.Env):
         turb_coeff = (np.random.rand(len(height_vec)) * 2 - 1) * scaled_height_arr
         return turb_coeff
 
+    def apply_external_disturbances(self):
+        #Apply external disturbance force
+        if np.random.rand() < self.config["disturbance_frequency"]:
+            self.current_disturbance = {"vector" : np.array([np.random.rand(), np.random.rand(), 0]), "remaining_life" : np.random.randint(10, 100)}
+            self.current_disturbance["visual_shape"] = p.createVisualShape()
+        p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance_vector * self.config["distrurbance_intensity"],
+                             posObj=[0, 0, 0], flags=p.LINK_FRAME)
+        if self.current_disturbance is not None:
+            self.current_disturbance["remaining_life"] -= 1
+            if self.current_disturbance["remaining_life"] <= 0:
+                p.removeBody(self.current_disturbance["visual_shape"])
+                self.current_disturbance = None
+
     def step(self, ctrl):
         # Take into account motor delay
         self.update_motor_vel(ctrl)
@@ -120,73 +132,50 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Apply forces
         for i in range(4):
-            motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] + self.current_motor_velocity_vec[i] * turbulence_coeffs[i], 0, 1)
+            motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
+                                          + self.current_motor_velocity_vec[i] * turbulence_coeffs[i], 0, 1)
             motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, motor_force_scaled],
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
-        p.stepSimulation()
 
+        p.stepSimulation()
         self.step_ctr += 1
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel = obs = self.get_obs()
+        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
-        r = 0
+        r = np.mean(np.square(torso_pos - np.array(self.config["target_pos"])))
 
-        done = (self.step_ctr > self.max_steps) # or abs(theta) > 0.6
+        done = (self.step_ctr > self.config["max_steps"]) \
+               or np.any(np.array([roll, pitch]) > np.pi / 2) \
+               or np.any(np.array(torso_pos[0:2]) > 2)
+
+        obs = np.concatenate((np.array(self.config["target_pos"]), torso_pos, torso_quat, torso_vel, torso_angular_vel))
 
         return obs, r, done, {}
 
     def reset(self):
         self.step_ctr = 0
+        self.current_disturbance_vector = None
+        self.motor_power_variance_vector = np.ones(4) - np.random.rand(4) * self.config["motor_power_variance"]
+
+        if self.config["is_variable"]:
+            self.robot = self.load_robot()
+
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
+        p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"], [0, 0, 0, 1], physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
-    def test(self, policy, slow=True, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        self.render_prob = 1.0
-        total_rew = 0
-        for i in range(100):
-            obs = self.reset()
-            cr = 0
-            for j in range(self.max_steps):
-                action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, od, = self.step(action[0].numpy())
-                cr += r
-                total_rew += r
-                if slow:
-                    time.sleep(0.01)
-            print("Total episode reward: {}".format(cr))
-        print("Total reward: {}".format(total_rew))
-
-    def test_recurrent(self, policy, slow=True, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        total_rew = 0
-        for i in range(100):
-            obs = self.reset()
-            h = None
-            cr = 0
-            for j in range(self.max_steps):
-                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, od, = self.step(action[0][0].detach().numpy())
-                cr += r
-                total_rew += r
-                if slow:
-                    time.sleep(0.01)
-            print("Total episode reward: {}".format(cr))
-        print("Total reward: {}".format(total_rew))
-
     def demo(self):
         for i in range(100):
+            self.reset()
             act = np.array([0.1, 0.1, 0.1, 0.1])
 
-            for i in range(self.max_steps):
+            for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
-                #print(obs)
                 time.sleep(0.01)
 
             self.reset()
@@ -196,7 +185,6 @@ class QuadrotorBulletEnv(gym.Env):
 
     def close(self):
         self.kill()
-
 
 if __name__ == "__main__":
     import yaml
