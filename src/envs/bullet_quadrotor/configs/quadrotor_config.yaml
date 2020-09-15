@@ -10,7 +10,7 @@
 "env_change_prob" : 0.1
 "starting_pos" : [0, 0, 0.0]
 "target_pos" : [0, 0, 1.0]
-"distrurbance_intensity" : 1
-"distrurbance_frequency" : 0.01
+"disturbance_intensity" : 10
+"disturbance_frequency" : 0.05
 "urdf_name" : quadrotor.urdf
 "seed" :

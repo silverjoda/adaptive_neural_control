@@ -112,14 +112,15 @@ class QuadrotorBulletEnv(gym.Env):
     def apply_external_disturbances(self):
         #Apply external disturbance force
         if np.random.rand() < self.config["disturbance_frequency"]:
-            self.current_disturbance = {"vector" : np.array([np.random.rand(), np.random.rand(), 0]), "remaining_life" : np.random.randint(10, 100)}
-            self.current_disturbance["visual_shape"] = p.createVisualShape()
-        p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance_vector * self.config["distrurbance_intensity"],
+            self.current_disturbance = {"vector" : np.array([np.random.rand(), np.random.rand(), 0]), "remaining_life" : np.random.randint(20, 60)}
+            #self.current_disturbance["visual_shape"] = p.createVisualShape()
+        if self.current_disturbance is None: return
+        p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
                              posObj=[0, 0, 0], flags=p.LINK_FRAME)
         if self.current_disturbance is not None:
             self.current_disturbance["remaining_life"] -= 1
             if self.current_disturbance["remaining_life"] <= 0:
-                p.removeBody(self.current_disturbance["visual_shape"])
+                #p.removeBody(self.current_disturbance["visual_shape"])
                 self.current_disturbance = None
 
     def step(self, ctrl):
@@ -140,6 +141,8 @@ class QuadrotorBulletEnv(gym.Env):
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
 
+        self.apply_external_disturbances()
+
         p.stepSimulation()
         self.step_ctr += 1
 
@@ -158,7 +161,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def reset(self):
         self.step_ctr = 0
-        self.current_disturbance_vector = None
+        self.current_disturbance = None
         self.motor_power_variance_vector = np.ones(4) - np.random.rand(4) * self.config["motor_power_variance"]
 
         if self.config["is_variable"]:
