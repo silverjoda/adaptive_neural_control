@@ -3,7 +3,7 @@
 "step_counter" : True
 "latent_input" : False
 "action_input" : False
-"is_variable" : False
+"randomize_env" : False
 "sim_timestep" : 0.00417
 "propeller_parasitic_torque_coeff" : 0.3
 "motor_power_variance" : 0.1

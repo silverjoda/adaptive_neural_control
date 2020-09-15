@@ -5,7 +5,8 @@ import torch.nn.functional as F
 from copy import deepcopy
 import logging
 import matplotlib.pyplot as plt
-from stable_baselines import A2C
+import src.my_utils as my_utils
+import src.policies as policies
 import random
 import string
 import time
@@ -22,17 +23,17 @@ import os
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
-    parser.add_argument('--train', type=bool, default=False, required=False,
+    parser.add_argument('--train', action='store_true', required=False,
                         help='Flag indicating whether the training process is to be run. ')
-    parser.add_argument('--test', type=bool, default=False, required=False,
+    parser.add_argument('--test', action='store_true', required=False,
                         help='Flag indicating whether the testing process is to be run. ')
+    parser.add_argument('--animate', action='store_true', required=False,
+                        help='Flag indicating whether the environment will be rendered. ')
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
-    parser.add_argument('--animate', type=bool, default=False, required=False,
-                        help='Flag indicating whether the environment will be rendered. ')
-    parser.add_argument('--algo_config', type=str, default="maml_default_config.yaml", required=False,
-                        help='Algorithm config file name. ')
-    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
+    parser.add_argument('--algo_config', type=str, default="configs/maml_default_config.yaml", required=False,
+                        help='Algorithm config flie name. ')
+    parser.add_argument('--env_config', type=str, required=True,
                         help='Env config file name. ')
     parser.add_argument('--n_meta_iters', type=int, required=False, default=10000, help='Number of meta training steps. ')
 
@@ -40,7 +41,7 @@ def parse_args():
     return args.__dict__
 
 def read_config(path):
-    with open(os.path.join('configs/', path)) as f:
+    with open(path) as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
@@ -64,13 +65,14 @@ def make_env(config, env_fun):
     return _init
 
 def make_policy(env, config):
-    if config["policy_type"] == "mlp":
-        import policies.NN_PG as policy_class
+    if config["policy_type"] == "slp":
+        return policies.SLP_PG(env, config)
+    elif config["policy_type"] == "mlp":
+        return policies.NN_PG(env, config)
     elif config["policy_type"] == "rnn":
-        import policies.NN_RNN as policy_class
+        return policies.RNN_PG(env, config)
     else:
         raise TypeError
-    return policy_class(env, config)
 
 def make_action_noise_policy(env, config):
     return None
@@ -97,7 +99,7 @@ class MAMLRLTrainer:
         self.config = config
 
     def make_rollout(self, env, policy):
-        obs = self.env.reset(randomize=False)
+        obs = self.env.reset(randomize_env=False)
         observations = []
         next_observations = []
         actions = []
@@ -167,6 +169,8 @@ class MAMLRLTrainer:
 
         # Make copy policy from meta params
         policy_copy = deepcopy(policy)
+        for p_c, p in zip(policy_copy.parameters(), policy.parameters()):
+            p_c = T.clone(p)
 
         # Make optimizer for this policy
         policy_copy_opt = T.optim.SGD(policy_copy.parameters(),
@@ -175,7 +179,7 @@ class MAMLRLTrainer:
                               weight_decay=self.config["w_decay"])
 
         # Randomize environment
-        self.env.reset(randomize=True)
+        self.env.reset()
 
         # Do k updates
         for _ in range(self.config["k"]):
@@ -189,11 +193,11 @@ class MAMLRLTrainer:
             for i in range(self.config["batchsize"]):
                 observations, next_observations, actions, rewards, terminals = self.make_rollout(self.env, policy_copy)
 
-            batch_observations.append(observations)
-            batch_next_observations.append(next_observations)
-            batch_actions.append(actions)
-            batch_rewards.append(rewards)
-            batch_terminals.append(terminals)
+                batch_observations.extend(observations)
+                batch_next_observations.extend(next_observations)
+                batch_actions.extend(actions)
+                batch_rewards.extend(rewards)
+                batch_terminals.extend(terminals)
 
             batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
             _ = self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages)
@@ -271,3 +275,9 @@ if __name__ == "__main__":
     maml_rl_trainer = MAMLRLTrainer(env, policy, noise_policy, config)
     maml_rl_trainer.meta_train(n_meta_iters=args["n_meta_iters"])
     maml_rl_trainer.test()
+
+    # TODO: change all envs to have proper randomize keyword in the reset function
+    # TODO: Make proper cloning of neural network in maml
+    # TODO: Test MAML
+    # TODO: Make recurrent MAML
+    # TODO: Make CAVIA

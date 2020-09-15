@@ -71,13 +71,13 @@ class BuggyBulletEnv(gym.Env):
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["is_variable"],
-                             "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["is_variable"],
-                             "wheel_width": 1 + np.random.rand() * 0.5 * self.config["is_variable"],
-                             "front_wheels_friction": 0.5 + np.random.rand() * 2.5 * self.config["is_variable"],
-                             "motor_force_multiplier": 50 + np.random.rand() * 30 * self.config["is_variable"]}
+        self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
+                             "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
+                             "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
+                             "front_wheels_friction": 0.5 + np.random.rand() * 2.5 * self.config["randomize_env"],
+                             "motor_force_multiplier": 50 + np.random.rand() * 30 * self.config["randomize_env"]}
 
-        if not self.config["is_variable"]:
+        if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
                                physicsClientId=self.client_ID)
             return robot

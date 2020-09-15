@@ -217,15 +217,14 @@ def test_agent(env, policy):
     env.close()
 
 def make_policy(env, config):
-    if config["policy_type"] == "mlp":
-        return policies.MLP_PG(env, config)
-    elif config["policy_type"] == "nn":
+    if config["policy_type"] == "slp":
+        return policies.SLP_PG(env, config)
+    elif config["policy_type"] == "mlp":
         return policies.NN_PG(env, config)
     elif config["policy_type"] == "rnn":
         return policies.RNN_PG(env, config)
     else:
         raise TypeError
-
 
 if __name__=="__main__":
     args = parse_args()

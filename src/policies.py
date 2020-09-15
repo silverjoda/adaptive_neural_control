@@ -4,9 +4,9 @@ import torch as T
 import numpy as np
 from copy import deepcopy
 
-class MLP_PG(nn.Module):
+class SLP_PG(nn.Module):
     def __init__(self, env, config):
-        super(MLP_PG, self).__init__()
+        super(SLP_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
