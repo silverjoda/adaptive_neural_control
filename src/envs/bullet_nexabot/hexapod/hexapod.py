@@ -28,6 +28,8 @@ class HexapodBulletEnv(gym.Env):
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
+        self.config = config
+
         self.animate = config["animate"]
         self.max_steps = config["max_steps"]
         self.step_counter = config["step_counter"]
@@ -324,6 +326,9 @@ class HexapodBulletEnv(gym.Env):
     def render(self, close=False):
         pass
 
+    def load_robot(self):
+        pass
+
     def step(self, ctrl, render=False):
         ctrl_clipped = np.clip(ctrl, -1, 1)
         scaled_action = self.norm_to_rads(ctrl_clipped)
@@ -524,7 +529,7 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        # if (force_randomize is not None and force_randomize) or (force_randomize is None and self.config["randomize_env"]):
+        # if self.config["randomize_env"]:
         #     self.robot = self.load_robot()
 
         t1 = time.time()

@@ -48,6 +48,9 @@ class QuadrotorBulletEnv(gym.Env):
         self.observation_space = spaces.Box(low=np.array([-1] * self.obs_dim), high=np.array([1] * self.obs_dim))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
+    def set_randomize_env(self, rnd):
+        self.config["randomize_env"] = rnd
+
     def load_robot(self):
         # Remove old robot
         if self.robot is not None:
@@ -160,7 +163,7 @@ class QuadrotorBulletEnv(gym.Env):
         return obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        if (force_randomize is not None and force_randomize) or (force_randomize is None and self.config["randomize_env"]):
+        if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
         self.step_ctr = 0

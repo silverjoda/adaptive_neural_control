@@ -64,6 +64,8 @@ class BuggyBulletEnv(gym.Env):
                                                       physicsClientId=self.client_ID)
         self.update_targets()
 
+    def set_randomize_env(self, rnd):
+        self.config["randomize_env"] = rnd
 
     def load_robot(self):
         # Remove old robot
@@ -160,7 +162,7 @@ class BuggyBulletEnv(gym.Env):
         return obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        if (force_randomize is not None and force_randomize) or (force_randomize is None and self.config["randomize_env"]):
+        if self.config["randomize_env"]:
             self.robot = self.load_robot()
         self.step_ctr = 0
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
