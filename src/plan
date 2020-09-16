@@ -51,7 +51,6 @@ Room pi:
 # TODO: Install PI near bed
 
 MAML:
-# TODO: Make proper cloning of neural network in maml
 # TODO: Test MAML
 # TODO: TEST PG WITH FULL DEBUG
 # TODO: Make recurrent MAML
