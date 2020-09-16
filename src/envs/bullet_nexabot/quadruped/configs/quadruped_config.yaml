@@ -1,6 +1,5 @@
 "env_name" : quadruped
 "max_steps" : 500
-"batchsize" : 32
 "step_counter" : True
 "randomize_env" : False
 "env_change_prob" : 0.1

@@ -8,5 +8,5 @@
 
 # CURRENT:
 # TODO: Try to make env programmatically, instead of URDF
-# TODO: Debug a training session of PG (full gradients, weights, actions, etc) also test different opts
+# TODO: Debug a training session of PG (full gradients, weights, actions, advantages, rewards, etc) also test different opts and rewards (just positive or just negative...etc)
 # TODO: Make crab model from quadruped (stl)

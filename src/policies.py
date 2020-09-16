@@ -57,7 +57,7 @@ class NN_PG(nn.Module):
         self.m2 = nn.LayerNorm(self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
-        if self.policy_residual_connection:
+        if self.config["policy_residual_connection"]:
             self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
@@ -75,11 +75,11 @@ class NN_PG(nn.Module):
     def forward(self, x):
         x = self.activation_fun(self.m1(self.fc1(x)))
         x = self.activation_fun(self.m2(self.fc2(x)))
-        if self.policy_residual_connection:
+        if self.config["policy_residual_connection"]:
             x = self.fc3(x) + self.fc_res(x)
         else:
             x = self.fc3(x)
-        if config["policy_lastlayer_tanh"]:
+        if self.config["policy_lastlayer_tanh"]:
             x = T.tanh(x)
         return x
 
@@ -135,7 +135,7 @@ class RNN_PG(nn.Module):
         rnn_output, h = self.rnn(rnn_features, h)
 
         y = self.fc_out(F.tanh(self.fc_res(x)) + rnn_output)
-        if config["policy_lastlayer_tanh"]:
+        if self.config["policy_lastlayer_tanh"]:
             y = T.tanh(y)
 
         return y, h

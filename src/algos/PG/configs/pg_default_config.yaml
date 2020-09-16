@@ -1,6 +1,7 @@
 "algo_name" : "PG"
 "policy_type" : "slp"
 "gamma" : 0.99
+"batchsize" : 32
 "learning_rate" : 0.0001
 "weight_decay" : 0.00001
 "momentum" : 0.9

@@ -1,25 +1,15 @@
+import argparse
+import random
+import string
+from copy import deepcopy
+
 import numpy as np
 import torch as T
-import torch.nn as nn
-import torch.nn.functional as F
-from copy import deepcopy
-import logging
-import matplotlib.pyplot as plt
+import yaml
+
 import src.my_utils as my_utils
 import src.policies as policies
-import random
-import string
-import time
-import random
-import string
-import socket
-import numpy as np
-import argparse
-import yaml
-import os
 
-#for p in model.parameters():
-#    p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -99,14 +89,15 @@ class MAMLRLTrainer:
         self.config = config
 
     def make_rollout(self, env, policy):
-        obs = self.env.reset(randomize_env=False)
+        self.env.set_randomize_env(False)
+        obs = self.env.reset()
         observations = []
         next_observations = []
         actions = []
         rewards = []
         while True:
             observations.append(obs)
-            act = policy.sample_act(obs)
+            act = policy.sample_action(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
             obs, r, done, _ = env.step(act)
             actions.append(act)
             rewards.append(r)
@@ -179,7 +170,8 @@ class MAMLRLTrainer:
                               weight_decay=self.config["w_decay"])
 
         # Randomize environment
-        self.env.reset(force_randomize=True)
+        self.env.set_randomize_env(True)
+        self.env.reset()
 
         # Do k updates
         trn_loss = 0
@@ -200,20 +192,33 @@ class MAMLRLTrainer:
                 batch_rewards.extend(rewards)
                 batch_terminals.extend(terminals)
 
+            batch_observations = T.from_numpy(np.array(batch_observations))
+            #batch_next_observations = T.from_numpy(np.array(batch_next_observations))
+            batch_actions = T.from_numpy(np.array(batch_actions))
+            batch_rewards = T.from_numpy(np.array(batch_rewards))
+            batch_terminals = T.from_numpy(np.array(batch_terminals))
+
             batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
             trn_loss+= self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages, create_graph=True)
 
         trn_loss /= self.config["k"]
 
         # Reset once more so it's a test env
-        self.env.reset(force_randomize=True)
+        self.env.set_randomize_env(True)
+        self.env.reset()
 
         # Now test
         observations, next_observations, actions, rewards, terminals = self.make_rollout(self.env, policy_copy)
-        batch_advantages = self.calc_advantages_MC(self.config["gamma"], rewards, terminals)
+        observations_T = T.from_numpy(np.array(observations))
+        # batch_next_observations = T.from_numpy(np.array(batch_next_observations))
+        actions_T = T.from_numpy(np.array(actions))
+        rewards_T = T.from_numpy(np.array(rewards))
+        terminals_T = T.from_numpy(np.array(terminals))
 
-        log_probs = policy.log_probs(observations, actions)
-        test_loss = -T.mean(log_probs * batch_advantages)
+        advantages_T = self.calc_advantages_MC(self.config["gamma"], rewards_T, terminals_T)
+
+        log_probs = policy.log_probs(observations_T, actions_T)
+        test_loss = -T.mean(log_probs * advantages_T)
         grad = T.autograd.grad(test_loss, policy.parameters())
 
         return grad, trn_loss, test_loss
@@ -250,13 +255,14 @@ class MAMLRLTrainer:
 
             # Divide gradient by batchsize
             for p in policy.parameters():
-                p.grad /= self.config["meta_batchsize"]
+                p.grad /= self.config["batchsize_meta"]
 
             # Update meta parameters
             meta_trn_opt.step()
 
+
             print("Meta iter: {}/{}, trn_mean_loss: {}, tst_mean_loss: {}".
-                  format(mt, self.config["n_meta_iters"], np.mean(mean_trn_losses), np.mean(mean_tst_losses)))
+                  format(mt, n_meta_iters, np.mean(mean_trn_losses), np.mean(mean_tst_losses)))
 
         return policy
 

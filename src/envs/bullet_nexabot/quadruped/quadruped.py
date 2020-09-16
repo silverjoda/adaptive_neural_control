@@ -46,7 +46,7 @@ class QuadrupedBulletEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = None
-        self.load_robot()
+        self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         for i in range(4):
@@ -87,18 +87,21 @@ class QuadrupedBulletEnv(gym.Env):
     def norm_to_rads(self, action):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
+    def set_randomize_env(self, rnd):
+        self.config["randomize_env"] = rnd
+
     def load_robot(self):
         # Remove old robot
         if self.robot is not None:
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["is_variable"],
-                             "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
-                             "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
-                             "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
-                             "tibia_rr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["is_variable"],
-                             "max_joint_force": 1.4 + np.random.rand() * 1. * self.config["is_variable"]}
+        self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
+                             "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
+                             "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
+                             "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
+                             "tibia_rr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
+                             "max_joint_force": 1.4 + np.random.rand() * 1. * self.config["randomize_env"]}
 
         # Write params to URDF file
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
@@ -131,11 +134,13 @@ class QuadrupedBulletEnv(gym.Env):
                     out_file.write(line)
 
         # Load urdf
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
 
-        if self.config["is_variable"]:
+        if self.config["randomize_env"]:
             # Change base mass
             p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
+
+        return robot
 
     def render(self, close=False):
         pass
@@ -189,9 +194,8 @@ class QuadrupedBulletEnv(gym.Env):
 
         return env_obs, r, done, {}
 
-    def reset(self, force_randomize=False):
-        if (force_randomize is not None and force_randomize) or (
-                force_randomize is None and self.config["randomize_env"]):
+    def reset(self):
+        if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
         self.step_ctr = 0

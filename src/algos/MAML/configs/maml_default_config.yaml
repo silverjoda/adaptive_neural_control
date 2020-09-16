@@ -1,7 +1,7 @@
 "algo_name" : "MAML"
 "policy_type" : "mlp"
-"batchsize" : 24
-"batchsize_meta" : 24
+"batchsize" : 4
+"batchsize_meta" : 4
 "k" : 1
 "gamma" : 0.99
 "n_steps" : 50
@@ -14,7 +14,7 @@
 "lr_schedule" : "linear"
 "normalize_rewards" : False
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 256
+"policy_hid_dim" : 128
 "policy_memory_dim" : 128
 "policy_grad_clip_value" : 0.5
 "policy_residual_connection" : False
