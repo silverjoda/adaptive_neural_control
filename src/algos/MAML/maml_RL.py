@@ -199,7 +199,7 @@ class MAMLRLTrainer:
             batch_terminals = T.from_numpy(np.array(batch_terminals))
 
             batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
-            trn_loss+= self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages, create_graph=True)
+            trn_loss += self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages, create_graph=True)
 
         trn_loss /= self.config["k"]
 
@@ -218,10 +218,10 @@ class MAMLRLTrainer:
         advantages_T = self.calc_advantages_MC(self.config["gamma"], rewards_T, terminals_T)
 
         log_probs = policy.log_probs(observations_T, actions_T)
-        test_loss = -T.mean(log_probs * advantages_T)
-        grad = T.autograd.grad(test_loss, policy.parameters())
+        tst_loss = -T.mean(log_probs * advantages_T)
+        grad = T.autograd.grad(tst_loss, policy.parameters())
 
-        return grad, trn_loss, test_loss
+        return grad, trn_loss.detach().numpy(), tst_loss.detach().numpy()
 
     def meta_train(self, n_meta_iters=10000):
         meta_trn_opt = T.optim.SGD(policy.parameters(),
@@ -259,8 +259,6 @@ class MAMLRLTrainer:
 
             # Update meta parameters
             meta_trn_opt.step()
-
-
             print("Meta iter: {}/{}, trn_mean_loss: {}, tst_mean_loss: {}".
                   format(mt, n_meta_iters, np.mean(mean_trn_losses), np.mean(mean_tst_losses)))
 
