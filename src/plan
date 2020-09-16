@@ -51,8 +51,9 @@ Room pi:
 # TODO: Install PI near bed
 
 MAML:
+# TODO: Fix quadruped env and for baseline and make sure PG works (test on pendulum and hexapod to see where problem is)
+# TODO: Make PG into a class and make FULL DEBUG.
 # TODO: Test MAML
-# TODO: TEST PG WITH FULL DEBUG
 # TODO: Make recurrent MAML
 # TODO: Make CAVIA
 

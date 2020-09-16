@@ -89,8 +89,8 @@ class MAMLRLTrainer:
         self.config = config
 
     def make_rollout(self, env, policy):
-        self.env.set_randomize_env(False)
-        obs = self.env.reset()
+        env.set_randomize_env(False)
+        obs = env.reset()
         observations = []
         next_observations = []
         actions = []

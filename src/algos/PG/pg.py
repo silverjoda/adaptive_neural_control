@@ -12,12 +12,46 @@ import argparse
 import yaml
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+from torch.utils.tensorboard import SummaryWriter
+
+def make_rollout(env, policy):
+    obs = env.reset()
+    observations = []
+    next_observations = []
+    actions = []
+    rewards = []
+    step_ctr_list = []
+    batch_rew = 0
+    step_ctr = 0
+    while True:
+        step_ctr_list.append(step_ctr)
+        observations.append(obs)
+
+        act = policy.sample_action(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
+        obs, r, done, _ = env.step(act)
+
+        if abs(r) > 5:
+            logging.warning("Warning! high reward ({})".format(r))
+
+        step_ctr += 1
+        batch_rew += r
+
+        if config["animate"]:
+            env.render()
+
+        actions.append(act)
+        rewards.append(r)
+        next_observations.append(obs)
+        if done: break
+    terminals = [False] * len(observations)
+    terminals[-1] = True
+    return observations, next_observations, actions, rewards, terminals, step_ctr_list, batch_rew
 
 def train(env, policy, config):
-    policy_optim = T.optim.RMSprop(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"],
-                                   eps=1e-8, momentum=config["momentum"])
+    #policy_optim = T.optim.RMSprop(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"],
+    #                               eps=1e-8, momentum=config["momentum"])
     #policy_optim = T.optim.SGD(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"], momentum=config["momentum"])
-    #policy_optim = T.optim.Adam(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
+    policy_optim = T.optim.Adam(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
 
     batch_states = []
     batch_actions = []
@@ -66,12 +100,22 @@ def train(env, policy, config):
 
             s_0 = s_1
 
+        #observations, next_observations, actions, rewards, terminals, step_ctr_list, batch_rew = make_rollout(env, policy)
+
+        #batch_states.extend(observations)
+        #batch_actions.extend(actions)
+        #batch_rewards.extend(rewards)
+        #batch_terminals.extend(terminals)
+
         # Just completed an episode
         batch_ctr += 1
-        global_step_ctr += step_ctr
+        global_step_ctr += step_ctr# len(observations)
 
         # If enough data gathered, then perform update
         if batch_ctr == config["batchsize"]:
+            #batch_states = T.from_numpy(np.array(batch_states))
+            #batch_actions = T.from_numpy(np.array(batch_actions))
+            #batch_rewards = T.from_numpy(np.array(batch_states))
             batch_states = T.cat(batch_states)
             batch_actions = T.cat(batch_actions)
             batch_rewards = T.cat(batch_rewards)
@@ -99,9 +143,7 @@ def train(env, policy, config):
             batch_states = []
             batch_actions = []
             batch_rewards = []
-            batch_new_states = []
             batch_terminals = []
-            batch_step_counter = []
 
         if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -221,6 +263,8 @@ def make_policy(env, config):
         return policies.SLP_PG(env, config)
     elif config["policy_type"] == "mlp":
         return policies.NN_PG(env, config)
+    elif config["policy_type"] == "mlp_def":
+        return policies.NN_PG_DEF(env, config)
     elif config["policy_type"] == "rnn":
         return policies.RNN_PG(env, config)
     else:

@@ -145,20 +145,20 @@ class QuadrupedBulletEnv(gym.Env):
     def render(self, close=False):
         pass
 
-    def step(self, ctrl, render=False):
+    def step(self, ctrl):
         ctrl_clipped = np.clip(ctrl, -1, 1)
         scaled_action = self.norm_to_rads(ctrl_clipped)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(12),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
-                                    forces=[self.robot_params["max_joint_force"]] * 12,
+                                    forces=[1.4] * 12,
                                     positionGains=[0.01] * 12,
                                     velocityGains=[0.07] * 12,
                                     physicsClientId=self.client_ID)
 
         p.stepSimulation(physicsClientId=self.client_ID)
-        if self.config["animate"] or render: time.sleep(0.004)
+        if self.config["animate"]: time.sleep(0.004)
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
@@ -186,11 +186,12 @@ class QuadrupedBulletEnv(gym.Env):
         r_pos = velocity_rew * 7
         r = np.clip(r_pos - r_neg, -3, 3)
 
+        #r = -np.square(xd_av - self.config["target_vel"])
         scaled_joint_angles = self.rads_to_norm(joint_angles)
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts)).astype(np.float32)
 
         self.step_ctr += 1
-        done = self.step_ctr > self.config["max_steps"]or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+        done = self.step_ctr > self.config["max_steps"] or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
 
         return env_obs, r, done, {}
 
@@ -207,7 +208,7 @@ class QuadrupedBulletEnv(gym.Env):
                                     jointIndices=range(12),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=[0] * 12,
-                                    forces=[self.config["max_joint_force"]] * 12,
+                                    forces=[1.4] * 12,
                                     physicsClientId=self.client_ID)
         for i in range(10):
             p.stepSimulation(physicsClientId=self.client_ID)

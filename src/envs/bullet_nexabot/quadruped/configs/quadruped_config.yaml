@@ -3,9 +3,9 @@
 "step_counter" : True
 "randomize_env" : False
 "env_change_prob" : 0.1
-"target_vel" : 0.2
+"target_vel" : 0.4
 "lateral_friction" : 1.2
-"max_joint_force" : 1.6
+"max_joint_force" : 1.4
 "joints_rads_low" : [-0.5, -1.8, 1.4]
 "joints_rads_high" : [0.5, -0.2, 2.6]
 "urdf_name" : quadruped.urdf
