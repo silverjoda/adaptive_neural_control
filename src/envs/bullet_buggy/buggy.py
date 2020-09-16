@@ -159,7 +159,9 @@ class BuggyBulletEnv(gym.Env):
 
         return obs, r, done, {}
 
-    def reset(self):
+    def reset(self, force_randomize=None):
+        if (force_randomize is not None and force_randomize) or (force_randomize is None and self.config["randomize_env"]):
+            self.robot = self.load_robot()
         self.step_ctr = 0
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
@@ -182,7 +184,6 @@ class BuggyBulletEnv(gym.Env):
 
     def close(self):
         self.kill()
-
 
 if __name__ == "__main__":
     import yaml

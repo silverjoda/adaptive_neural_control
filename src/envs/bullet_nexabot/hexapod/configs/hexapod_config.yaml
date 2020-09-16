@@ -6,7 +6,7 @@
 "variable_velocity" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.15
-"is_variable" : False
+"randomize_env" : False
 "env_change_prob" : 0.1
 "env_width" : 60
 "max_joint_force" : 1.5

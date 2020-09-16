@@ -89,7 +89,7 @@ class QuadrupedBulletEnv(gym.Env):
 
     def load_robot(self):
         # Remove old robot
-        if self.robot is not None and self.config["is_variable"]:
+        if self.robot is not None:
             p.removeBody(self.robot)
 
         # Randomize robot params
@@ -189,11 +189,12 @@ class QuadrupedBulletEnv(gym.Env):
 
         return env_obs, r, done, {}
 
-    def reset(self, randomize=False):
-        self.step_ctr = 0
+    def reset(self, force_randomize=False):
+        if (force_randomize is not None and force_randomize) or (
+                force_randomize is None and self.config["randomize_env"]):
+            self.robot = self.load_robot()
 
-        if self.config["is_variable"] or randomize:
-            self.load_robot(True)
+        self.step_ctr = 0
 
         joint_init_pos_list = self.norm_to_rads([0] * 12)
         [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(12)]

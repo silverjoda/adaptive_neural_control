@@ -523,7 +523,10 @@ class HexapodBulletEnv(gym.Env):
 
         return env_obs, r, done, {}
 
-    def reset(self):
+    def reset(self, force_randomize=None):
+        # if (force_randomize is not None and force_randomize) or (force_randomize is None and self.config["randomize_env"]):
+        #     self.robot = self.load_robot()
+
         t1 = time.time()
 
         # Reset episodal vars
