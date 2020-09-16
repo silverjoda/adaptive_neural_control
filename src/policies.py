@@ -7,6 +7,9 @@ from copy import deepcopy
 class SLP_PG(nn.Module):
     def __init__(self, env, config):
         super(SLP_PG, self).__init__()
+        self.env = env
+        self.config = config
+
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
@@ -39,13 +42,13 @@ class SLP_PG(nn.Module):
 class NN_PG(nn.Module):
     def __init__(self, env, config):
         super(NN_PG, self).__init__()
+        self.env = env
+        self.config = config
+
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.tanh = config["policy_lastlayer_tanh"]
         self.hid_dim = config["policy_hid_dim"]
-        self.grad_clip_value = config["policy_grad_clip_value"]
-        self.policy_residual_connection = config["policy_residual_connection"]
         self.activation_fun = F.leaky_relu
 
         self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
@@ -67,7 +70,7 @@ class NN_PG(nn.Module):
         T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
         for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
         x = self.activation_fun(self.m1(self.fc1(x)))
@@ -76,7 +79,7 @@ class NN_PG(nn.Module):
             x = self.fc3(x) + self.fc_res(x)
         else:
             x = self.fc3(x)
-        if self.tanh:
+        if config["policy_lastlayer_tanh"]:
             x = T.tanh(x)
         return x
 
@@ -101,9 +104,7 @@ class RNN_PG(nn.Module):
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.tanh = config["policy_lastlayer_tanh"]
         self.policy_memory_dim = config["policy_memory_dim"]
-        self.policy_grad_clip_value = config["policy_grad_clip_value"]
         self.activation_fun = F.leaky_relu
 
         self.fc_in = nn.Linear(self.obs_dim, self.policy_memory_dim)
@@ -125,7 +126,7 @@ class RNN_PG(nn.Module):
         T.nn.init.orthogonal_(self.rnn.weight_hh_l0)
 
         for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -self.grad_clip_value, self.grad_clip_value))
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, input):
         x, h = input
@@ -134,7 +135,7 @@ class RNN_PG(nn.Module):
         rnn_output, h = self.rnn(rnn_features, h)
 
         y = self.fc_out(F.tanh(self.fc_res(x)) + rnn_output)
-        if self.tanh:
+        if config["policy_lastlayer_tanh"]:
             y = T.tanh(y)
 
         return y, h

@@ -134,7 +134,7 @@ class MAMLRLTrainer:
 
         return loss.data
 
-    def update_policy(self, policy, policy_optim, batch_states, batch_actions, batch_advantages):
+    def update_policy(self, policy, policy_optim, batch_states, batch_actions, batch_advantages, create_graph=False):
 
         # Get action log probabilities
         log_probs = policy.log_probs(batch_states, batch_actions)
@@ -144,12 +144,12 @@ class MAMLRLTrainer:
 
         # Backward pass on policy
         policy_optim.zero_grad()
-        loss.backward()
+        loss.backward(create_graph=create_graph)
 
         # Step policy update
         policy_optim.step()
 
-        return loss.data
+        return loss.data.detach()
 
     def calc_advantages_MC(self, gamma, batch_rewards, batch_terminals):
         # Monte carlo estimate of targets
@@ -170,7 +170,7 @@ class MAMLRLTrainer:
         # Make copy policy from meta params
         policy_copy = deepcopy(policy)
         for p_c, p in zip(policy_copy.parameters(), policy.parameters()):
-            p_c = T.clone(p)
+            p_c.data = T.clone(p.data)
 
         # Make optimizer for this policy
         policy_copy_opt = T.optim.SGD(policy_copy.parameters(),
@@ -179,9 +179,10 @@ class MAMLRLTrainer:
                               weight_decay=self.config["w_decay"])
 
         # Randomize environment
-        self.env.reset()
+        self.env.reset(force_randomize=True)
 
         # Do k updates
+        trn_loss = 0
         for _ in range(self.config["k"]):
             # Perform rollouts
             batch_observations = []
@@ -200,17 +201,22 @@ class MAMLRLTrainer:
                 batch_terminals.extend(terminals)
 
             batch_advantages = self.calc_advantages_MC(self.config["gamma"], batch_rewards, batch_terminals)
-            _ = self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages)
+            trn_loss+= self.update_policy(policy_copy, policy_copy_opt, batch_observations, batch_actions, batch_advantages, create_graph=True)
+
+        trn_loss /= self.config["k"]
+
+        # Reset once more so it's a test env
+        self.env.reset(force_randomize=True)
 
         # Now test
         observations, next_observations, actions, rewards, terminals = self.make_rollout(self.env, policy_copy)
         batch_advantages = self.calc_advantages_MC(self.config["gamma"], rewards, terminals)
 
-        # Get action log probabilities
         log_probs = policy.log_probs(observations, actions)
+        test_loss = -T.mean(log_probs * batch_advantages)
+        grad = T.autograd.grad(test_loss, policy.parameters())
 
-        # Calculate loss function
-        loss = -T.mean(log_probs * batch_advantages)
+        return grad, trn_loss, test_loss
 
     def meta_train(self, n_meta_iters=10000):
         meta_trn_opt = T.optim.SGD(policy.parameters(),
@@ -226,7 +232,7 @@ class MAMLRLTrainer:
             mean_tst_losses = []
 
             # Calculate gradient for * env samples
-            for _ in range(self.config["meta_batchsize"]):
+            for _ in range(self.config["batchsize_meta"]):
                 # Make n_rollouts on env sample
                 meta_grad, mean_trn_loss, mean_tst_loss = self.comp_gradient_on_env_sample(policy)
                 meta_grads.append(meta_grad)
@@ -276,8 +282,5 @@ if __name__ == "__main__":
     maml_rl_trainer.meta_train(n_meta_iters=args["n_meta_iters"])
     maml_rl_trainer.test()
 
-    # TODO: change all envs to have proper randomize keyword in the reset function
-    # TODO: Make proper cloning of neural network in maml
-    # TODO: Test MAML
-    # TODO: Make recurrent MAML
-    # TODO: Make CAVIA
+
+

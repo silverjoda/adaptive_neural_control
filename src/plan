@@ -50,6 +50,13 @@ Room pi:
 # TODO: Add and test night camera
 # TODO: Install PI near bed
 
+MAML:
+# TODO: Make proper cloning of neural network in maml
+# TODO: Test MAML
+# TODO: TEST PG WITH FULL DEBUG
+# TODO: Make recurrent MAML
+# TODO: Make CAVIA
+
 # VIR Projects:
 1) Learning model of fast RC buggie using script which gathers data and using it to
    learn a forward function of the buggie using supervised learning.

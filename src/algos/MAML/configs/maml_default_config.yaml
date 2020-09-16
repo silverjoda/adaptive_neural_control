@@ -1,7 +1,7 @@
 "algo_name" : "MAML"
 "policy_type" : "mlp"
-"meta_batchsize" : 24
 "batchsize" : 24
+"batchsize_meta" : 24
 "k" : 1
 "gamma" : 0.99
 "n_steps" : 50
