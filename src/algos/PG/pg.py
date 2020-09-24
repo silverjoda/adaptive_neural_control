@@ -56,69 +56,30 @@ def train(env, policy, config):
     batch_states = []
     batch_actions = []
     batch_rewards = []
-    batch_new_states = []
     batch_terminals = []
-    batch_step_counter = []
 
     batch_ctr = 0
-    batch_rew = 0
     global_step_ctr = 0
 
     t1 = time.time()
 
     for i in range(config["iters"]):
-        s_0 = env.reset()
-        done = False
-        step_ctr = 0
+        observations, next_observations, actions, rewards, terminals, step_ctr_list, batch_rew = make_rollout(env, policy)
 
-        while not done:
-            batch_step_counter.append(step_ctr)
-
-            # Sample action from policy
-            action = policy.sample_action(my_utils.to_tensor(s_0, True)).detach()
-
-            # Step action
-            s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-
-            if abs(r) > 5:
-                logging.warning("Warning! high reward ({})".format(r))
-
-            step_ctr += 1
-
-            # For calculating mean episode rew
-            batch_rew += r
-
-            if config["animate"]:
-                env.render()
-
-            # Record transition
-            batch_states.append(my_utils.to_tensor(s_0, True))
-            batch_actions.append(action)
-            batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
-            batch_new_states.append(my_utils.to_tensor(s_1, True))
-            batch_terminals.append(done)
-
-            s_0 = s_1
-
-        #observations, next_observations, actions, rewards, terminals, step_ctr_list, batch_rew = make_rollout(env, policy)
-
-        #batch_states.extend(observations)
-        #batch_actions.extend(actions)
-        #batch_rewards.extend(rewards)
-        #batch_terminals.extend(terminals)
+        batch_states.extend(observations)
+        batch_actions.extend(actions)
+        batch_rewards.extend(rewards)
+        batch_terminals.extend(terminals)
 
         # Just completed an episode
         batch_ctr += 1
-        global_step_ctr += step_ctr# len(observations)
+        global_step_ctr += len(observations)
 
         # If enough data gathered, then perform update
         if batch_ctr == config["batchsize"]:
-            #batch_states = T.from_numpy(np.array(batch_states))
-            #batch_actions = T.from_numpy(np.array(batch_actions))
-            #batch_rewards = T.from_numpy(np.array(batch_states))
-            batch_states = T.cat(batch_states)
-            batch_actions = T.cat(batch_actions)
-            batch_rewards = T.cat(batch_rewards)
+            batch_states = T.from_numpy(np.array(batch_states))
+            batch_actions = T.from_numpy(np.array(batch_actions))
+            batch_rewards = T.from_numpy(np.array(batch_rewards))
 
             # Scale rewards
             if config["normalize_rewards"]:
@@ -138,7 +99,6 @@ def train(env, policy, config):
 
             # Finally reset all batch lists
             batch_ctr = 0
-            batch_rew = 0
 
             batch_states = []
             batch_actions = []

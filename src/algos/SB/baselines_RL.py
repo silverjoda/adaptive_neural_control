@@ -99,7 +99,6 @@ def make_model(config, env, action_noise_fun):
             full_tensorboard_log=config["full_tensorboard_log"],
             policy_kwargs=dict(net_arch=[int(196), int(196)]))
 
-
     assert model is not None, "Alg name not found, exiting. "
     return model
 
@@ -139,19 +138,17 @@ if __name__ == "__main__":
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
-    print(args)
-    print(algo_config)
-    print(env_config)
-
-    # Import correct env by name
-    env_fun = import_env(env_config["env_name"])
-
     # Random ID of this session
     session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     config["session_ID"] = session_ID
 
+    print(config)
+
+    # Import correct env by name
+    env_fun = import_env(env_config["env_name"])
+
     if args["train"] or socket.gethostname() == "goedel":
-        n_envs = 10 if socket.gethostname() == "goedel" else 1
+        n_envs = 10 if socket.gethostname() == "goedel" else 6
 
         env = SubprocVecEnv([make_env(config, env_fun) for _ in range(n_envs)], start_method='fork')
         model = make_model(algo_config, env, None)
@@ -165,9 +162,7 @@ if __name__ == "__main__":
         t2 = time.time()
 
         print("Training time: {}".format(t2-t1))
-        print(args)
-        print(algo_config)
-        print(env_config)
+        print(config)
 
         model.save("agents/{}_SB_policy".format(session_ID))
         env.close()
