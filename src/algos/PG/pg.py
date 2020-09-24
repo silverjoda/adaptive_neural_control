@@ -85,44 +85,14 @@ def train(env, policy, config):
             rnd_obs = random.choice(observations)
             l1, l2, clean_act, noisy_act = policy.sample_action_w_activations(my_utils.to_tensor(rnd_obs, True)).squeeze(0).detach().numpy()
 
-            config["tb_writer"].add_scalars("L1_activations",
-                                            {"l1_activations_mean": np.mean(l1),
-                                             "l1_activations_std": np.std(l1),
-                                             "l1_activations_min": np.min(l1),
-                                             "l1_activations_max": np.max(l1)},
-                                            global_step=global_step_ctr)
-
-            config["tb_writer"].add_scalars("L2_activations",
-                                            {"l2_activations_mean": np.mean(l2),
-                                             "l2_activations_std": np.std(l2),
-                                             "l2_activations_min": np.min(l2),
-                                             "l2_activations_max": np.max(l2)},
-                                            global_step=global_step_ctr)
-
-            config["tb_writer"].add_scalars("L3_activations (acts)",
-                                            {"l3_activations_mean": np.mean(clean_act),
-                                             "l3_activations_std": np.std(clean_act),
-                                             "l3_activations_min": np.min(clean_act),
-                                             "l3_activations_max": np.max(clean_act)},
-                                            global_step=global_step_ctr)
-
-            config["tb_writer"].add_scalars("L3_activations (noisy_act)",
-                                            {"l3_activations_mean": np.mean(noisy_act),
-                                             "l3_activations_std": np.std(noisy_act),
-                                             "l3_activations_min": np.min(noisy_act),
-                                             "l3_activations_max": np.max(noisy_act)},
-                                            global_step=global_step_ctr)
-
+            config["tb_writer"].add_histogram("L1_activations", l1, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("L2_activations", l2, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("action_activations", clean_act, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("noisy_action_activations", noisy_act, global_step=global_step_ctr)
 
         # Log to tb
         if config["tb_writer"] is not None:
-            config["tb_writer"].add_scalars("Rewards",
-                                            {"Rewards sum episode" : sum(rewards),
-                                            "rewards_mean" : np.mean(rewards),
-                                            "rewards_std" : np.std(rewards),
-                                            "rewards_min" : np.min(rewards),
-                                            "rewards_max" : np.max(rewards)},
-                                            global_step=global_step_ctr)
+            config["tb_writer"].add_scalar("Rewards_sum")
             config["tb_writer"].add_histogram("Rewards histogram", rewards, global_step=global_step_ctr)
             config["tb_writer"].add_histogram("Observations", observations, global_step=global_step_ctr)
             config["tb_writer"].add_histogram("Clean actions", clean_actions, global_step=global_step_ctr)
@@ -145,12 +115,7 @@ def train(env, policy, config):
             batch_rewards = T.from_numpy(np.array(batch_rewards))
 
             if config["tb_writer"] is not None:
-                config["tb_writer"].add_scalars("Batch rewards",
-                                                {"Batch rewards_mean": batch_rewards.mean(),
-                                                 "Batch rewards_std": batch_rewards.std(),
-                                                 "Batch rewards_min": batch_rewards.min(),
-                                                 "Batch rewards_max": batch_rewards.max()},
-                                                global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Batch rewards histogram", batch_rewards, global_step=global_step_ctr)
 
             # Scale rewards
             if config["normalize_rewards"]:
