@@ -1,5 +1,6 @@
 "algo_name" : "PG"
 "policy_type" : "mlp_def"
+"policy_optim" : "adam"
 "gamma" : 0.99
 "batchsize" : 24
 "learning_rate" : 0.0005

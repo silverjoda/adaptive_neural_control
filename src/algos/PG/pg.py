@@ -21,7 +21,7 @@ def make_rollout(env, policy):
     actions = []
     rewards = []
     step_ctr_list = []
-    batch_rew = 0
+    episode_rew = 0
     step_ctr = 0
     while True:
         step_ctr_list.append(step_ctr)
@@ -34,7 +34,7 @@ def make_rollout(env, policy):
             logging.warning("Warning! high reward ({})".format(r))
 
         step_ctr += 1
-        batch_rew += r
+        episode_rew += r
 
         if config["animate"]:
             env.render()
@@ -45,13 +45,25 @@ def make_rollout(env, policy):
         if done: break
     terminals = [False] * len(observations)
     terminals[-1] = True
-    return observations, next_observations, actions, rewards, terminals, step_ctr_list, batch_rew
+    return observations, next_observations, actions, rewards, terminals, step_ctr_list
 
 def train(env, policy, config):
-    #policy_optim = T.optim.RMSprop(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"],
-    #                               eps=1e-8, momentum=config["momentum"])
-    #policy_optim = T.optim.SGD(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"], momentum=config["momentum"])
-    policy_optim = T.optim.Adam(policy.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
+    policy_optim = None
+    if config["policy_optim"] == "rmsprop":
+        policy_optim = T.optim.RMSprop(policy.parameters(),
+                                       lr=config["learning_rate"],
+                                       weight_decay=config["weight_decay"],
+                                       eps=1e-8, momentum=config["momentum"])
+    if config["policy_optim"] == "sgd":
+        policy_optim = T.optim.SGD(policy.parameters(),
+                                   lr=config["learning_rate"],
+                                   weight_decay=config["weight_decay"],
+                                   momentum=config["momentum"])
+    if config["policy_optim"] == "adam":
+        policy_optim = T.optim.Adam(policy.parameters(),
+                                    lr=config["learning_rate"],
+                                    weight_decay=config["weight_decay"])
+    assert policy_optim is not None
 
     batch_states = []
     batch_actions = []
@@ -64,7 +76,21 @@ def train(env, policy, config):
     t1 = time.time()
 
     for i in range(config["iters"]):
-        observations, next_observations, actions, rewards, terminals, step_ctr_list, batch_rew = make_rollout(env, policy)
+        observations, next_observations, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
+
+        # Log to tb
+        if config["tb_writer"] is not None:
+            config["tb_writer"].add_scalars("Rewards",
+                                            {"Rewards sum episode" : sum(rewards),
+                                            "rewards_mean" : np.mean(rewards),
+                                            "rewards_std" : np.std(rewards),
+                                            "rewards_min" : np.min(rewards),
+                                            "rewards_max" : np.max(rewards)},
+                                            global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("Rewards histogram", rewards, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("Observations", observations, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("Actions", actions, global_step=global_step_ctr)
+            config["tb_writer"].add_scalar("Terminal step", len(terminals), global_step=global_step_ctr)
 
         batch_states.extend(observations)
         batch_actions.extend(actions)
@@ -81,20 +107,41 @@ def train(env, policy, config):
             batch_actions = T.from_numpy(np.array(batch_actions))
             batch_rewards = T.from_numpy(np.array(batch_rewards))
 
+            if config["tb_writer"] is not None:
+                config["tb_writer"].add_scalars("Batch rewards",
+                                                {"Batch rewards_mean": batch_rewards.mean(),
+                                                 "Batch rewards_std": batch_rewards.std(),
+                                                 "Batch rewards_min": batch_rewards.min(),
+                                                 "Batch rewards_max": batch_rewards.max()},
+                                                global_step=global_step_ctr)
+
             # Scale rewards
             if config["normalize_rewards"]:
-                batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
+                batch_rewards_normalized = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
+                batch_rewards_for_advantages = batch_rewards_normalized
+            else:
+                batch_rewards_for_advantages = batch_rewards
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages_MC(config["gamma"], batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages_MC(config["gamma"],
+                                                  batch_rewards_for_advantages,
+                                                  batch_terminals)
+
+            if config["tb_writer"] is not None:
+                config["tb_writer"].add_histogram("Batch advantages histogram", batch_advantages, global_step=global_step_ctr)
 
             if config["ppo_update_iters"] > 0:
                 loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, config["ppo_update_iters"])
             else:
                 loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+
+            if config["tb_writer"] is not None:
+                config["tb_writer"].add_scalar(loss_policy)
+                config["tb_writer"].add_scalar(batch_rewards / config["batchsize"])
+
             t2 = time.time()
             print("Episode {}/{}, n_steps: {}, loss_policy: {}, mean ep_rew: {}, time per batch: {}".
-                  format(i, config["iters"], global_step_ctr, loss_policy, batch_rew / config["batchsize"], t2 - t1))
+                  format(i, config["iters"], global_step_ctr, loss_policy, batch_rewards / config["batchsize"], t2 - t1))
             t1 = t2
 
             # Finally reset all batch lists
@@ -157,12 +204,6 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
             targets.append(R.view(1, 1))
         targets = T.cat(list(reversed(targets)))
     return targets
-
-def make_env(config, env_fun):
-    def _init():
-        env = env_fun(config)
-        return env
-    return _init
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -244,8 +285,10 @@ if __name__=="__main__":
 
     # Random ID of this session
     config["ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-
     policy = make_policy(env, config)
+
+    tb_writer = SummaryWriter('runs/fashion_mnist_experiment_1')
+    config["tb_writer"] = tb_writer
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()
