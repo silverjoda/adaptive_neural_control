@@ -1,17 +1,17 @@
-"algo_name" : "A3C"
+"algo_name" : "A2C"
+"iters" : 1000000
 "gamma" : 0.99
-"n_steps" : 50
+"n_steps" : 30
 "vf_coef" : 0.5
 "ent_coef" : 0.0
 "max_grad_norm" : 0.5
-"learning_rate" : 0.001
+"learning_rate" : 0.0007
 "alpha" : 0.99
-"epsilon" : 1e-5
-"lr_schedule" : "linear"
+"epsilon" : 0.00001
+"lr_schedule" : 'linear'
 "verbose" : 1
-"tensorboard_log" : "./tb/{}/".format(ID)
 "full_tensorboard_log" : False
-"policy_kwargs" : dict(layers=[160, 140])
+"policy_kwargs" : "dict(layers=[160, 140])"
 "policy_lastlayer_tanh" : False
 "policy_hid_dim" : 256
 "policy_memory_dim" : 128

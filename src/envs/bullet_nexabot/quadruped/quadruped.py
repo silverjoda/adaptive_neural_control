@@ -49,10 +49,6 @@ class QuadrupedBulletEnv(gym.Env):
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        for i in range(4):
-            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=config["lateral_friction"])
-        p.changeDynamics(self.robot, -1, lateralFriction=config["lateral_friction"])
-
         self.step_ctr = 0
         self.xd_queue = []
 
@@ -134,11 +130,15 @@ class QuadrupedBulletEnv(gym.Env):
                     out_file.write(line)
 
         # Load urdf
-        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+        robot = p.loadURDF(output_urdf, physicsClientId=self.client_ID)
 
         if self.config["randomize_env"]:
             # Change base mass
-            p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
+            p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
+
+        for i in range(4):
+            p.changeDynamics(robot, 3 * i + 2, lateralFriction=self.config["lateral_friction"])
+        p.changeDynamics(robot, -1, lateralFriction=self.config["lateral_friction"])
 
         return robot
 
@@ -157,8 +157,9 @@ class QuadrupedBulletEnv(gym.Env):
                                     velocityGains=[0.07] * 12,
                                     physicsClientId=self.client_ID)
 
-        p.stepSimulation(physicsClientId=self.client_ID)
-        if self.config["animate"]: time.sleep(0.004)
+        for _ in range(self.config["sim_steps_per_iter"]):
+            p.stepSimulation(physicsClientId=self.client_ID)
+            if self.config["animate"]: time.sleep(0.004)
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
@@ -235,7 +236,7 @@ class QuadrupedBulletEnv(gym.Env):
     def test_leg_coordination(self):
         np.set_printoptions(precision=3)
         self.reset()
-        n_steps = 400
+        n_steps = 30
         VERBOSE = True
         while True:
             t1 = time.time()

@@ -2,7 +2,7 @@ import gym
 import sys
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2, DQN, A2C, TD3
+from stable_baselines import PPO2, A2C, TD3, SAC
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common import make_vec_env
@@ -26,17 +26,17 @@ def make_env(config, env_fun):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
-    parser.add_argument('--train', type=bool, default=False, required=False,
+    parser.add_argument('--train',  action='store_true', required=False,
                         help='Flag indicating whether the training process is to be run. ')
-    parser.add_argument('--test', type=bool, default=False, required=False,
+    parser.add_argument('--test', action='store_true', required=False,
                         help='Flag indicating whether the testing process is to be run. ')
+    parser.add_argument('--animate', action='store_true', required=False,
+                        help='Flag indicating whether the environment will be rendered. ')
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
-    parser.add_argument('--animate', type=bool, default=False, required=False,
-                        help='Flag indicating whether the environment will be rendered. ')
-    parser.add_argument('--algo_config', type=str, default="td3_default_config.yaml", required=False,
+    parser.add_argument('--algo_config', type=str, default="configs/td3_default_config.yaml", required=False,
                         help='Algorithm config flie name. ')
-    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
+    parser.add_argument('--env_config', type=str, required=True,
                         help='Env config file name. ')
     parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
@@ -44,7 +44,7 @@ def parse_args():
     return args.__dict__
 
 def read_config(path):
-    with open(os.path.join('configs/', path)) as f:
+    with open(path) as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
@@ -83,23 +83,37 @@ def make_model(config, env, action_noise_fun):
                     policy_kwargs=config["policy_kwargs"])
 
     if config["algo_name"] == "A2C":
-        A2C('MlpPolicy',
+        model = A2C('MlpPolicy',
             env=env,
-            gamma=algo_config["gamma"],
-            n_steps=algo_config["n_steps"],
-            vf_coef=algo_config["vf_coef"],
-            ent_coef = algo_config["ent_coef"],
-            max_grad_norm=algo_config["max_grad_norm"],
-            learning_rate=algo_config["learning_rate"],
-            alpha=algo_config["alpha"],
-            epsilon=algo_config["epsilon"],
-            lr_schedule=algo_config["lr_schedule"],
-            verbose=algo_config["verbose"],
+            gamma=config["gamma"],
+            n_steps=config["n_steps"],
+            vf_coef=config["vf_coef"],
+            ent_coef = config["ent_coef"],
+            max_grad_norm=config["max_grad_norm"],
+            learning_rate=config["learning_rate"],
+            alpha=config["alpha"],
+            epsilon=config["epsilon"],
+            lr_schedule=config["lr_schedule"],
+            verbose=config["verbose"],
             tensorboard_log="./tb/{}/".format(session_ID),
-            full_tensorboard_log=algo_config["full_tensorboard_log"],
-            policy_kwargs=algo_config["policy_kwargs"])
+            full_tensorboard_log=config["full_tensorboard_log"],
+            policy_kwargs=dict(net_arch=[int(196), int(196)]))
+
 
     assert model is not None, "Alg name not found, exiting. "
+    return model
+
+def load_model(config):
+    model = None
+    if config["algo_name"] == "TD3":
+        model = TD3.load("agents/{}".format(args["test_agent_path"]))
+    if config["algo_name"] == "A2C":
+        model = A2C.load("agents/{}".format(args["test_agent_path"]))
+    if config["algo_name"] == "SAC":
+        model = SAC.load("agents/{}".format(args["test_agent_path"]))
+    if config["algo_name"] == "PPO2":
+        model = PPO2.load("agents/{}".format(args["test_agent_path"]))
+    assert model is not None, "Alg name not found, cannot load model, exiting. "
     return model
 
 def make_action_noise_fun(config):
@@ -123,7 +137,7 @@ if __name__ == "__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])
     env_config = read_config(args["env_config"])
-    aug_env_config = {**args, **env_config}
+    config = {**args, **algo_config, **env_config}
 
     print(args)
     print(algo_config)
@@ -134,11 +148,12 @@ if __name__ == "__main__":
 
     # Random ID of this session
     session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    config["session_ID"] = session_ID
 
     if args["train"] or socket.gethostname() == "goedel":
         n_envs = 10 if socket.gethostname() == "goedel" else 1
 
-        env = SubprocVecEnv([make_env(aug_env_config, env_fun) for _ in range(n_envs)], start_method='fork')
+        env = SubprocVecEnv([make_env(config, env_fun) for _ in range(n_envs)], start_method='fork')
         model = make_model(algo_config, env, None)
 
         checkpoint_callback = CheckpointCallback(save_freq=50000,
@@ -146,7 +161,7 @@ if __name__ == "__main__":
                                                  name_prefix=session_ID, verbose=1)
 
         t1 = time.time()
-        model.learn(total_timesteps=int(algo_config["iters"]), callback=checkpoint_callback)
+        model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
         t2 = time.time()
 
         print("Training time: {}".format(t2-t1))
@@ -158,9 +173,9 @@ if __name__ == "__main__":
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
-        env = make_env(aug_env_config, env_fun)
+        env = env_fun(config)
 
         if not args["train"]:
-            model = A2C.load("agents/{}".format(args["test_agent_path"]))
+            model = load_model(config)
 
         test_agent(env, model, deterministic=True)
