@@ -18,7 +18,8 @@ def make_rollout(env, policy):
     obs = env.reset()
     observations = []
     next_observations = []
-    actions = []
+    clean_actions = []
+    noisy_actions = []
     rewards = []
     step_ctr_list = []
     episode_rew = 0
@@ -27,8 +28,8 @@ def make_rollout(env, policy):
         step_ctr_list.append(step_ctr)
         observations.append(obs)
 
-        act = policy.sample_action(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
-        obs, r, done, _ = env.step(act)
+        clean_act, noisy_act = policy.sample_action(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
+        obs, r, done, _ = env.step(noisy_act)
 
         if abs(r) > 5:
             logging.warning("Warning! high reward ({})".format(r))
@@ -39,13 +40,14 @@ def make_rollout(env, policy):
         if config["animate"]:
             env.render()
 
-        actions.append(act)
+        clean_actions.append(clean_act)
+        noisy_actions.append(noisy_act)
         rewards.append(r)
         next_observations.append(obs)
         if done: break
     terminals = [False] * len(observations)
     terminals[-1] = True
-    return observations, next_observations, actions, rewards, terminals, step_ctr_list
+    return observations, next_observations, clean_actions, noisy_actions, rewards, terminals, step_ctr_list
 
 def train(env, policy, config):
     policy_optim = None
@@ -76,7 +78,7 @@ def train(env, policy, config):
     t1 = time.time()
 
     for i in range(config["iters"]):
-        observations, next_observations, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
+        observations, next_observations, clean_actions, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
 
         # Log to tb
         if config["tb_writer"] is not None:
@@ -89,7 +91,8 @@ def train(env, policy, config):
                                             global_step=global_step_ctr)
             config["tb_writer"].add_histogram("Rewards histogram", rewards, global_step=global_step_ctr)
             config["tb_writer"].add_histogram("Observations", observations, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("Actions", actions, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("Clean actions", clean_actions, global_step=global_step_ctr)
+            config["tb_writer"].add_histogram("Noisy actions", actions, global_step=global_step_ctr)
             config["tb_writer"].add_scalar("Terminal step", len(terminals), global_step=global_step_ctr)
 
         batch_states.extend(observations)
@@ -131,9 +134,9 @@ def train(env, policy, config):
                 config["tb_writer"].add_histogram("Batch advantages histogram", batch_advantages, global_step=global_step_ctr)
 
             if config["ppo_update_iters"] > 0:
-                loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, config["ppo_update_iters"])
+                loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, config["ppo_update_iters"], config)
             else:
-                loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+                loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config)
 
             if config["tb_writer"] is not None:
                 config["tb_writer"].add_scalar(loss_policy)
@@ -158,24 +161,37 @@ def train(env, policy, config):
             T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, config))
 
-def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters, config, global_step_ctr):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
-    c_eps = 0.2
     loss = None
 
     # Do ppo_update
     for k in range(update_iters):
         log_probs_new = policy.log_probs(batch_states, batch_actions)
         r = T.exp(log_probs_new - log_probs_old)
-        loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
+        loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - config["c_eps"], 1 + config["c_eps"]) * batch_advantages))
+
+        # Log activations in each layer
+        for p in policy.parameters():
+            config["tb_writer"].add_histogram("Batch advantages histogram", batch_advantages,
+                                              global_step=global_step_ctr)
+
+        # Zero grads and backprop
         policy_optim.zero_grad()
         loss.backward()
+
+        # Log gradients
+        for p in policy.named_parameters():
+            config["tb_writer"].add_histogram(f"{p[0]}_grads", p[1].grad(),
+                                              global_step=global_step_ctr)
+
         T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
+        # Log clipped gradients
         policy_optim.step()
 
     return loss.data
 
-def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
+def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config, global_step_ctr):
 
     # Get action log probabilities
     log_probs = policy.log_probs(batch_states, batch_actions)

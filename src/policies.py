@@ -25,7 +25,8 @@ class SLP_PG(nn.Module):
         return x
 
     def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
+        act = self.forward(s)
+        return act, T.normal(act, T.exp(self.log_std))
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -84,7 +85,69 @@ class NN_PG(nn.Module):
         return x
 
     def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
+        act = self.forward(s)
+        return act, T.normal(act, T.exp(self.log_std))
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+class NN_PG_DEF(nn.Module):
+    def __init__(self, env, config):
+        super(NN_PG_DEF, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = config["policy_hid_dim"]
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.m1 = nn.LayerNorm(self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.m2 = nn.LayerNorm(self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
+
+        self.log_std = T.zeros(1, self.act_dim)
+
+    def decay_std(self, decay=0.002):
+        self.log_std -= decay
+
+    def forward(self, x):
+        x = F.leaky_relu(self.m1(self.fc1(x)))
+        x = F.leaky_relu(self.m2(self.fc2(x)))
+        x = self.fc3(x)
+        return x
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            # print("Soft clipping grads")
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def sample_action(self, s):
+        act = self.forward(s)
+        return T.normal(act, T.exp(self.log_std))
+
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -142,7 +205,7 @@ class RNN_PG(nn.Module):
 
     def sample_action(self, s):
         x, h = self.forward(s)
-        return T.normal(x[0], T.exp(self.log_std_cpu)), h
+        return x[0], T.normal(x[0], T.exp(self.log_std_cpu)), h
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -238,7 +301,7 @@ class RNN_RES_PG(nn.Module):
 
     def sample_action(self, s):
         x, h = self.forward(s)
-        return T.normal(x[0], T.exp(self.log_std_cpu)), h
+        return x[0], T.normal(x[0], T.exp(self.log_std_cpu)), h
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -256,68 +319,11 @@ class RNN_RES_PG(nn.Module):
 
         return log_density.sum(2, keepdim=True)
 
-class NN_PG_DEF(nn.Module):
-    def __init__(self, env, config):
-        super(NN_PG_DEF, self).__init__()
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-        self.hid_dim = config["policy_hid_dim"]
-
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.m1 = nn.LayerNorm(self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.m2 = nn.LayerNorm(self.hid_dim)
-        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
-
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-        self.log_std = T.zeros(1, self.act_dim)
-
-    def decay_std(self, decay=0.002):
-        self.log_std -= decay
-
-    def forward(self, x):
-        x = F.leaky_relu(self.m1(self.fc1(x)))
-        x = F.leaky_relu(self.m2(self.fc2(x)))
-        x = self.fc3(x)
-        return x
-
-    def soft_clip_grads(self, bnd=1):
-        # Find maximum
-        maxval = 0
-
-        for p in self.parameters():
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
-
-        if maxval > bnd:
-            # print("Soft clipping grads")
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
-
-
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
 
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
-    config = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
-    RNN_PG(env, config)
+    config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
+    config_nn = {"policy_lastlayer_tanh": False, "policy_hid_dim": 96, "policy_grad_clip_value": 1.0}
+    RNN_PG(env, config_rnn)
+    nn = NN_PG_DEF(env, config_nn)
+    nn(T.randn(env.obs_dim))
