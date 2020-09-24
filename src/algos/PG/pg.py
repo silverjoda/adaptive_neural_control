@@ -172,9 +172,14 @@ def train(env, policy, config):
             else:
                 loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config)
 
+            # Post update log
             if config["tb_writer"] is not None:
                 config["tb_writer"].add_scalar(loss_policy)
                 config["tb_writer"].add_scalar(batch_rewards / config["batchsize"])
+
+                for p in policy.named_parameters():
+                    config["tb_writer"].add_histogram(f"{p[0]}_param", p[1],
+                                                      global_step=global_step_ctr)
 
             t2 = time.time()
             print("Episode {}/{}, n_steps: {}, loss_policy: {}, mean ep_rew: {}, time per batch: {}".
