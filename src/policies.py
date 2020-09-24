@@ -143,11 +143,15 @@ class NN_PG_DEF(nn.Module):
                 if p.grad is None: continue
                 p.grad = (p.grad / maxval) * bnd
 
-
     def sample_action(self, s):
         act = self.forward(s)
-        return T.normal(act, T.exp(self.log_std))
+        return act, T.normal(act, T.exp(self.log_std))
 
+    def sample_action_w_activations(self, l0):
+        l1 = F.leaky_relu(self.m1(self.fc1(l0)))
+        l2 = F.leaky_relu(self.m2(self.fc2(l1)))
+        l3 = self.fc3(l2)
+        return l1, l2, l3, T.normal(l3, T.exp(self.log_std))
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy

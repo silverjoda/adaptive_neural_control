@@ -80,6 +80,40 @@ def train(env, policy, config):
     for i in range(config["iters"]):
         observations, next_observations, clean_actions, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
 
+        if config["tb_writer"] is not None:
+            # Pick random obs and make full activation log to tb
+            rnd_obs = random.choice(observations)
+            l1, l2, clean_act, noisy_act = policy.sample_action_w_activations(my_utils.to_tensor(rnd_obs, True)).squeeze(0).detach().numpy()
+
+            config["tb_writer"].add_scalars("L1_activations",
+                                            {"l1_activations_mean": np.mean(l1),
+                                             "l1_activations_std": np.std(l1),
+                                             "l1_activations_min": np.min(l1),
+                                             "l1_activations_max": np.max(l1)},
+                                            global_step=global_step_ctr)
+
+            config["tb_writer"].add_scalars("L2_activations",
+                                            {"l2_activations_mean": np.mean(l2),
+                                             "l2_activations_std": np.std(l2),
+                                             "l2_activations_min": np.min(l2),
+                                             "l2_activations_max": np.max(l2)},
+                                            global_step=global_step_ctr)
+
+            config["tb_writer"].add_scalars("L3_activations (acts)",
+                                            {"l3_activations_mean": np.mean(clean_act),
+                                             "l3_activations_std": np.std(clean_act),
+                                             "l3_activations_min": np.min(clean_act),
+                                             "l3_activations_max": np.max(clean_act)},
+                                            global_step=global_step_ctr)
+
+            config["tb_writer"].add_scalars("L3_activations (noisy_act)",
+                                            {"l3_activations_mean": np.mean(noisy_act),
+                                             "l3_activations_std": np.std(noisy_act),
+                                             "l3_activations_min": np.min(noisy_act),
+                                             "l3_activations_max": np.max(noisy_act)},
+                                            global_step=global_step_ctr)
+
+
         # Log to tb
         if config["tb_writer"] is not None:
             config["tb_writer"].add_scalars("Rewards",
@@ -182,10 +216,11 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
 
         # Log gradients
         for p in policy.named_parameters():
-            config["tb_writer"].add_histogram(f"{p[0]}_grads", p[1].grad(),
+            config["tb_writer"].add_histogram(f"{p[0]}_grads_unclipped", p[1].grad(),
                                               global_step=global_step_ctr)
 
         T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
+
         # Log clipped gradients
         policy_optim.step()
 
