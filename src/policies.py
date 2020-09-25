@@ -117,6 +117,7 @@ class NN_PG_DEF(nn.Module):
         T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
         T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
+        self.activaton_fun = eval(config["activation_fun"])
         self.log_std = T.zeros(1, self.act_dim)
 
     def decay_std(self, decay=0.002):
@@ -148,10 +149,23 @@ class NN_PG_DEF(nn.Module):
         return act, T.normal(act, T.exp(self.log_std))
 
     def sample_action_w_activations(self, l0):
-        l1 = F.leaky_relu(self.m1(self.fc1(l0)))
-        l2 = F.leaky_relu(self.m2(self.fc2(l1)))
-        l3 = self.fc3(l2)
-        return l1, l2, l3, T.normal(l3, T.exp(self.log_std))
+        l1_activ =self.fc1(l0)
+        l1_normed = self.m1(l1_activ)
+        l1_nonlin = self.activaton_fun(l1_normed)
+
+        l2_activ = self.fc1(l1_nonlin)
+        l2_normed = self.m1(l2_activ)
+        l2_nonlin = self.activaton_fun(l2_normed)
+
+        l3 = self.fc3(l2_nonlin)
+        return l1_activ.squeeze(0).detach().numpy(),\
+               l1_normed.squeeze(0).detach().numpy(),\
+               l1_nonlin.squeeze(0).detach().numpy(), \
+               l2_activ.squeeze(0).detach().numpy(), \
+               l2_normed.squeeze(0).detach().numpy(), \
+               l2_nonlin.squeeze(0).detach().numpy(), \
+               l3.squeeze(0).detach().numpy(), \
+               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy

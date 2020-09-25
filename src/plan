@@ -57,6 +57,10 @@ MAML:
 # TODO: Make recurrent MAML
 # TODO: Make CAVIA
 
+# PG logging improvements:
+# Add activations before and after non-lin
+
+
 # VIR Projects:
 1) Learning model of fast RC buggie using script which gathers data and using it to
    learn a forward function of the buggie using supervised learning.
@@ -64,4 +68,6 @@ MAML:
 3) Control of real buggie or quad using RL
 5) Design RL rew and input features for driving a car around racetrack
 6) Atlas entering and leaving car using RL
-7) Crab on gordon
+7) Hardware wireless sensor using neural nets (only for hw people)
+8) Voice masking for anonymity
+

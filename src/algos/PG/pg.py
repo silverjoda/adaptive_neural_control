@@ -28,7 +28,9 @@ def make_rollout(env, policy):
         step_ctr_list.append(step_ctr)
         observations.append(obs)
 
-        clean_act, noisy_act = policy.sample_action(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
+        clean_act, noisy_act = policy.sample_action(my_utils.to_tensor(obs, True))
+        clean_act = clean_act.squeeze(0).detach().numpy()
+        noisy_act = noisy_act.squeeze(0).detach().numpy()
         obs, r, done, _ = env.step(noisy_act)
 
         if abs(r) > 5:
@@ -67,7 +69,7 @@ def train(env, policy, config):
                                     weight_decay=config["weight_decay"])
     assert policy_optim is not None
 
-    batch_states = []
+    batch_observations = []
     batch_actions = []
     batch_rewards = []
     batch_terminals = []
@@ -80,26 +82,7 @@ def train(env, policy, config):
     for i in range(config["iters"]):
         observations, next_observations, clean_actions, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
 
-        if config["tb_writer"] is not None:
-            # Pick random obs and make full activation log to tb
-            rnd_obs = random.choice(observations)
-            l1, l2, clean_act, noisy_act = policy.sample_action_w_activations(my_utils.to_tensor(rnd_obs, True)).squeeze(0).detach().numpy()
-
-            config["tb_writer"].add_histogram("L1_activations", l1, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("L2_activations", l2, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("action_activations", clean_act, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("noisy_action_activations", noisy_act, global_step=global_step_ctr)
-
-        # Log to tb
-        if config["tb_writer"] is not None:
-            config["tb_writer"].add_scalar("Rewards_sum")
-            config["tb_writer"].add_histogram("Rewards histogram", rewards, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("Observations", observations, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("Clean actions", clean_actions, global_step=global_step_ctr)
-            config["tb_writer"].add_histogram("Noisy actions", actions, global_step=global_step_ctr)
-            config["tb_writer"].add_scalar("Terminal step", len(terminals), global_step=global_step_ctr)
-
-        batch_states.extend(observations)
+        batch_observations.extend(observations)
         batch_actions.extend(actions)
         batch_rewards.extend(rewards)
         batch_terminals.extend(terminals)
@@ -110,12 +93,48 @@ def train(env, policy, config):
 
         # If enough data gathered, then perform update
         if batch_ctr == config["batchsize"]:
-            batch_states = T.from_numpy(np.array(batch_states))
+            batch_observations = T.from_numpy(np.array(batch_observations))
             batch_actions = T.from_numpy(np.array(batch_actions))
             batch_rewards = T.from_numpy(np.array(batch_rewards))
 
+            # Log to TB
             if config["tb_writer"] is not None:
-                config["tb_writer"].add_histogram("Batch rewards histogram", batch_rewards, global_step=global_step_ctr)
+                # Pick random obs and make full activation log to tb
+                rnd_obs = random.choice(observations)
+                action_sample_full = policy.sample_action_w_activations(my_utils.to_tensor(rnd_obs, True))
+                l1_activ, l1_normed, l1_nonlin, l2_activ, l2_normed, l2_nonlin, act, act_sampled = action_sample_full
+
+                config["tb_writer"].add_histogram("Rnd_obs/L1_activ", l1_activ,
+                                                  global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Rnd_obs/L1_normed", l1_normed,
+                                                  global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Rnd_obs/L1_nonlin", l1_nonlin,
+                                                  global_step=global_step_ctr)
+
+                config["tb_writer"].add_histogram("Rnd_obs/L2_activ", l2_activ,
+                                                  global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Rnd_obs/L2_normed", l2_normed,
+                                                  global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Rnd_obs/L2_nonlin", l2_nonlin,
+                                                  global_step=global_step_ctr)
+
+                config["tb_writer"].add_histogram("Rnd_obs/Act", act,
+                                                  global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Rnd_obs/Act_sampled", act_sampled,
+                                                  global_step=global_step_ctr)
+
+                config["tb_writer"].add_scalar("Batch/Mean episode reward",
+                                               batch_rewards.sum() / config["batchsize"],
+                                               global_step=global_step_ctr)
+
+                config["tb_writer"].add_histogram("Batch/Rewards", batch_rewards, global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Batch/Observations", batch_observations, global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Batch/Sampled actions", batch_actions, global_step=global_step_ctr)
+                config["tb_writer"].add_scalar("Batch/Terminal step", len(batch_terminals), global_step=global_step_ctr)
+
+                for p in policy.named_parameters():
+                    config["tb_writer"].add_histogram(f"Network/{p[0]}_param", p[1],
+                                                      global_step=global_step_ctr)
 
             # Scale rewards
             if config["normalize_rewards"]:
@@ -129,32 +148,25 @@ def train(env, policy, config):
                                                   batch_rewards_for_advantages,
                                                   batch_terminals)
 
-            if config["tb_writer"] is not None:
-                config["tb_writer"].add_histogram("Batch advantages histogram", batch_advantages, global_step=global_step_ctr)
-
             if config["ppo_update_iters"] > 0:
-                loss_policy = update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, config["ppo_update_iters"], config)
+                loss_policy = update_policy_ppo(policy, policy_optim, batch_observations, batch_actions, batch_advantages, config, global_step_ctr)
             else:
-                loss_policy = update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config)
+                loss_policy = update_policy(policy, policy_optim, batch_observations, batch_actions, batch_advantages, config)
 
             # Post update log
             if config["tb_writer"] is not None:
-                config["tb_writer"].add_scalar(loss_policy)
-                config["tb_writer"].add_scalar(batch_rewards / config["batchsize"])
-
-                for p in policy.named_parameters():
-                    config["tb_writer"].add_histogram(f"{p[0]}_param", p[1],
-                                                      global_step=global_step_ctr)
+                config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=global_step_ctr)
+                config["tb_writer"].add_scalar("Batch/Loss_policy", loss_policy, global_step=global_step_ctr)
 
             t2 = time.time()
             print("Episode {}/{}, n_steps: {}, loss_policy: {}, mean ep_rew: {}, time per batch: {}".
-                  format(i, config["iters"], global_step_ctr, loss_policy, batch_rewards / config["batchsize"], t2 - t1))
+                  format(i, config["iters"], global_step_ctr, loss_policy, batch_rewards.sum() / config["batchsize"], t2 - t1))
             t1 = t2
 
             # Finally reset all batch lists
             batch_ctr = 0
 
-            batch_states = []
+            batch_observations = []
             batch_actions = []
             batch_rewards = []
             batch_terminals = []
@@ -165,20 +177,15 @@ def train(env, policy, config):
             T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, config))
 
-def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters, config, global_step_ctr):
+def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, config, global_step_ctr):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
     loss = None
 
     # Do ppo_update
-    for k in range(update_iters):
+    for k in range(config["ppo_update_iters"]):
         log_probs_new = policy.log_probs(batch_states, batch_actions)
         r = T.exp(log_probs_new - log_probs_old)
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - config["c_eps"], 1 + config["c_eps"]) * batch_advantages))
-
-        # Log activations in each layer
-        for p in policy.parameters():
-            config["tb_writer"].add_histogram("Batch advantages histogram", batch_advantages,
-                                              global_step=global_step_ctr)
 
         # Zero grads and backprop
         policy_optim.zero_grad()
@@ -186,10 +193,10 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
 
         # Log gradients
         for p in policy.named_parameters():
-            config["tb_writer"].add_histogram(f"{p[0]}_grads_unclipped", p[1].grad(),
+            config["tb_writer"].add_histogram(f"Batch Grads/{p[0]}_grads_unclipped", p[1].grad,
                                               global_step=global_step_ctr)
 
-        T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
+        #T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
 
         # Log clipped gradients
         policy_optim.step()
@@ -305,10 +312,13 @@ if __name__=="__main__":
     env = env_fun(config)
 
     # Random ID of this session
-    config["ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    if config["default_session_ID"] is None:
+        config["ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    else:
+        config["ID"] = "TST"
     policy = make_policy(env, config)
 
-    tb_writer = SummaryWriter('runs/fashion_mnist_experiment_1')
+    tb_writer = SummaryWriter(f'tb/{config["ID"]}')
     config["tb_writer"] = tb_writer
 
     if config["train"] or socket.gethostname() == "goedel":

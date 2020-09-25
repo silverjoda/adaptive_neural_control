@@ -1,9 +1,11 @@
 "algo_name" : "PG"
 "policy_type" : "mlp_def"
 "policy_optim" : "adam"
+"default_session_ID" : "TST"
+"activation_fun" : "F.leaky_relu"
 "c_eps" : 0.2
 "gamma" : 0.99
-"batchsize" : 24
+"batchsize" : 20
 "learning_rate" : 0.0005
 "weight_decay" : 0.0000
 "momentum" : 0.0
