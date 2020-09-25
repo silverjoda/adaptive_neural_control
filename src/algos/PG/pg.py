@@ -130,7 +130,7 @@ def train(env, policy, config):
                 config["tb_writer"].add_histogram("Batch/Rewards", batch_rewards, global_step=global_step_ctr)
                 config["tb_writer"].add_histogram("Batch/Observations", batch_observations, global_step=global_step_ctr)
                 config["tb_writer"].add_histogram("Batch/Sampled actions", batch_actions, global_step=global_step_ctr)
-                config["tb_writer"].add_scalar("Batch/Terminal step", len(batch_terminals), global_step=global_step_ctr)
+                config["tb_writer"].add_scalar("Batch/Terminal step", len(batch_terminals) / config["batchsize"], global_step=global_step_ctr)
 
                 for p in policy.named_parameters():
                     config["tb_writer"].add_histogram(f"Network/{p[0]}_param", p[1],
