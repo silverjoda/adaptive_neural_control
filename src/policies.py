@@ -153,7 +153,7 @@ class NN_PG_DEF(nn.Module):
         l1_normed = self.m1(l1_activ)
         l1_nonlin = self.activaton_fun(l1_normed)
 
-        l2_activ = self.fc1(l1_nonlin)
+        l2_activ = self.fc2(l1_nonlin)
         l2_normed = self.m1(l2_activ)
         l2_nonlin = self.activaton_fun(l2_normed)
 
