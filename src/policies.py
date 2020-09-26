@@ -103,6 +103,7 @@ class NN_PG(nn.Module):
 class NN_PG_DEF(nn.Module):
     def __init__(self, env, config):
         super(NN_PG_DEF, self).__init__()
+        self.config = config
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
         self.hid_dim = config["policy_hid_dim"]
@@ -127,6 +128,8 @@ class NN_PG_DEF(nn.Module):
         x = F.leaky_relu(self.m1(self.fc1(x)))
         x = F.leaky_relu(self.m2(self.fc2(x)))
         x = self.fc3(x)
+        if self.config["policy_lastlayer_tanh"]:
+            x = T.tanh(x)
         return x
 
     def soft_clip_grads(self, bnd=1):
