@@ -125,8 +125,8 @@ class NN_PG_DEF(nn.Module):
         self.log_std -= decay
 
     def forward(self, x):
-        x = F.leaky_relu(self.m1(self.fc1(x)))
-        x = F.leaky_relu(self.m2(self.fc2(x)))
+        x = self.activaton_fun(self.m1(self.fc1(x)))
+        x = self.activaton_fun(self.m2(self.fc2(x)))
         x = self.fc3(x)
         if self.config["policy_lastlayer_tanh"]:
             x = T.tanh(x)

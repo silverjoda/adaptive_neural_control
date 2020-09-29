@@ -2,7 +2,7 @@
 "policy_type" : "mlp_def"
 "policy_optim" : "adam"
 "default_session_ID" : "TST"
-"activation_fun" : "F.leaky_relu"
+"activation_fun" : "T.tanh"
 "c_eps" : 0.2
 "gamma" : 0.99
 "batchsize" : 20

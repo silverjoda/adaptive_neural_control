@@ -153,8 +153,8 @@ class QuadrupedBulletEnv(gym.Env):
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=scaled_action,
                                     forces=[1.4] * 12,
-                                    positionGains=[0.01] * 12,
-                                    velocityGains=[0.07] * 12,
+                                    positionGains=[0.02] * 12,
+                                    velocityGains=[0.01] * 12,
                                     physicsClientId=self.client_ID)
 
         for _ in range(self.config["sim_steps_per_iter"]):
