@@ -7,6 +7,7 @@ import string
 import socket
 import argparse
 import yaml
+import os
 
 
 def make_env(config, env_fun):
@@ -70,7 +71,7 @@ def make_model(config, env, action_noise_fun):
                     target_policy_noise=config["target_policy_noise"],
                     target_noise_clip=config["target_noise_clip"],
                     verbose=config["verbose"],
-                    tensorboard_log="./tb/{}/".format(session_ID),
+                    tensorboard_log="./tb/{}/".format(config["session_ID"]),
                     policy_kwargs=config["policy_kwargs"])
 
     if config["algo_name"] == "A2C":
@@ -86,7 +87,7 @@ def make_model(config, env, action_noise_fun):
             epsilon=config["epsilon"],
             lr_schedule=config["lr_schedule"],
             verbose=config["verbose"],
-            tensorboard_log="./tb/{}/".format(session_ID),
+            tensorboard_log="./tb/{}/".format(config["session_ID"]),
             full_tensorboard_log=config["full_tensorboard_log"],
             policy_kwargs=dict(net_arch=[int(196), int(196)]))
 
@@ -128,14 +129,17 @@ if __name__ == "__main__":
     algo_config = read_config(args["algo_config"])
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
+    print(config)
+
+    for s in ["agents", "agents_cp", "tb"]:
+        if not os.path.exists(s):
+            os.makedirs(s)
 
     # Random ID of this session
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     else:
         config["session_ID"] = "TST"
-
-    print(config)
 
     # Import correct env by name
     env_fun = import_env(env_config["env_name"])
@@ -144,11 +148,11 @@ if __name__ == "__main__":
         n_envs = 10 if socket.gethostname() == "goedel" else 6
 
         env = SubprocVecEnv([make_env(config, env_fun) for _ in range(n_envs)], start_method='fork')
-        model = make_model(algo_config, env, None)
+        model = make_model(config, env, None)
 
         checkpoint_callback = CheckpointCallback(save_freq=50000,
                                                  save_path='agents_cp/',
-                                                 name_prefix=session_ID, verbose=1)
+                                                 name_prefix=config["session_ID"], verbose=1)
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -157,7 +161,7 @@ if __name__ == "__main__":
         print("Training time: {}".format(t2-t1))
         print(config)
 
-        model.save("agents/{}_SB_policy".format(session_ID))
+        model.save("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":

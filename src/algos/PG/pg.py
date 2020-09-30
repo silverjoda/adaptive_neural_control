@@ -307,15 +307,20 @@ if __name__=="__main__":
 
     print(config)
 
-    # Import correct env by name
-    env_fun = import_env(config["env_name"])
-    env = env_fun(config)
+    for s in ["agents", "agents_cp", "tb"]:
+        if not os.path.exists(s):
+            os.makedirs(s)
 
     # Random ID of this session
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     else:
         config["session_ID"] = "TST"
+
+    # Import correct env by name
+    env_fun = import_env(config["env_name"])
+    env = env_fun(config)
+
     policy = make_policy(env, config)
 
     tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
