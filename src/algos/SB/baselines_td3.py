@@ -1,22 +1,11 @@
-import gym
 import sys
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import TD3
-from stable_baselines.common.evaluation import evaluate_policy
-from stable_baselines.common.env_checker import check_env
-from stable_baselines.common import make_vec_env
-from stable_baselines.common.vec_env import SubprocVecEnv
-from stable_baselines.common import set_global_seeds, make_vec_env
-from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback, CallbackList, BaseCallback
+from stable_baselines.common.callbacks import CheckpointCallback
 import time
 import random
 import string
 import socket
 import numpy as np
-from stable_baselines.td3.policies import MlpPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from stable_baselines.common.noise import ActionNoise
 from opensimplex import OpenSimplex
 
@@ -56,7 +45,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv
 
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 5000,
@@ -130,8 +119,6 @@ if __name__ == "__main__":
                   terrain_name=params["terrain"],
                   training_mode=params["r_type"],
                   variable_velocity=False)
-
-    from stable_baselines.common.noise import ActionNoise, SimplexNoise
 
     if not TRAIN:
         model = TD3.load("agents/P19_SB_policy.zip") # 4TD & 8CZ contactless:perlin:normal, U79 & BMT contactless:perlin:extreme, KIH turn_left, 266 turn_rigt

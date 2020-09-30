@@ -38,9 +38,9 @@ def read_config(path):
 def import_env(name):
     env_fun = None
     if name == "hexapod":
-        from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
     if name == "quadruped":
-        from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
     if name == "quadrotor":
         from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
     if name == "buggy":

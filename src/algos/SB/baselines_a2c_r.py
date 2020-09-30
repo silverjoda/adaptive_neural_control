@@ -1,19 +1,11 @@
-import gym
 import sys
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2, DQN, A2C
-from stable_baselines.common.evaluation import evaluate_policy
-from stable_baselines.common.env_checker import check_env
-from stable_baselines.common import make_vec_env
+from stable_baselines import A2C
 from stable_baselines.common.vec_env import SubprocVecEnv
-from stable_baselines.common import set_global_seeds, make_vec_env
-from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
+from stable_baselines.common.callbacks import CheckpointCallback
 import time
 import random
 import string
 import socket
-import numpy as np
 from copy import deepcopy
 
 def make_env(params):
@@ -32,7 +24,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv
 
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 80000000,
               "batchsize": 60,

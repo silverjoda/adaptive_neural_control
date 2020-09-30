@@ -173,7 +173,7 @@ def train(env, policy, config):
 
         if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, config["ID"]))
+                                "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, config["session_ID"]))
             T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, config))
 
@@ -259,13 +259,13 @@ def read_config(path):
 
 def import_env(name):
     if name == "hexapod":
-        from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
     elif name == "quadrotor":
         from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
     elif name == "buggy":
         from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
     elif name == "quadruped":
-        from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
     else:
         raise TypeError
     return env_fun
@@ -313,12 +313,12 @@ if __name__=="__main__":
 
     # Random ID of this session
     if config["default_session_ID"] is None:
-        config["ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+        config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     else:
-        config["ID"] = "TST"
+        config["session_ID"] = "TST"
     policy = make_policy(env, config)
 
-    tb_writer = SummaryWriter(f'tb/{config["ID"]}')
+    tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
     config["tb_writer"] = tb_writer
 
     if config["train"] or socket.gethostname() == "goedel":

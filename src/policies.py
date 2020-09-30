@@ -340,7 +340,6 @@ class RNN_RES_PG(nn.Module):
 
         return log_density.sum(2, keepdim=True)
 
-
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}

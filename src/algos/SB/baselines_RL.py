@@ -1,22 +1,13 @@
-import gym
-import sys
-from stable_baselines.common.policies import MlpPolicy
-from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import PPO2, A2C, TD3, SAC
-from stable_baselines.common.evaluation import evaluate_policy
-from stable_baselines.common.env_checker import check_env
-from stable_baselines.common import make_vec_env
 from stable_baselines.common.vec_env import SubprocVecEnv
-from stable_baselines.common import set_global_seeds, make_vec_env
-from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback, CallbackList, BaseCallback
+from stable_baselines.common.callbacks import CheckpointCallback
 import time
 import random
 import string
 import socket
-import numpy as np
 import argparse
 import yaml
-import os
+
 
 def make_env(config, env_fun):
     def _init():
@@ -50,13 +41,13 @@ def read_config(path):
 
 def import_env(name):
     if name == "hexapod":
-        from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
     elif name == "quadrotor":
         from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
     elif name == "buggy":
         from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
     elif name == "quadruped":
-        from src.envs.bullet_nexabot.quadruped.quadruped import QuadrupedBulletEnv as env_fun
+        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
     else:
         raise TypeError
     return env_fun
@@ -139,8 +130,10 @@ if __name__ == "__main__":
     config = {**args, **algo_config, **env_config}
 
     # Random ID of this session
-    session_ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    config["session_ID"] = session_ID
+    if config["default_session_ID"] is None:
+        config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+    else:
+        config["session_ID"] = "TST"
 
     print(config)
 

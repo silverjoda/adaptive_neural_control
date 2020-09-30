@@ -3,16 +3,14 @@ import sys
 
 import numpy as np
 import torch as T
-import torch.nn as nn
 import torch.nn.functional as F
-import time
 import src.my_utils as my_utils
 import src.policies as policies
 import random
 import string
 import socket
 import logging
-from copy import deepcopy
+
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 def train(env, policy, valuefun, params):
@@ -205,7 +203,7 @@ if __name__=="__main__":
     #from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
     #from src.envs.bullet_cartpole.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     #from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
-    from src.envs.bullet_nexabot.hexapod.hexapod import HexapodBulletEnv as env_fun
+    from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
     env = env_fun(animate=params["animate"], max_steps=params["max_steps"])
 
     # Test
