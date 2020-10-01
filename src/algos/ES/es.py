@@ -20,7 +20,6 @@ import src.policies as policies
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 from torch.utils.tensorboard import SummaryWriter
 
-
 def f_wrapper(env, policy):
     def f(w):
         reward = 0
@@ -32,9 +31,7 @@ def f_wrapper(env, policy):
         while not done:
             with torch.no_grad():
                 act = policy(my_utils.to_tensor(obs, True))
-
             obs, rew, done, _ = env.step(act.squeeze(0).numpy())
-
             reward += rew
 
         return -reward
@@ -56,13 +53,7 @@ def train(env, policy, config):
             it += 1
             if it > config["iters"]:
                 break
-            # if it % 30 == 0:
-            #     vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
-            #     T.save(policy.state_dict(), sdir)
-            #     print("Saved agent, {}".format(sdir))
-
             X = es.ask()
-
             es.tell(X, [f(x) for x in X])
             es.disp()
 

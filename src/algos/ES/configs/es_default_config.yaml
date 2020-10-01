@@ -1,7 +1,7 @@
 "algo_name" : "ES"
 "policy_type" : "slp"
 "default_session_ID" : "TST"
-"activation_fun" : "T.selu"
+"activation_fun" : "F.leaky_relu"
 "cma_std" : 0.1
 "iters" : 100
 "batchsize" : 20

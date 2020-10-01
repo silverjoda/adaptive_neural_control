@@ -148,6 +148,9 @@ class QuadrupedBulletEnv(gym.Env):
     def step(self, ctrl):
         if np.max(ctrl) > 1:
             ctrl_normalized = ctrl / np.abs(np.max(ctrl))
+        else:
+            ctrl_normalized = ctrl
+
         ctrl_clipped = np.clip(ctrl, -1, 1)
         ctrl_scaled = self.norm_to_rads(ctrl)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
