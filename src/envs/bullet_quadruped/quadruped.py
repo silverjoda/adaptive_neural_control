@@ -163,31 +163,17 @@ class QuadrupedBulletEnv(gym.Env):
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
-        qx, qy, qz, qw = torso_quat
-
-        # Reward shaping
-        torque_pen = np.mean(np.square(joint_torques))
-
-        self.xd_queue.append(xd)
-        if len(self.xd_queue) > 10:
-            self.xd_queue.pop(0)
-        xd_av = sum(self.xd_queue) / len(self.xd_queue)
-
-        velocity_rew = 1. / (abs(xd_av - self.config["target_vel"]) + 1.) - 1. / (self.config["target_vel"] + 1.)
-        velocity_rew *= (0.3 / self.config["target_vel"])
-
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
-        q_yaw = 2 * np.arccos(qw)
 
-        r_neg = np.square(q_yaw) * 0.5 + \
-                np.square(pitch) * 0.05 + \
-                np.square(roll) * 0.05 + \
-                torque_pen * 0.000 + \
-                np.square(zd) * 0.05
-        r_pos = velocity_rew * 7
+        velocity_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
+
+        r_neg = np.square(yaw) * 0.5 + \
+                np.square(roll) * 0.3 + \
+                np.square(pitch) * 0.3 + \
+                np.square(zd) * 1.
+        r_pos = (velocity_rew * 1.0) / self.config["max_steps"] * 100
         r = np.clip(r_pos - r_neg, -3, 3)
 
-        #r = -np.square(xd_av - self.config["target_vel"])
         scaled_joint_angles = self.rads_to_norm(joint_angles)
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts)).astype(np.float32)
 

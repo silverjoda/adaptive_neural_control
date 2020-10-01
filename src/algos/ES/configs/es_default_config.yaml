@@ -1,0 +1,12 @@
+"algo_name" : "ES"
+"policy_type" : "mlp_def"
+"default_session_ID" : "TST"
+"activation_fun" : "F.leaky_relu"
+"cma_std" : 0.1
+"batchsize" : 20
+"weight_decay" : 0.0000
+"normalize_rewards" : False
+"policy_lastlayer_tanh" : False
+"policy_hid_dim" : 64
+"policy_memory_dim" : 64
+"policy_residual_connection" : False

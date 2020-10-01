@@ -9,13 +9,6 @@ import argparse
 import yaml
 import os
 
-
-def make_env(config, env_fun):
-    def _init():
-        env = env_fun(config)
-        return env
-    return _init
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
     parser.add_argument('--train',  action='store_true', required=False,
@@ -145,9 +138,7 @@ if __name__ == "__main__":
     env_fun = import_env(env_config["env_name"])
 
     if args["train"] or socket.gethostname() == "goedel":
-        n_envs = 10 if socket.gethostname() == "goedel" else 6
-
-        env = SubprocVecEnv([make_env(config, env_fun) for _ in range(n_envs)], start_method='fork')
+        env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
         model = make_model(config, env, None)
 
         checkpoint_callback = CheckpointCallback(save_freq=50000,

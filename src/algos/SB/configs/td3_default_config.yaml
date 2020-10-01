@@ -1,5 +1,6 @@
 "algo_name" : "TD3"
 "default_session_ID" : "TST"
+"n_envs" : 1
 "iters" : 100000
 "gamma" : 0.99
 "learning_rate" : 0.0007
