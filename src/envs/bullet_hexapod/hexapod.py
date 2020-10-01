@@ -19,7 +19,9 @@ class HexapodBulletEnv(gym.Env):
     }
 
     def __init__(self, config):
-        self.seed = config["seed"]
+        self.config = config
+        self.seed = self.config["seed"]
+        
         if self.seed is not None:
             np.random.seed(self.seed)
             T.manual_seed(self.seed)
@@ -28,46 +30,21 @@ class HexapodBulletEnv(gym.Env):
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
-        self.config = config
-
-        self.animate = config["animate"]
-        self.max_steps = config["max_steps"]
-        self.step_counter = config["step_counter"]
-        self.terrain_name = config["terrain_name"]
-        self.training_mode = config["training_mode"]
-        self.variable_velocity = config["variable_velocity"]
-        self.force_target_velocity = config["force_target_velocity"]
-        self.forced_target_velocity = config["forced_target_velocity"]
-        self.env_change_prob = config["env_change_prob"]
-
-        # Simulation parameters
-        self.env_width = config["env_width"]
-        self.env_length = self.max_steps
-        self.max_joint_force = config["max_joint_force"]
-        self.target_vel = config["target_vel"]
-        self.target_vel_range = config["target_vel_range"]
-        self.sim_steps_per_iter = config["sim_steps_per_iter"]
-        self.mesh_scale_lat = config["mesh_scale_lat"]
-        self.mesh_scale_vert = config["mesh_scale_vert"]
-        self.lateral_friction = config["lateral_friction"]
-        self.training_difficulty = config["training_difficulty"]
-        self.training_difficulty_increment = config["training_difficulty_increment"]
-
-        if (self.animate):
+        if (self.config["animate"]):
             self.client_ID = p.connect(p.GUI)
             print(" --Starting GUI mode-- ")
         else:
             self.client_ID = p.connect(p.DIRECT)
         assert self.client_ID != -1, "Physics client failed to connect"
 
-        if self.terrain_name.startswith("stairs"):
-            self.env_width *= 4
-            self.env_length *= 4
-            self.mesh_scale_lat /= 4
-            self.target_vel = 0.15
+        if self.config["terrain_name"].startswith("stairs"):
+            self.config["env_width"] *= 4
+            self.config["max_steps"] *= 4
+            self.config["mesh_scale_lat"] /= 4
+            self.config["target_vel"] = 0.15
 
         # Environment parameters
-        self.obs_dim = 18 + 6 + 4 + int(self.step_counter) + int(self.variable_velocity)
+        self.obs_dim = 18 + 6 + 4 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -76,12 +53,12 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_low = np.array(config["joints_rads_low"] * 6)
         self.joints_rads_high = np.array(config["joints_rads_high"] * 6)
 
-        if self.training_mode.endswith("extreme"):
+        if config["training_mode"].endswith("extreme"):
             # Extreme mode
             self.joints_rads_low = np.array([-0.4, 0, -0.5] * 6)
             self.joints_rads_high = np.array([0.4, 1.0, 0.5] * 6)
 
-        if self.training_mode.endswith("wide_range"):
+        if config["training_mode"].endswith("wide_range"):
             # Wide joint range mode
             self.joints_rads_low = np.array([-0.5, -2.0, 0.0] * 6)
             self.joints_rads_high = np.array([0.5, -0.0, 2.0] * 6)
@@ -99,21 +76,22 @@ class HexapodBulletEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.urdf_name = config["urdf_name"]
-        if self.training_mode.endswith("extreme"):
+        if config["training_mode"].endswith("extreme"):
             self.urdf_name = "hexapod_extreme.urdf"
-        if self.training_mode.endswith("wide_range"):
+        if config["training_mode"].endswith("wide_range"):
             self.urdf_name = "hexapod_wide_range.urdf"
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
-        if self.terrain_name == "flat":
+        self.robot = self.load_robot()
+
+        if config["terrain_name"] == "flat":
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         else:
             self.generate_rnd_env()
 
         # Change contact friction for legs and torso
         for i in range(6):
-            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.lateral_friction)
-        p.changeDynamics(self.robot, -1, lateralFriction=self.lateral_friction)
+            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.config["lateral_friction"])
+        p.changeDynamics(self.robot, -1, lateralFriction=self.config["lateral_friction"])
 
         # Episodal parameters
         self.step_ctr = 0
@@ -129,21 +107,21 @@ class HexapodBulletEnv(gym.Env):
         self.target_vel_nn_input = 0
 
     def make_heightfield(self, height_map=None):
-        if self.terrain_name == "flat":
+        if self.config["terrain_name"] == "flat":
             return
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, self.client_ID)
         if height_map is None:
-            heightfieldData = np.zeros(self.env_width * self.env_length)
-            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.mesh_scale_lat , self.mesh_scale_lat , self.mesh_scale_vert],
-                                                  heightfieldTextureScaling=(self.env_width - 1) / 2,
+            heightfieldData = np.zeros(self.config["env_width"] * self.config["max_steps"])
+            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"] , self.config["mesh_scale_lat"] , self.config["mesh_scale_vert"]],
+                                                  heightfieldTextureScaling=(self.config["env_width"] - 1) / 2,
                                                   heightfieldData=heightfieldData,
-                                                  numHeightfieldRows=self.env_length,
-                                                  numHeightfieldColumns=self.env_width)
+                                                  numHeightfieldRows=self.config["max_steps"],
+                                                  numHeightfieldColumns=self.config["env_width"])
         else:
             heightfieldData = height_map.ravel(order='F')
-            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.mesh_scale_lat , self.mesh_scale_lat , self.mesh_scale_vert],
-                                                  heightfieldTextureScaling=(self.env_width - 1) / 2,
+            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"] , self.config["mesh_scale_lat"] , self.config["mesh_scale_vert"]],
+                                                  heightfieldTextureScaling=(self.config["env_width"] - 1) / 2,
                                                   heightfieldData=heightfieldData,
                                                   numHeightfieldRows=height_map.shape[0],
                                                   numHeightfieldColumns=height_map.shape[1],
@@ -155,29 +133,29 @@ class HexapodBulletEnv(gym.Env):
     def generate_heightmap(self, env_name):
         current_height = 0
         if env_name == "flat" or env_name is None:
-            hm = np.ones((self.env_length, self.env_width)) * current_height
+            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
 
         if env_name == "tiles":
             sf = 3
-            hm = np.random.randint(0, 20 * self.training_difficulty, # 15
-                                   size=(self.env_length // sf, self.env_width // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
-            hm_pad = np.zeros((self.env_length, self.env_width))
+            hm = np.random.randint(0, 20 * self.config["training_difficulty"], # 15
+                                   size=(self.config["env_length"] // sf, self.config["env_width"] // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
+            hm_pad = np.zeros((self.config["env_length"], self.config["env_width"]))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
             hm = hm_pad + current_height
 
         if env_name == "pipe":
-            pipe_form = np.square(np.linspace(-1.2, 1.2, self.env_width))
+            pipe_form = np.square(np.linspace(-1.2, 1.2, self.config["env_width"]))
             pipe_form = np.clip(pipe_form, 0, 1)
-            hm = 255 * np.ones((self.env_width, self.env_length)) * pipe_form[np.newaxis, :].T
+            hm = 255 * np.ones((self.config["env_width"], self.config["env_length"])) * pipe_form[np.newaxis, :].T
             hm += current_height
 
         if env_name == "stairs_up":
-            hm = np.ones((self.env_length, self.env_width)) * current_height
-            stair_height = 14 * self.training_difficulty
+            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
+            stair_height = 14 * self.config["training_difficulty"]
             stair_width = 8
 
-            initial_offset = self.env_length // 2 - self.env_length // 14
-            n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
+            initial_offset = self.config["env_length"] // 2 - self.config["env_length"] // 14
+            n_steps = min(math.floor(self.config["env_length"] / stair_width) - 1, 10)
 
             for i in range(n_steps):
                 hm[initial_offset + i * stair_width: initial_offset + i * stair_width + stair_width, :] = current_height
@@ -187,22 +165,22 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "ramp_up":
             max_height = 200
-            hm = np.ones((self.env_length, self.env_width)) * current_height
-            initial_offset = self.env_length // 2 - self.env_length // 8
-            hm[initial_offset:initial_offset + self.env_length // 4, :] = np.tile(np.linspace(current_height, current_height + max_height, self.env_length // 4)[:, np.newaxis], (1, self.env_width))
+            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
+            initial_offset = self.config["env_length"] // 2 - self.config["env_length"] // 8
+            hm[initial_offset:initial_offset + self.config["env_length"] // 4, :] = np.tile(np.linspace(current_height, current_height + max_height, self.config["env_length"] // 4)[:, np.newaxis], (1, self.config["env_width"]))
             current_height += max_height
-            hm[initial_offset + self.env_length // 4:, :] = current_height
+            hm[initial_offset + self.config["env_length"] // 4:, :] = current_height
 
         if env_name == "stairs_down":
-            stair_height = 14 * self.training_difficulty
+            stair_height = 14 * self.config["training_difficulty"]
             stair_width = 8
 
-            initial_offset = self.env_length // 2
-            n_steps = min(math.floor(self.env_length / stair_width) - 1, 10)
+            initial_offset = self.config["env_length"] // 2
+            n_steps = min(math.floor(self.config["env_length"] / stair_width) - 1, 10)
 
             current_height = n_steps * stair_height
 
-            hm = np.ones((self.env_length, self.env_width)) * current_height
+            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
 
             for i in range(n_steps):
                 hm[initial_offset + i * stair_width: initial_offset + i * stair_width + stair_width, :] = current_height
@@ -214,7 +192,7 @@ class HexapodBulletEnv(gym.Env):
             wdiv = 4
             ldiv = 14
             hm = np.random.randint(0, 75,
-                                   size=(self.env_width // wdiv, self.env_length // ldiv),
+                                   size=(self.config["env_width"] // wdiv, self.config["env_length"] // ldiv),
                                    dtype=np.uint8).repeat(wdiv, axis=0).repeat(ldiv, axis=1)
             hm[:, :50] = 0
             hm[hm < 50] = 0
@@ -223,14 +201,14 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "triangles":
             cw = 10
             # Make even dimensions
-            M = math.ceil(self.env_width)
-            N = math.ceil(self.env_length)
+            M = math.ceil(self.config["env_width"])
+            N = math.ceil(self.config["env_length"])
             hm = np.zeros((M, N), dtype=np.float32)
             M_2 = math.ceil(M / 2)
 
             # Amount of 'tiles'
             Mt = 2
-            Nt = int(self.env_length / 10.)
+            Nt = int(self.config["env_length"] / 10.)
             obstacle_height = 50
             grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
             template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
@@ -252,10 +230,10 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 40 * self.training_difficulty # 30-40
+            height = 40 * self.config["training_difficulty"] # 30-40
 
-            M = math.ceil(self.env_width)
-            N = math.ceil(self.env_length)
+            M = math.ceil(self.config["env_width"])
+            N = math.ceil(self.config["env_length"])
             hm = np.zeros((N, M), dtype=np.float32)
 
             scale_x = 15
@@ -279,12 +257,12 @@ class HexapodBulletEnv(gym.Env):
         return hm, current_height
 
     def generate_rnd_env(self):
-        if self.terrain_name is None:
-            self.terrain_hm = np.zeros((self.env_length, self.env_width))
+        if self.config["terrain_name"] is None:
+            self.terrain_hm = np.zeros((self.config["env_length"], self.config["env_width"]))
             self.terrain = self.make_heightfield(self.terrain_hm)
             return 1, None, None
 
-        self.terrain_hm, _ = self.generate_heightmap(self.terrain_name)
+        self.terrain_hm, _ = self.generate_heightmap(self.config["terrain_name"])
         self.terrain_hm /= 255.
         self.terrain = self.make_heightfield(self.terrain_hm)
 
@@ -323,11 +301,15 @@ class HexapodBulletEnv(gym.Env):
     def norm_to_rads(self, action):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
-    def render(self, close=False):
+    def render(self):
         pass
 
     def load_robot(self):
-        pass
+        # Remove old robot
+        if self.robot is not None:
+            p.removeBody(self.robot)
+        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
+        return robot
 
     def step(self, ctrl, render=False):
         ctrl_clipped = np.clip(ctrl, -1, 1)
@@ -336,7 +318,7 @@ class HexapodBulletEnv(gym.Env):
         #                             jointIndices=range(18),
         #                             controlMode=p.POSITION_CONTROL,
         #                             targetPositions=scaled_action,
-        #                             forces=[self.max_joint_force] * 18,
+        #                             forces=[config["max_joint_force"]] * 18,
         #                             positionGains=[0.007] * 18,
         #                             velocityGains=[0.1] * 18,
         #                             physicsClientId=self.client_ID)
@@ -346,7 +328,7 @@ class HexapodBulletEnv(gym.Env):
                                     jointIndex=i,
                                     controlMode=p.POSITION_CONTROL,
                                     targetPosition=scaled_action[i],
-                                    force=self.max_joint_force,
+                                    force=self.config["max_joint_force"],
                                     positionGain=0.3,
                                     velocityGain=0.3,
                                     maxVelocity=3.0,
@@ -354,12 +336,12 @@ class HexapodBulletEnv(gym.Env):
 
         leg_ctr = 0
         obs_sequential = []
-        for i in range(self.sim_steps_per_iter):
+        for i in range(self.config["sim_steps_per_iter"]):
             if leg_ctr < 6:
                 obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
                 leg_ctr += 1
             p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.animate or render) and True: time.sleep(0.0038)
+            if (self.config["animate"] or render) and True: time.sleep(0.0038)
 
         joint_angles_skewed = []
         for o in obs_sequential:
@@ -398,9 +380,7 @@ class HexapodBulletEnv(gym.Env):
             self.xd_queue.pop(0)
         xd_av = sum(self.xd_queue) / len(self.xd_queue)
 
-        velocity_rew = 1. / (abs(xd_av - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
-        velocity_rew *= (0.3 / self.target_vel)
-        velocity_rew = velocity_rew / (1 + abs(q_yaw) * 15.) # scale velocity reward by yaw deviation
+        velocity_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
 
         yaw_improvement_reward = abs(self.prev_yaw_dev) - abs(q_yaw)
         self.prev_yaw_dev = q_yaw
@@ -408,15 +388,15 @@ class HexapodBulletEnv(gym.Env):
         # Tmp spoofs
         quantile_pen = contact_rew = symmetry_work_pen = torso_contact_pen = 0
 
-        if self.training_mode == "straight":
-            r_neg = {"pitch" : np.square(pitch) * 1.2 * self.training_difficulty,
-                    "roll" : np.square(roll) * 1.2 * self.training_difficulty,
-                    "zd" : np.square(zd) * 0.5 * self.training_difficulty,
-                    "yd" : np.square(yd) * 0.5 * self.training_difficulty,
-                    "phid": np.square(phid) * 0.02 * self.training_difficulty,
-                    "thd": np.square(thd) * 0.02 * self.training_difficulty,
-                    "total_work_pen" : np.minimum(total_work_pen * 0.03 * self.training_difficulty * (self.step_ctr > 10), 1),
-                    "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.training_difficulty}
+        if self.config["training_mode"] == "straight":
+            r_neg = {"pitch" : np.square(pitch) * 1.2 * self.config["training_difficulty"],
+                    "roll" : np.square(roll) * 1.2 * self.config["training_difficulty"],
+                    "zd" : np.square(zd) * 0.5 * self.config["training_difficulty"],
+                    "yd" : np.square(yd) * 0.5 * self.config["training_difficulty"],
+                    "phid": np.square(phid) * 0.02 * self.config["training_difficulty"],
+                    "thd": np.square(thd) * 0.02 * self.config["training_difficulty"],
+                    "total_work_pen" : np.minimum(total_work_pen * 0.03 * self.config["training_difficulty"] * (self.step_ctr > 10), 1),
+                    "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.config["training_difficulty"]}
             r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
                      "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 2.0}
@@ -425,19 +405,19 @@ class HexapodBulletEnv(gym.Env):
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
-        elif self.training_mode.startswith("straight_rough"):
-            r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
-                     "roll": np.square(roll) * 0.0 * self.training_difficulty,
-                     "zd": np.square(zd) * 0.05 * self.training_difficulty, # 0.1
-                     "yd": np.square(yd) * 0.05 * self.training_difficulty, # 0.1
-                     "phid": np.square(phid) * 0.01 * self.training_difficulty, # 0.02
-                     "thd": np.square(thd) * 0.01 * self.training_difficulty, # 0.02
-                     "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
-                     "torso_contact_pen" : torso_contact_pen * 0.0 * self.training_difficulty,
+        elif self.config["training_mode"].startswith("straight_rough"):
+            r_neg = {"pitch": np.square(pitch) * 0.0 * self.config["training_difficulty"],
+                     "roll": np.square(roll) * 0.0 * self.config["training_difficulty"],
+                     "zd": np.square(zd) * 0.05 * self.config["training_difficulty"], # 0.1
+                     "yd": np.square(yd) * 0.05 * self.config["training_difficulty"], # 0.1
+                     "phid": np.square(phid) * 0.01 * self.config["training_difficulty"], # 0.02
+                     "thd": np.square(thd) * 0.01 * self.config["training_difficulty"], # 0.02
+                     "quantile_pen": quantile_pen * 0.0 * self.config["training_difficulty"] * (self.step_ctr > 10),
+                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.config["training_difficulty"] * (self.step_ctr > 10),
+                     "torso_contact_pen" : torso_contact_pen * 0.0 * self.config["training_difficulty"],
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.01 * self.training_difficulty * (self.step_ctr > 10), 1), # 0.02
-                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
+                         total_work_pen * 0.01 * self.config["training_difficulty"] * (self.step_ctr > 10), 1), # 0.02
+                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.config["training_difficulty"]}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
             r_pos_sum = sum(r_pos.values())
@@ -445,19 +425,19 @@ class HexapodBulletEnv(gym.Env):
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
-        elif self.training_mode == "straight_no_pen":
-            r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
-                     "roll": np.square(roll) * 0.0 * self.training_difficulty,
-                     "zd": np.square(zd) * 0.0 * self.training_difficulty, # 0.1
-                     "yd": np.square(yd) * 0.0 * self.training_difficulty, # 0.1
-                     "phid": np.square(phid) * 0.0 * self.training_difficulty, # 0.02
-                     "thd": np.square(thd) * 0.0 * self.training_difficulty, # 0.02
-                     "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
-                     "torso_contact_pen" : torso_contact_pen * 0.0 * self.training_difficulty,
+        elif self.config["training_mode"] == "straight_no_pen":
+            r_neg = {"pitch": np.square(pitch) * 0.0 * self.config["training_difficulty"],
+                     "roll": np.square(roll) * 0.0 * self.config["training_difficulty"],
+                     "zd": np.square(zd) * 0.0 * self.config["training_difficulty"], # 0.1
+                     "yd": np.square(yd) * 0.0 * self.config["training_difficulty"], # 0.1
+                     "phid": np.square(phid) * 0.0 * self.config["training_difficulty"], # 0.02
+                     "thd": np.square(thd) * 0.0 * self.config["training_difficulty"], # 0.02
+                     "quantile_pen": quantile_pen * 0.0 * self.config["training_difficulty"] * (self.step_ctr > 10),
+                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.config["training_difficulty"] * (self.step_ctr > 10),
+                     "torso_contact_pen" : torso_contact_pen * 0.0 * self.config["training_difficulty"],
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10), 1), # 0.03
-                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
+                         total_work_pen * 0.00 * self.config["training_difficulty"] * (self.step_ctr > 10), 1), # 0.03
+                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.config["training_difficulty"]}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 4, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 1.0, -1, 1)}
             r_pos_sum = sum(r_pos.values())
@@ -465,28 +445,28 @@ class HexapodBulletEnv(gym.Env):
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
             if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
                 print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
-        elif self.training_mode == "turn_left":
+        elif self.config["training_mode"] == "turn_left":
             r_neg = torso_contact_pen * 0.2 + np.square(pitch) * 0.2 + np.square(roll) * 0.2 + unsuitable_position_pen * 0.1
             r_pos = torso_angular_vel[2] * 1.
             r = np.clip(r_pos - r_neg, -3, 3)
-        elif self.training_mode == "turn_right":
+        elif self.config["training_mode"] == "turn_right":
             r_neg = torso_contact_pen * 0.2 + np.square(pitch) * 0.2 + np.square(
                 roll) * 0.2 + unsuitable_position_pen * 0.1
             r_pos = -torso_angular_vel[2] * 1.
             r = np.clip(r_pos - r_neg, -3, 3)
-        elif self.training_mode.startswith("stairs"):
-            r_neg = {"pitch": np.square(pitch) * 0.0 * self.training_difficulty,
-                     "roll": np.square(roll) * 0.0 * self.training_difficulty,
-                     "zd": np.square(zd) * 0.0 * self.training_difficulty,
-                     "yd": np.square(yd) * 0.0 * self.training_difficulty,
-                     "phid": np.square(phid) * 0.00 * self.training_difficulty,
-                     "thd": np.square(thd) * 0.0 * self.training_difficulty,
-                     "quantile_pen": quantile_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10),
-                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.training_difficulty * (self.step_ctr > 10),
-                     "torso_contact_pen": torso_contact_pen * 0.0 * self.training_difficulty,
+        elif self.config["training_mode"].startswith("stairs"):
+            r_neg = {"pitch": np.square(pitch) * 0.0 * self.config["training_difficulty"],
+                     "roll": np.square(roll) * 0.0 * self.config["training_difficulty"],
+                     "zd": np.square(zd) * 0.0 * self.config["training_difficulty"],
+                     "yd": np.square(yd) * 0.0 * self.config["training_difficulty"],
+                     "phid": np.square(phid) * 0.00 * self.config["training_difficulty"],
+                     "thd": np.square(thd) * 0.0 * self.config["training_difficulty"],
+                     "quantile_pen": quantile_pen * 0.0 * self.config["training_difficulty"] * (self.step_ctr > 10),
+                     "symmetry_work_pen": symmetry_work_pen * 0.00 * self.config["training_difficulty"] * (self.step_ctr > 10),
+                     "torso_contact_pen": torso_contact_pen * 0.0 * self.config["training_difficulty"],
                      "total_work_pen": np.minimum(
-                         total_work_pen * 0.0 * self.training_difficulty * (self.step_ctr > 10), 1),
-                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.training_difficulty}
+                         total_work_pen * 0.0 * self.config["training_difficulty"] * (self.step_ctr > 10), 1),
+                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.config["training_difficulty"]}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 6, -1, 1),
                      "yaw_improvement_reward": np.clip(yaw_improvement_reward * 0.5, -1, 1)}
             r_pos_sum = sum(r_pos.values())
@@ -502,19 +482,19 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
 
-        if self.step_counter:
+        if self.config["step_counter"]:
             env_obs = np.concatenate((env_obs, [self.step_encoding]))
 
-        if self.variable_velocity:
+        if self.config["velocity_control"]:
             env_obs = np.concatenate((env_obs, [self.target_vel_nn_input]))
 
         self.step_ctr += 1
-        self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
+        self.step_encoding = (float(self.step_ctr) / self.config["max_steps"]) * 2 - 1
 
         if torso_pos[0] > self.max_dist_travelled:
             self.max_dist_travelled += 0.05
 
-        done = self.step_ctr > self.max_steps # or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+        done = self.step_ctr > self.config["max_steps"] # or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
@@ -541,8 +521,8 @@ class HexapodBulletEnv(gym.Env):
         self.joint_work_done_arr_list = []
         self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
-        #self.training_difficulty = np.clip(self.max_dist_travelled - 1.0, 0, 1)
-        self.training_difficulty = np.minimum(self.training_difficulty + self.training_difficulty_increment, 1.0)
+        #self.config["training_difficulty"] = np.clip(self.max_dist_travelled - 1.0, 0, 1)
+        self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1.0)
         self.max_dist_travelled = self.max_dist_travelled * 0.95
 
         if len(self.episode_rew_list) > 10:
@@ -552,29 +532,29 @@ class HexapodBulletEnv(gym.Env):
         self.episode_rew_list = []
 
         # Calculate target velocity
-        if self.variable_velocity:
+        if self.config["velocity_control"]:
             self.target_vel_nn_input = np.random.rand() * 2 - 1
-            self.target_vel = 0.5 * (self.target_vel_nn_input + 1) * (max(self.target_vel_range) - min(self.target_vel_range)) + min(self.target_vel_range)
+            self.config["target_vel"] = 0.5 * (self.target_vel_nn_input + 1) * (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"])) + min(self.config["target_vel_range"])
 
-        if self.force_target_velocity or True:
-            self.target_vel = self.forced_target_velocity
-            self.target_vel_nn_input = 2 * ((self.target_vel - min(self.target_vel_range)) / (max(self.target_vel_range) - min(self.target_vel_range))) - 1
+        if self.config["force_target_velocity"]:
+            self.config["target_vel"] = self.config["forced_target_velocity"]
+            self.target_vel_nn_input = 2 * ((self.config["target_vel"] - min(self.config["target_vel_range"])) / (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"]))) - 1
 
         if self.episode_ctr % 100 == 0 and self.episode_ctr > 100:
-            print("--------- CURRENT TRAINING DIFFICULTY: {}".format(self.training_difficulty))
+            print("--------- CURRENT TRAINING DIFFICULTY: {}".format(self.config["training_difficulty"]))
 
         # Calculate encoding for current step
-        self.step_encoding = (float(self.step_ctr) / self.max_steps) * 2 - 1
+        self.step_encoding = (float(self.step_ctr) / self.config["max_steps"]) * 2 - 1
 
         # Change heightmap with small probability
-        if np.random.rand() < self.env_change_prob and not self.terrain_name == "flat":
+        if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
             self.generate_rnd_env()
 
         # Get heightmap height at robot position
         if self.terrain is None:
             spawn_height = 0
         else:
-            spawn_height = 0.5 * np.max(self.terrain_hm[self.env_length // 2 - 3:self.env_length // 2 + 3, self.env_width // 2 - 3 : self.env_width // 2 + 3]) * self.mesh_scale_vert
+            spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
         rnd_rot = np.random.rand() * 1.0 - 0.5
@@ -588,7 +568,7 @@ class HexapodBulletEnv(gym.Env):
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=[0] * 18,
-                                    forces=[self.max_joint_force] * 18,
+                                    forces=[self.config["max_joint_force"]] * 18,
                                     physicsClientId=self.client_ID)
 
         for i in range(30):
@@ -607,7 +587,7 @@ class HexapodBulletEnv(gym.Env):
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.config["max_steps"]):
                 nn_obs = T.FloatTensor(obs).unsqueeze(0)
                 action = policy(nn_obs).detach()
                 obs, r, done, od, = self.step(action[0].numpy(), render=True)
@@ -647,7 +627,7 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/hexapod_config.yaml") as f:
+    with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)

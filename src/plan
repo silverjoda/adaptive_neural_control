@@ -60,7 +60,6 @@ MAML:
 # PG logging improvements:
 # Add activations before and after non-lin
 
-
 # VIR Projects:
 1) Learning model of fast RC buggie using script which gathers data and using it to
    learn a forward function of the buggie using supervised learning.
