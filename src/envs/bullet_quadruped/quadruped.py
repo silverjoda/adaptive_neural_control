@@ -146,13 +146,17 @@ class QuadrupedBulletEnv(gym.Env):
         pass
 
     def step(self, ctrl):
-        ctrl_clipped = np.clip(ctrl, -1, 1)
-        scaled_action = self.norm_to_rads(ctrl_clipped)
+
+        # TODO: reintroduce scaling for input and output, add joint constraints in URDF
+        # TODO: Try normalized action scaling (divide action so that largest is within +- 1 (before scaling))
+        # TODO: Add action penalization (not torque, but just action, to force it to stay close to initial position)
+
+        ctrl_scaled = ctrl
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(12),
                                     controlMode=p.POSITION_CONTROL,
-                                    targetPositions=scaled_action,
-                                    forces=[1.4] * 12,
+                                    targetPositions=ctrl_scaled,
+                                    forces=[self.config["max_joint_force"]] * 12,
                                     positionGains=[0.02] * 12,
                                     velocityGains=[0.01] * 12,
                                     physicsClientId=self.client_ID)
@@ -174,11 +178,13 @@ class QuadrupedBulletEnv(gym.Env):
         r_pos = (velocity_rew * 1.0) / self.config["max_steps"] * 100
         r = np.clip(r_pos - r_neg, -3, 3)
 
-        scaled_joint_angles = self.rads_to_norm(joint_angles)
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts)).astype(np.float32)
+        env_obs = np.concatenate((joint_angles, torso_quat, contacts)).astype(np.float32)
 
         self.step_ctr += 1
-        done = self.step_ctr > self.config["max_steps"] or np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+        overturned = np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
+        done = self.step_ctr > self.config["max_steps"] or overturned
+
+        r = r if not overturned else -3
 
         return env_obs, r, done, {}
 
@@ -231,7 +237,7 @@ class QuadrupedBulletEnv(gym.Env):
             for i, a in enumerate(test_acts):
                 for j in range(n_steps):
                     # a = list(np.random.randn(3))
-                    scaled_obs, _, _, _ = self.step(a * 4)
+                    scaled_obs, _, _, _ = self.step(np.array(a * 4))
                 _, _, _, _, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
                 if VERBOSE:
                     print("Obs rads: ", joint_angles)

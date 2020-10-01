@@ -20,7 +20,7 @@ def parse_args():
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
     parser.add_argument('--algo_config', type=str, default="configs/td3_default_config.yaml", required=False,
-                        help='Algorithm config flie name. ')
+                        help='Algorithm config file name. ')
     parser.add_argument('--env_config', type=str, required=True,
                         help='Env config file name. ')
     parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')

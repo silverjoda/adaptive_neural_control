@@ -56,10 +56,10 @@ def train(env, policy, config):
             it += 1
             if it > config["iters"]:
                 break
-            if it % 30 == 0:
-                vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
-                T.save(policy.state_dict(), sdir)
-                print("Saved agent, {}".format(sdir))
+            # if it % 30 == 0:
+            #     vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
+            #     T.save(policy.state_dict(), sdir)
+            #     print("Saved agent, {}".format(sdir))
 
             X = es.ask()
 
@@ -85,7 +85,7 @@ def parse_args():
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
     parser.add_argument('--algo_config', type=str, default="configs/pg_default_config.yaml", required=False,
-                        help='Algorithm config flie name. ')
+                        help='Algorithm config file name. ')
     parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
                         help='Env config file name. ')
     parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
@@ -119,7 +119,7 @@ def test_agent(env, policy):
             action = policy(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
             obs, reward, done, info = env.step(action)
             cum_rew += reward
-            env.render()
+
             if done:
                 print(cum_rew)
                 break

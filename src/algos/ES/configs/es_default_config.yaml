@@ -1,9 +1,9 @@
 "algo_name" : "ES"
 "policy_type" : "slp"
 "default_session_ID" : "TST"
-"activation_fun" : "F.leaky_relu"
-"cma_std" : 0.1
-"iters" : 20
+"activation_fun" : "T.tanh"
+"cma_std" : 0.2
+"iters" : 100
 "batchsize" : 20
 "weight_decay" : 0.0000
 "normalize_rewards" : False

@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         args = sys.argv
 
-    from src.envs.bullet_cartpole.hangpole_goal_cont_variable.hangpole_goal_cont_variable import \
+    from src.envs.bullet_cartpole_to_be_parsed.hangpole_goal_cont_variable.hangpole_goal_cont_variable import \
         HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
