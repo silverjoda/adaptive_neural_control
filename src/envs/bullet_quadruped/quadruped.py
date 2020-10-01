@@ -146,10 +146,10 @@ class QuadrupedBulletEnv(gym.Env):
         pass
 
     def step(self, ctrl):
-
-
-
-        ctrl_scaled = ctrl
+        if np.max(ctrl) > 1:
+            ctrl_normalized = ctrl / np.abs(np.max(ctrl))
+        ctrl_clipped = np.clip(ctrl, -1, 1)
+        ctrl_scaled = self.norm_to_rads(ctrl)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(12),
                                     controlMode=p.POSITION_CONTROL,
@@ -176,7 +176,7 @@ class QuadrupedBulletEnv(gym.Env):
         r_pos = (velocity_rew * 1.0) / self.config["max_steps"] * 100
         r = np.clip(r_pos - r_neg, -3, 3)
 
-        env_obs = np.concatenate((joint_angles, torso_quat, contacts)).astype(np.float32)
+        env_obs = np.concatenate((self.rads_to_norm(joint_angles), torso_quat, contacts)).astype(np.float32)
 
         self.step_ctr += 1
         overturned = np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
@@ -254,7 +254,7 @@ class QuadrupedBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/quadruped_config.yaml") as f:
+    with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrupedBulletEnv(env_config)
