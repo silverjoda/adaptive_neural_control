@@ -195,9 +195,10 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
         loss.backward()
 
         # Log gradients
-        for p in policy.named_parameters():
-            config["tb_writer"].add_histogram(f"Batch Grads/{p[0]}_grads_unclipped", p[1].grad,
-                                              global_step=global_step_ctr)
+        if config["tb_writer"] is not None:
+            for p in policy.named_parameters():
+                config["tb_writer"].add_histogram(f"Batch Grads/{p[0]}_grads_unclipped", p[1].grad,
+                                                  global_step=global_step_ctr)
 
         #T.nn.utils.clip_grad_norm_(policy.parameters(), 0.7)
 
@@ -301,8 +302,11 @@ if __name__=="__main__":
 
     policy = my_utils.make_policy(env, config)
 
-    tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
-    config["tb_writer"] = tb_writer
+    if config["log_tb_all"]:
+        tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
+        config["tb_writer"] = tb_writer
+    else:
+        config["tb_writer"] = None
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()
