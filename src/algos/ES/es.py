@@ -21,7 +21,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 from torch.utils.tensorboard import SummaryWriter
 
 
-def f_wrapper(env, policy, animate):
+def f_wrapper(env, policy):
     def f(w):
         reward = 0
         done = False
@@ -35,43 +35,32 @@ def f_wrapper(env, policy, animate):
 
             obs, rew, done, _ = env.step(act.squeeze(0).numpy())
 
-            if animate:
-                env.render()
-
             reward += rew
 
         return -reward
     return f
 
 def train(env, policy, config):
-
-    obs_dim, act_dim = env.obs_dim, env.act_dim
-
     w = parameters_to_vector(policy.parameters()).detach().numpy()
     es = cma.CMAEvolutionStrategy(w, config["cma_std"])
-    f = f_wrapper(env, policy, config["animate"])
+    f = f_wrapper(env, policy)
 
-    weight_decay = 0.01
+    sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        f'agents/{config["session_ID"]}_es_policy.p')
 
-    print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
-          " N_params: {}, ID: {}, wd = {}, comments: ...".format(
-        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w), ID, weight_decay))
+    print(f'N_params: {len(w)}')
 
     it = 0
     try:
         while not es.stop():
             it += 1
-            if it > iters:
+            if it > config["iters"]:
                 break
             if it % 30 == 0:
-                sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    "agents/{}_{}_{}_es.p".format(env.__class__.__name__, policy.__class__.__name__,
-                                                                  ID))
                 vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
-                T.save(policy, sdir)
-                print("Saved checkpoint, {}".format(sdir))
+                T.save(policy.state_dict(), sdir)
+                print("Saved agent, {}".format(sdir))
 
-            print(es.mean.min(), es.mean.max())
             X = es.ask()
 
             es.tell(X, [f(x) for x in X])
@@ -79,6 +68,9 @@ def train(env, policy, config):
 
     except KeyboardInterrupt:
         print("User interrupted process.")
+
+    T.save(policy.state_dict(), sdir)
+    print("Saved agent, {}".format(sdir))
 
     return es.result.fbest
 
@@ -119,15 +111,12 @@ def import_env(name):
         raise TypeError
     return env_fun
 
-def make_action_noise_fun(config):
-    return None
-
 def test_agent(env, policy):
     for _ in range(100):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action = policy.sample_action(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
+            action = policy(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
