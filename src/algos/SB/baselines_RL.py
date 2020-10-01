@@ -1,6 +1,7 @@
 from stable_baselines import PPO2, A2C, TD3, SAC
 from stable_baselines.common.vec_env import SubprocVecEnv
 from stable_baselines.common.callbacks import CheckpointCallback
+import src.my_utils as my_utils
 import time
 import random
 import string
@@ -32,19 +33,6 @@ def read_config(path):
     with open(path) as f:
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
-
-def import_env(name):
-    if name == "hexapod":
-        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
-    elif name == "quadrotor":
-        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
-    elif name == "buggy":
-        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
-    elif name == "quadruped":
-        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    else:
-        raise TypeError
-    return env_fun
 
 def make_model(config, env, action_noise_fun):
     model = None
@@ -135,7 +123,7 @@ if __name__ == "__main__":
         config["session_ID"] = "TST"
 
     # Import correct env by name
-    env_fun = import_env(env_config["env_name"])
+    env_fun = my_utils.import_env(env_config["env_name"])
 
     if args["train"] or socket.gethostname() == "goedel":
         env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')

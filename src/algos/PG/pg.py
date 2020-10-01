@@ -4,7 +4,6 @@ import time
 import numpy as np
 import torch as T
 import src.my_utils as my_utils
-import src.policies as policies
 import random
 import string
 import socket
@@ -52,6 +51,9 @@ def make_rollout(env, policy):
     return observations, next_observations, clean_actions, noisy_actions, rewards, terminals, step_ctr_list
 
 def train(env, policy, config):
+    sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        f'agents/{config["session_ID"]}_pg_policy.p')
+
     policy_optim = None
     if config["policy_optim"] == "rmsprop":
         policy_optim = T.optim.RMSprop(policy.parameters(),
@@ -171,9 +173,10 @@ def train(env, policy, config):
             batch_rewards = []
             batch_terminals = []
 
+            # Decay log_std
+            policy.log_std -= config["log_std_decay"]
+
         if i % 500 == 0 and i > 0:
-            sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, config["session_ID"]))
             T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, config))
 
@@ -257,19 +260,6 @@ def read_config(path):
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
-def import_env(name):
-    if name == "hexapod":
-        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
-    elif name == "quadrotor":
-        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
-    elif name == "buggy":
-        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
-    elif name == "quadruped":
-        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    else:
-        raise TypeError
-    return env_fun
-
 def make_action_noise_fun(config):
     return None
 
@@ -278,26 +268,14 @@ def test_agent(env, policy):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action = policy.sample_action(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
-            obs, reward, done, info = env.step(action)
+            action, noisy_action = policy.sample_action(my_utils.to_tensor(obs, True))
+            obs, reward, done, info = env.step(action.detach().squeeze(0).numpy())
             cum_rew += reward
             env.render()
             if done:
                 print(cum_rew)
                 break
     env.close()
-
-def make_policy(env, config):
-    if config["policy_type"] == "slp":
-        return policies.SLP_PG(env, config)
-    elif config["policy_type"] == "mlp":
-        return policies.NN_PG(env, config)
-    elif config["policy_type"] == "mlp_def":
-        return policies.NN_PG_DEF(env, config)
-    elif config["policy_type"] == "rnn":
-        return policies.RNN_PG(env, config)
-    else:
-        raise TypeError
 
 if __name__=="__main__":
     args = parse_args()
@@ -318,10 +296,10 @@ if __name__=="__main__":
         config["session_ID"] = "TST"
 
     # Import correct env by name
-    env_fun = import_env(config["env_name"])
+    env_fun = my_utils.import_env(config["env_name"])
     env = env_fun(config)
 
-    policy = make_policy(env, config)
+    policy = my_utils.make_policy(env, config)
 
     tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
     config["tb_writer"] = tb_writer

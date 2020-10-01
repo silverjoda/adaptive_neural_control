@@ -98,19 +98,6 @@ def read_config(path):
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
-def import_env(name):
-    if name == "hexapod":
-        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
-    elif name == "quadrotor":
-        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
-    elif name == "buggy":
-        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
-    elif name == "quadruped":
-        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
-    else:
-        raise TypeError
-    return env_fun
-
 def test_agent(env, policy):
     for _ in range(100):
         obs = env.reset()
@@ -124,18 +111,6 @@ def test_agent(env, policy):
                 print(cum_rew)
                 break
     env.close()
-
-def make_policy(env, config):
-    if config["policy_type"] == "slp":
-        return policies.SLP_PG(env, config)
-    elif config["policy_type"] == "mlp":
-        return policies.NN_PG(env, config)
-    elif config["policy_type"] == "mlp_def":
-        return policies.NN_PG_DEF(env, config)
-    elif config["policy_type"] == "rnn":
-        return policies.RNN_PG(env, config)
-    else:
-        raise TypeError
 
 if __name__=="__main__":
     args = parse_args()
@@ -156,10 +131,10 @@ if __name__=="__main__":
         config["session_ID"] = "TST"
 
     # Import correct env by name
-    env_fun = import_env(config["env_name"])
+    env_fun = my_utils.import_env(config["env_name"])
     env = env_fun(config)
 
-    policy = make_policy(env, config)
+    policy = my_utils.make_policy(env, config)
 
     tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
     config["tb_writer"] = tb_writer

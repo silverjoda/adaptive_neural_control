@@ -87,8 +87,12 @@ class CartPoleBulletEnv():
         pass
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
+        noisy_ctrl = ctrl + np.random.randn(self.act_dim) * 0.1
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=noisy_ctrl * 100)
         p.stepSimulation()
+
+        if self.config["animate"]:
+            time.sleep(self.config["sim_timestep"])
 
         self.step_ctr += 1
         pendulum_height = p.getLinkState(self.cartpole, 1)[0][2]
@@ -103,12 +107,14 @@ class CartPoleBulletEnv():
 
         done = self.step_ctr > self.config["max_steps"] or pendulum_height < 0.2
 
-        return np.array(obs), r, done, {}
+        obs = np.array(obs).astype(np.float32)
+
+        return obs, r, done, {}
 
     def reset(self):
         self.step_ctr = 0
-        p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=np.random.randn() * 0.001)
-        p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=np.random.randn() * 0.001)
+        p.resetJointState(self.cartpole, 0, targetValue=np.random.randn() * 0.05, targetVelocity=np.random.randn() * 0.003)
+        p.resetJointState(self.cartpole, 1, targetValue=np.random.randn() * 0.05, targetVelocity=np.random.randn() * 0.003)
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
@@ -166,7 +172,7 @@ class CartPoleBulletEnv():
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/cartpole_balance_config.yaml") as f:
+    with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = CartPoleBulletEnv(env_config)

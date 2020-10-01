@@ -1,6 +1,7 @@
 import torch as T
 import numpy as np
 import math
+import src.policies as policies
 
 def to_tensor(x, add_batchdim=False):
     x = T.FloatTensor(x.astype(np.float32))
@@ -8,36 +9,29 @@ def to_tensor(x, add_batchdim=False):
         x = x.unsqueeze(0)
     return x
 
-def quat_to_rpy(quat):
-    qw, qx, qy, qz = quat
-
-    sinr_cosp = 2 * (qw * qx + qy * qz)
-    cosr_cosp = 1 - 2 * (qx * qx + qy * qy)
-    roll = np.arctan2(sinr_cosp, cosr_cosp)
-
-    sinp = 2 * (qw * qy - qz * qx)
-    if (np.abs(sinp) >= 1):
-        pitch = np.copysign(np.pi / 2, sinp)
+def import_env(name):
+    if name == "hexapod":
+        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
+    elif name == "quadrotor":
+        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
+    elif name == "buggy":
+        from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
+    elif name == "quadruped":
+        from src.envs.bullet_quadruped.quadruped import QuadrupedBulletEnv as env_fun
+    elif name == "cartpole_balance":
+        from src.envs.bullet_cartpole_balance.cartpole_balance import CartPoleBulletEnv as env_fun
     else:
-        pitch = np.arcsin(sinp)
+        raise TypeError
+    return env_fun
 
-    siny_cosp = 2.0 * (qw * qz + qx * qy)
-    cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
-    yaw = np.arctan2(siny_cosp, cosy_cosp)
-
-    return roll, pitch, yaw
-
-def rpy_to_quat(roll, pitch, yaw ):
-    cy = np.cos(yaw * 0.5)
-    sy = np.sin(yaw * 0.5)
-    cp = np.cos(pitch * 0.5)
-    sp = np.sin(pitch * 0.5)
-    cr = np.cos(roll * 0.5)
-    sr = np.sin(roll * 0.5)
-
-    q0 = cy * cp * cr + sy * sp * sr
-    q1 = cy * cp * sr - sy * sp * cr
-    q2 = sy * cp * sr + cy * sp * cr
-    q3 = sy * cp * cr - cy * sp * sr
-
-    return (q0, q1, q2, q3)
+def make_policy(env, config):
+    if config["policy_type"] == "slp":
+        return policies.SLP_PG(env, config)
+    elif config["policy_type"] == "mlp":
+        return policies.NN_PG(env, config)
+    elif config["policy_type"] == "mlp_def":
+        return policies.NN_PG_DEF(env, config)
+    elif config["policy_type"] == "rnn":
+        return policies.RNN_PG(env, config)
+    else:
+        raise TypeError
