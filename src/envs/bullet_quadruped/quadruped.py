@@ -147,9 +147,7 @@ class QuadrupedBulletEnv(gym.Env):
 
     def step(self, ctrl):
 
-        # TODO: reintroduce scaling for input and output, add joint constraints in URDF
-        # TODO: Try normalized action scaling (divide action so that largest is within +- 1 (before scaling))
-        # TODO: Add action penalization (not torque, but just action, to force it to stay close to initial position)
+
 
         ctrl_scaled = ctrl
         p.setJointMotorControlArray(bodyUniqueId=self.robot,

@@ -71,3 +71,8 @@ MAML:
 7) Hardware wireless sensor using neural nets (only for hw people)
 8) Voice masking for anonymity
 
+# TODO: reintroduce scaling for input and output, add joint constraints in URDF
+# TODO: Try normalized action scaling (divide action so that largest is within +- 1 (before scaling))
+# TODO: Add action penalization (not torque, but just action, to force it to stay close to initial position)
+# TODO: Fix up pendulum balance and swingup for a fast reference ENV
+

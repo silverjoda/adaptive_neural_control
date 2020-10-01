@@ -181,11 +181,8 @@ class BuggyBulletEnv(gym.Env):
 
             self.reset()
 
-    def kill(self):
-        p.disconnect()
-
     def close(self):
-        self.kill()
+        p.disconnect()
 
 if __name__ == "__main__":
     import yaml
