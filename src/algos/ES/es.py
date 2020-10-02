@@ -50,6 +50,11 @@ def train(env, policy, config):
     it = 0
     try:
         while not es.stop():
+            if config["tb_writer"] is not None:
+                for p in policy.named_parameters():
+                    config["tb_writer"].add_histogram(f"Network/{p[0]}_param", p[1],
+                                                      global_step=it)
+
             it += 1
             if it > config["iters"]:
                 break
@@ -127,8 +132,11 @@ if __name__=="__main__":
 
     policy = my_utils.make_policy(env, config)
 
-    tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
-    config["tb_writer"] = tb_writer
+    if config["log_tb_all"]:
+        tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
+        config["tb_writer"] = tb_writer
+    else:
+        config["tb_writer"] = None
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()
