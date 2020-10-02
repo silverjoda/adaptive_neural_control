@@ -256,13 +256,14 @@ class HexapodBulletEnv(gym.Env):
                                                   numHeightfieldColumns=self.config["env_width"])
         else:
             heightfieldData = height_map.ravel(order='F')
-            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"] , self.config["mesh_scale_lat"] , self.config["mesh_scale_vert"]],
+            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"], self.config["mesh_scale_lat"], self.config["mesh_scale_vert"]],
                                                   heightfieldTextureScaling=(self.config["env_width"] - 1) / 2,
                                                   heightfieldData=heightfieldData,
                                                   numHeightfieldRows=height_map.shape[0],
                                                   numHeightfieldColumns=height_map.shape[1],
                                                   physicsClientId=self.client_ID)
         terrain = p.createMultiBody(0, terrainShape, physicsClientId=self.client_ID)
+
         p.resetBasePositionAndOrientation(terrain, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
         return terrain
 
