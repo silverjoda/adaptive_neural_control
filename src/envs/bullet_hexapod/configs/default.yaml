@@ -1,7 +1,7 @@
 "env_name" : "hexapod"
 "max_steps" : 90
 "step_counter" : True
-"terrain_name" : "tiles"
+"terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
