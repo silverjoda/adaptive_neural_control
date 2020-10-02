@@ -70,4 +70,4 @@ MAML:
 7) Hardware wireless sensor using neural nets (only for hw people)
 8) Voice masking for anonymity
 
-# TODO: Revise hexapod and train using all algos (including a2c and td3)
+# TODO: Train hexapod using ES, td3 and a3c (longer time). After, add velocities and train again

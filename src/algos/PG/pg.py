@@ -208,6 +208,7 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
     return loss.data
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config, global_step_ctr):
+    exit()
 
     # Get action log probabilities
     log_probs = policy.log_probs(batch_states, batch_actions)

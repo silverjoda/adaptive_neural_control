@@ -514,11 +514,11 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
             done = True
 
-        if abs(torso_pos[0]) > 3 or abs(torso_pos[1]) > 2.5 or abs(torso_pos[2]) > 2.5:
+        if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 3 or abs(torso_pos[2]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
-        return env_obs, r, done, {}
+        return env_obs.astype(np.float32), r, done, {}
 
     def reset(self, force_randomize=None):
         if self.config["randomize_env"]:
