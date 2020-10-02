@@ -1,5 +1,5 @@
 "algo_name" : "TD3"
-"default_session_ID" : "TST_td3"
+"default_session_ID" : "TST"
 "n_envs" : 1
 "iters" : 400000
 "gamma" : 0.99
