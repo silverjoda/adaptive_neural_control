@@ -51,7 +51,6 @@ Room pi:
 # TODO: Install PI near bed
 
 MAML:
-# TODO: Fix quadruped env and for baseline and make sure PG works (test on pendulum and hexapod to see where problem is)
 # TODO: Make PG into a class and make FULL DEBUG.
 # TODO: Test MAML
 # TODO: Make recurrent MAML
@@ -69,3 +68,22 @@ MAML:
 6) Atlas entering and leaving car using RL
 7) Hardware wireless sensor using neural nets (only for hw people)
 8) Voice masking for anonymity
+
+# TODO: Find out why PG sucks balls on hard env
+# TODO: Continue with MAML
+
+# TODO: Vir materials:
+
+# Video explaining learning:
+- Using a programmed approach vs learning approach for a general problem
+- Creating a suitable solution space (either directly or through a function approximator)
+- Function approximation, universality and turing completeness
+- Priors, from LUT to hard-priored function
+- Optimization of solution, brute force & random search
+
+# Video explaining cv1
+
+# Video explaining hw1
+
+- Quadruped environment
+- Heuristics for random search optimization

@@ -65,6 +65,7 @@ def train(env, policy, config):
     except KeyboardInterrupt:
         print("User interrupted process.")
 
+    vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
     T.save(policy.state_dict(), sdir)
     print("Saved agent, {}".format(sdir))
 
