@@ -84,6 +84,7 @@ MAML:
 # Video explaining cv1
 
 # Video explaining hw1
-
+- Not supervised learning
+- Add mathematical formulation of distribution of states and maximization
 - Quadruped environment
 - Heuristics for random search optimization
