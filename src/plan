@@ -71,3 +71,7 @@ MAML:
 8) Voice masking for anonymity
 
 # TODO: Train hexapod using ES, td3 and a3c (longer time). After, add velocities and train again
+# TODO: Add correct dirs to gitignore in pycharm
+# TODO: Make apropriate scripts for deployment to goedel
+# TODO: Put policies to train in goedel
+# TODO: Add tb full logging to ES for linear policy

@@ -3,7 +3,7 @@
 "default_session_ID" : "TST"
 "activation_fun" : "F.leaky_relu"
 "cma_std" : 0.1
-"iters" : 2w00
+"iters" : 200
 "batchsize" : 20
 "weight_decay" : 0.0000
 "normalize_rewards" : False
