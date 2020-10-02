@@ -92,7 +92,7 @@ class QuadrupedBulletEnv(gym.Env):
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
+        self.randomized_robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
                              "tibia_fl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
                              "tibia_fr": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
                              "tibia_rl": 0.12 + (np.random.rand() * 0.12 - 0.06) * self.config["randomize_env"],
@@ -110,22 +110,22 @@ class QuadrupedBulletEnv(gym.Env):
         with open(output_urdf, "w") as out_file:
             for line in buf:
                 if line.rstrip('\n').endswith('<!--tibia_fl-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_fl"]}"/>\n')
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.randomized_robot_params["tibia_fl"]}"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_fr-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_fr"]}"/>\n')
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.randomized_robot_params["tibia_fr"]}"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rl-->'):
-                    out_file.write(f'          <cylinder radius="0.01" length="{self.robot_params["tibia_rl"]}"/>\n')
+                    out_file.write(f'          <cylinder radius="0.01" length="{self.randomized_robot_params["tibia_rl"]}"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rr-->'):
-                    out_file.write(f'          <cylinder radius="0.01e" length="{self.robot_params["tibia_rr"]}"/>\n')
+                    out_file.write(f'          <cylinder radius="0.01e" length="{self.randomized_robot_params["tibia_rr"]}"/>\n')
 
                 elif line.rstrip('\n').endswith('<!--tibia_fl_2-->'):
-                    out_file.write(f'        <origin xyz=".0 {self.robot_params["tibia_fl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                    out_file.write(f'        <origin xyz=".0 {self.randomized_robot_params["tibia_fl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_fr_2-->'):
-                    out_file.write(f'        <origin xyz=".0 {-self.robot_params["tibia_fr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                    out_file.write(f'        <origin xyz=".0 {-self.randomized_robot_params["tibia_fr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rl_2-->'):
-                    out_file.write(f'        <origin xyz=".0 {self.robot_params["tibia_rl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                    out_file.write(f'        <origin xyz=".0 {self.randomized_robot_params["tibia_rl"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
                 elif line.rstrip('\n').endswith('<!--tibia_rr_2-->'):
-                    out_file.write(f'        <origin xyz=".0 {-self.robot_params["tibia_rr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
+                    out_file.write(f'        <origin xyz=".0 {-self.randomized_robot_params["tibia_rr"] / 2.} 0.0" rpy="1.5708 0 0" />"/>\n')
                 else:
                     out_file.write(line)
 
@@ -134,7 +134,7 @@ class QuadrupedBulletEnv(gym.Env):
 
         if self.config["randomize_env"]:
             # Change base mass
-            p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
+            p.changeDynamics(robot, -1, mass=self.randomized_robot_params["mass"])
 
         for i in range(4):
             p.changeDynamics(robot, 3 * i + 2, lateralFriction=self.config["lateral_friction"])
