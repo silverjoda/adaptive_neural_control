@@ -33,5 +33,9 @@ def make_policy(env, config):
         return policies.NN_PG_DEF(env, config)
     elif config["policy_type"] == "rnn":
         return policies.RNN_PG(env, config)
+    if config["policy_type"] == "cyc_quad":
+        return policies.CYC_QUAD(env, config)
+    if config["policy_type"] == "cyc_hex":
+        return policies.CYC_HEX(env, config)
     else:
         raise TypeError
