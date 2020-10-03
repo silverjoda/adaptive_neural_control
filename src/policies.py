@@ -441,6 +441,37 @@ class RNN_RES_PG(nn.Module):
 
         return log_density.sum(2, keepdim=True)
 
+class CYC_QUAD(nn.Module):
+    def __init__(self, env, config):
+        super(CYC_QUAD, self).__init__()
+
+        self.phase_stepsize = 0.1
+        self.phase_global = 0
+
+        self.phase_scale_global = T.nn.Parameter(T.ones(1))
+        self.phase_offset_joints = T.nn.Parameter(T.zeros(12))
+
+    def forward(self, _):
+        act = T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0)
+        self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
+        return act
+
+class CYC_HEX(nn.Module):
+    def __init__(self, env, config):
+        super(CYC_HEX, self).__init__()
+
+        self.phase_stepsize = 0.1
+        self.phase_global = 0
+
+        self.phase_scale_global = T.nn.Parameter(T.ones(1))
+        self.phase_offset_joints = T.nn.Parameter(T.zeros(18))
+
+    def forward(self, _):
+        act = T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0)
+        self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
+        return act
+
+
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
