@@ -72,8 +72,6 @@ MAML:
 # TODO: Find out why PG sucks balls on hard env
 # TODO: Continue with MAML
 
-# TODO: Vir materials:
-
 # Video explaining learning:
 - Using a programmed approach vs learning approach for a general problem
 - Creating a suitable solution space (either directly or through a function approximator)
@@ -81,10 +79,4 @@ MAML:
 - Priors, from LUT to hard-priored function
 - Optimization of solution, brute force & random search
 
-# Video explaining cv1
 
-# Video explaining hw1
-- Not supervised learning
-- Add mathematical formulation of distribution of states and maximization
-- Quadruped environment
-- Heuristics for random search optimization

@@ -216,7 +216,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 40 * self.config["training_difficulty"] # 30-40
+            height = self.config["perlin_height"] * self.config["training_difficulty"] # 30-40
 
             M = math.ceil(self.config["env_width"])
             N = math.ceil(self.config["env_length"])
@@ -312,7 +312,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Randomize robot params
         self.randomized_robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
-                                        "max_actuator_velocity": self.config["max_actuator_velocity"] + (np.random.rand() * 2.0 - 1.0) * self.config["max_actuator_velocity"],
+                                        "max_actuator_velocity": self.config["max_actuator_velocity"] + (np.random.rand() * 2.0 - 1.0) * self.config["randomize_env"],
                                         "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
                                         "max_joint_force": self.config["max_joint_force"] + np.random.rand() * 1. * self.config["randomize_env"]}
 
@@ -334,7 +334,7 @@ class HexapodBulletEnv(gym.Env):
         else:
             ctrl_normalized = ctrl
 
-        ctrl_clipped = np.clip(ctrl, -1, 1)
+        ctrl_clipped = np.clip(np.array(ctrl) * self.config["action_scaler"], -1, 1)
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
         for i in range(18):
