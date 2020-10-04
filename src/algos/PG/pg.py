@@ -16,7 +16,6 @@ from torch.utils.tensorboard import SummaryWriter
 def make_rollout(env, policy):
     obs = env.reset()
     observations = []
-    next_observations = []
     clean_actions = []
     noisy_actions = []
     rewards = []
@@ -44,11 +43,10 @@ def make_rollout(env, policy):
         clean_actions.append(clean_act)
         noisy_actions.append(noisy_act)
         rewards.append(r)
-        next_observations.append(obs)
         if done: break
     terminals = [False] * len(observations)
     terminals[-1] = True
-    return observations, next_observations, clean_actions, noisy_actions, rewards, terminals, step_ctr_list
+    return observations, clean_actions, noisy_actions, rewards, terminals, step_ctr_list
 
 def train(env, policy, config):
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -82,7 +80,7 @@ def train(env, policy, config):
     t1 = time.time()
 
     for i in range(config["iters"]):
-        observations, next_observations, clean_actions, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
+        observations, clean_actions, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
 
         batch_observations.extend(observations)
         batch_actions.extend(actions)
@@ -140,20 +138,17 @@ def train(env, policy, config):
 
             # Scale rewards
             if config["normalize_rewards"]:
-                batch_rewards_normalized = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
-                batch_rewards_for_advantages = batch_rewards_normalized
+                batch_rewards_for_advantages = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
             else:
                 batch_rewards_for_advantages = batch_rewards
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages_MC(config["gamma"],
-                                                  batch_rewards_for_advantages,
-                                                  batch_terminals)
+            batch_advantages = calc_advantages_MC(config["gamma"], batch_rewards_for_advantages, batch_terminals)
 
             if config["ppo_update_iters"] > 0:
                 loss_policy = update_policy_ppo(policy, policy_optim, batch_observations, batch_actions, batch_advantages, config, global_step_ctr)
             else:
-                loss_policy = update_policy(policy, policy_optim, batch_observations, batch_actions, batch_advantages, config)
+                loss_policy = update_policy(policy, policy_optim, batch_observations, batch_actions, batch_advantages, config, global_step_ctr)
 
             # Post update log
             if config["tb_writer"] is not None:
@@ -208,8 +203,6 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
     return loss.data
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config, global_step_ctr):
-    exit()
-
     # Get action log probabilities
     log_probs = policy.log_probs(batch_states, batch_actions)
 

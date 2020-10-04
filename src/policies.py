@@ -471,7 +471,6 @@ class CYC_HEX(nn.Module):
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act
 
-
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
