@@ -1,5 +1,5 @@
 "env_name" : "hexapod"
-"max_steps" : 90
+"max_steps" : 70
 "step_counter" : True
 "terrain_name" : "perlin"
 "training_mode" : "straight"

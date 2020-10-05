@@ -50,34 +50,30 @@ class NN_PG(nn.Module):
         self.act_dim = env.act_dim
 
         self.hid_dim = config["policy_hid_dim"]
-        self.activation_fun = F.leaky_relu
-
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.m1 = nn.LayerNorm(self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.m2 = nn.LayerNorm(self.hid_dim)
-        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
         if self.config["policy_residual_connection"]:
             self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
 
-        self.activaton_fun = eval(config["activation_fun"])
+        self.activation_fun = eval(config["activation_fun"])
         self.log_std = T.zeros(1, self.act_dim)
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
         T.nn.init.zeros_(self.fc1.bias)
         T.nn.init.zeros_(self.fc2.bias)
         T.nn.init.zeros_(self.fc3.bias)
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
         T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
-        for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
-
+        #for p in self.parameters():
+        #    p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
-        x = self.activation_fun(self.m1(self.fc1(x)))
-        x = self.activation_fun(self.m2(self.fc2(x)))
+        x = self.activation_fun(self.fc1(x))
+        x = self.activation_fun(self.fc2(x))
         if self.config["policy_residual_connection"]:
             x = self.fc3(x) + self.fc_res(x)
         else:
@@ -91,7 +87,7 @@ class NN_PG(nn.Module):
         return act, T.normal(act, T.exp(self.log_std))
 
     def sample_action_w_activations(self, l0):
-        l1_activ =self.fc1(l0)
+        l1_activ = self.fc1(l0)
         l1_normed = self.m1(l1_activ)
         l1_nonlin = self.activaton_fun(l1_normed)
 

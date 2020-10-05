@@ -31,6 +31,10 @@ def make_rollout(env, policy):
         noisy_act = noisy_act.squeeze(0).detach().numpy()
         obs, r, done, _ = env.step(noisy_act)
 
+        clean_actions.append(clean_act)
+        noisy_actions.append(noisy_act)
+        rewards.append(r)
+
         if abs(r) > 5:
             logging.warning("Warning! high reward ({})".format(r))
 
@@ -40,9 +44,6 @@ def make_rollout(env, policy):
         if config["animate"]:
             env.render()
 
-        clean_actions.append(clean_act)
-        noisy_actions.append(noisy_act)
-        rewards.append(r)
         if done: break
     terminals = [False] * len(observations)
     terminals[-1] = True
@@ -169,7 +170,7 @@ def train(env, policy, config):
             batch_terminals = []
 
             # Decay log_std
-            policy.log_std -= config["log_std_decay"]
+            #policy.log_std -= config["log_std_decay"]
 
         if i % 500 == 0 and i > 0:
             T.save(policy.state_dict(), sdir)
@@ -202,6 +203,7 @@ def update_policy_ppo(policy, policy_optim, batch_states, batch_actions, batch_a
 
     return loss.data
 
+
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages, config, global_step_ctr):
     # Get action log probabilities
     log_probs = policy.log_probs(batch_states, batch_actions)
@@ -230,6 +232,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
             targets.append(R.view(1, 1))
         targets = T.cat(list(reversed(targets)))
     return targets
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
