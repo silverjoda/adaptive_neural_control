@@ -5,7 +5,7 @@
 "policy_optim" : "adam"
 "log_tb_all" : False
 "momentum" : 0.0
-"learning_rate" : 0.0003
+"learning_rate" : 0.0005
 "weight_decay" : 0.0000
 "log_std_decay" : 0.0000
 "iters" : 200000
