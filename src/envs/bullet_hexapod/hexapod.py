@@ -91,8 +91,8 @@ class HexapodBulletEnv(gym.Env):
 
         # Change contact friction for legs and torso
         for i in range(6):
-            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.config["lateral_friction"])
-        p.changeDynamics(self.robot, -1, lateralFriction=self.config["lateral_friction"])
+            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
+        p.changeDynamics(self.robot, -1, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
 
         # Episodal parameters
         self.step_ctr = 0
@@ -246,14 +246,14 @@ class HexapodBulletEnv(gym.Env):
         if self.config["terrain_name"] == "flat":
             return
         if hasattr(self, 'terrain'):
-            p.removeBody(self.terrain, self.client_ID)
+            p.removeBody(self.terrain, physicsClientId=self.client_ID)
         if height_map is None:
             heightfieldData = np.zeros(self.config["env_width"] * self.config["max_steps"])
             terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"] , self.config["mesh_scale_lat"] , self.config["mesh_scale_vert"]],
                                                   heightfieldTextureScaling=(self.config["env_width"] - 1) / 2,
                                                   heightfieldData=heightfieldData,
                                                   numHeightfieldRows=self.config["max_steps"],
-                                                  numHeightfieldColumns=self.config["env_width"])
+                                                  numHeightfieldColumns=self.config["env_width"], physicsClientId=self.client_ID)
         else:
             heightfieldData = height_map.ravel(order='F')
             terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"], self.config["mesh_scale_lat"], self.config["mesh_scale_vert"]],
@@ -308,7 +308,7 @@ class HexapodBulletEnv(gym.Env):
     def load_robot(self):
         # Remove old robot
         if self.robot is not None:
-            p.removeBody(self.robot)
+            p.removeBody(self.robot, physicsClientId=self.client_ID)
 
         # Randomize robot params
         self.randomized_robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
@@ -320,11 +320,11 @@ class HexapodBulletEnv(gym.Env):
 
         if self.config["randomize_env"]:
             # Change base mass
-            p.changeDynamics(robot, -1, mass=self.randomized_robot_params["mass"])
+            p.changeDynamics(robot, -1, mass=self.randomized_robot_params["mass"], physicsClientId=self.client_ID)
 
         for i in range(6):
-            p.changeDynamics(robot, 3 * i + 2, lateralFriction=self.randomized_robot_params["lateral_friction"])
-        p.changeDynamics(robot, -1, lateralFriction=self.randomized_robot_params["lateral_friction"])
+            p.changeDynamics(robot, 3 * i + 2, lateralFriction=self.randomized_robot_params["lateral_friction"], physicsClientId=self.client_ID)
+        p.changeDynamics(robot, -1, lateralFriction=self.randomized_robot_params["lateral_friction"], physicsClientId=self.client_ID)
 
         return robot
 
@@ -414,7 +414,7 @@ class HexapodBulletEnv(gym.Env):
             # r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
             #          "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
             #          "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 2.0}
-            r_neg = {"yaw_pen" : yaw * 0.3}
+            r_neg = {"yaw_pen" : np.square(yaw) * 0.7}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0., -1, 1)}
             r_pos_sum = sum(r_pos.values())
