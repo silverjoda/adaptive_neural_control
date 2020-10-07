@@ -29,6 +29,8 @@ def make_policy(env, config):
         return policies.SLP_PG(env, config)
     elif config["policy_type"] == "mlp":
         return policies.NN_PG(env, config)
+    elif config["policy_type"] == "mlp_old":
+        return policies.NN_PG_OLD(env, config)
     elif config["policy_type"] == "mlp_def":
         return policies.NN_PG_DEF(env, config)
     elif config["policy_type"] == "rnn":
