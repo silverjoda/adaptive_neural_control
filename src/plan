@@ -69,8 +69,9 @@ MAML:
 7) Hardware wireless sensor using neural nets (only for hw people)
 8) Voice masking for anonymity
 
-# TODO: Find out why PG sucks balls on hard env
-# TODO: Continue with MAML
+# TODO: Try PG with various hyperparams to see which such
+# TODO: Continue training hexapod
+# TODO: Continue with MAML now that PG is ok (try with PG and also ES)
 
 # Video explaining learning:
 - Using a programmed approach vs learning approach for a general problem
