@@ -15,7 +15,7 @@ class SimplexNoise(ActionNoise):
 
     def __call__(self) -> np.ndarray:
         self.idx += 1
-        return np.array([(self.noisefun.noise2d(x=self.idx / 10, y=i*10) + self.noisefun.noise2d(x=self.idx / 50, y=i*10)) * 0 for i in range(self.dim)])
+        return np.array([(self.noisefun.noise2d(x=self.idx / 10, y=i*10) + self.noisefun.noise2d(x=self.idx / 50, y=i*10)) for i in range(self.dim)])
 
     def __repr__(self) -> str:
         return 'Opensimplex Noise()'.format()

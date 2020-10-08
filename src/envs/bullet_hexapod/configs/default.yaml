@@ -6,7 +6,7 @@
 "velocity_control" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.2
-"action_scaler" : 1.0
+"action_scaler" : .99
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 0.1

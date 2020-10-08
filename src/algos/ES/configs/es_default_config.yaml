@@ -4,7 +4,7 @@
 "activation_fun" : "F.leaky_relu"
 "log_tb_all" : True
 "cma_std" : 0.2
-"iters" : 20
+"iters" : 500
 "batchsize" : 20
 "weight_decay" : 0.0000
 "normalize_rewards" : False

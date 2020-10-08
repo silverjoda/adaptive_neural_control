@@ -14,28 +14,23 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 from torch.utils.tensorboard import SummaryWriter
 
 def make_rollout(env, policy):
+    #noisefun = my_utils.SimplexNoise(env.act_dim)
     obs = env.reset()
     observations = []
     clean_actions = []
     noisy_actions = []
     rewards = []
-    step_ctr_list = []
-    episode_rew = 0
-    step_ctr = 0
     while True:
-        step_ctr_list.append(step_ctr)
         observations.append(obs)
 
         clean_act, noisy_act = policy.sample_action(my_utils.to_tensor(obs, True))
         clean_act = clean_act.squeeze(0).detach().numpy()
         noisy_act = noisy_act.squeeze(0).detach().numpy()
+        #noisy_act = clean_act + noisefun()
         obs, r, done, _ = env.step(noisy_act)
 
         if abs(r) > 5:
             logging.warning("Warning! high reward ({})".format(r))
-
-        step_ctr += 1
-        episode_rew += r
 
         if config["animate"]:
             env.render()
@@ -46,7 +41,7 @@ def make_rollout(env, policy):
         if done: break
     terminals = [False] * len(observations)
     terminals[-1] = True
-    return observations, clean_actions, noisy_actions, rewards, terminals, step_ctr_list
+    return observations, clean_actions, noisy_actions, rewards, terminals
 
 def train(env, policy, config):
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -250,14 +245,6 @@ def parse_args():
     args = parser.parse_args()
     return args.__dict__
 
-def read_config(path):
-    with open(path) as f:
-        data = yaml.load(f, Loader=yaml.FullLoader)
-    return data
-
-def make_action_noise_fun(config):
-    return None
-
 def test_agent(env, policy):
     for _ in range(100):
         obs = env.reset()
@@ -274,8 +261,8 @@ def test_agent(env, policy):
 
 if __name__=="__main__":
     args = parse_args()
-    algo_config = read_config(args["algo_config"])
-    env_config = read_config(args["env_config"])
+    algo_config = my_utils.read_config(args["algo_config"])
+    env_config = my_utils.read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
     print(config)

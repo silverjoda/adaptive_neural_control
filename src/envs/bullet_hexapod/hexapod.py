@@ -107,6 +107,9 @@ class HexapodBulletEnv(gym.Env):
         self.max_dist_travelled = 0
         self.target_vel_nn_input = 0
 
+    def set_randomize_env(self, rnd):
+        self.config["randomize_env"] = rnd
+
     def generate_rnd_env(self):
         if self.config["terrain_name"] is None:
             self.terrain_hm = np.zeros((self.config["env_length"], self.config["env_width"]))
