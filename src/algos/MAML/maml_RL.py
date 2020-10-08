@@ -154,7 +154,7 @@ class MAMLRLTrainer:
         tst_loss = -T.mean(log_probs * advantages_T)
         grad = T.autograd.grad(tst_loss, policy.parameters())
 
-        return grad, trn_loss.detach().numpy(), tst_loss.detach().numpy()
+        return grad, T.mean(batch_rewards).detach().numpy(), T.mean(rewards_T).detach().numpy()
 
     def meta_train(self):
         meta_trn_opt = T.optim.SGD(self.policy.parameters(),

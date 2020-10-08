@@ -70,8 +70,9 @@ MAML:
 8) Voice masking for anonymity
 
 # TODO: Try PG with various hyperparams to see which such
+# TODO: Check PG again with full tb
+# TODO: Check MAML with full gradients
 # TODO: Continue training hexapod
-# TODO: Continue with MAML now that PG is ok (try with PG and also ES)
 
 # Video explaining learning:
 - Using a programmed approach vs learning approach for a general problem
