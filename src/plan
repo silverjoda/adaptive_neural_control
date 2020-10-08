@@ -72,6 +72,8 @@ MAML:
 # TODO: Try PG with various hyperparams to see which such
 # TODO: Check PG again with full tb
 # TODO: Check MAML with full gradients (Also try hyperparams from initial paper)
+# TODO: Try ES MAML
+# TODO: MAML for model training
 # TODO: Continue training hexapod
 
 # Video explaining learning:
