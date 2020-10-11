@@ -351,19 +351,24 @@ class HexapodBulletEnv(gym.Env):
                                     maxVelocity=self.randomized_robot_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
-        # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        leg_ctr = 0
-        obs_sequential = []
-        for i in range(self.config["sim_steps_per_iter"]):
-            if leg_ctr < 6:
-                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-                leg_ctr += 1
-            p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.config["animate"] or render) and True: time.sleep(0.0038)
+        # # Read out joint angles sequentially (to simulate servo daisy chain delay)
+        # leg_ctr = 0
+        # obs_sequential = []
+        # for i in range(self.config["sim_steps_per_iter"]):
+        #     if leg_ctr < 6:
+        #         obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+        #         leg_ctr += 1
+        #     p.stepSimulation(physicsClientId=self.client_ID)
+        #     if (self.config["animate"] or render) and True: time.sleep(0.0038)
+        #
+        # joint_angles_skewed = []
+        # for o in obs_sequential:
+        #     joint_angles_skewed.append(o[0])
 
-        joint_angles_skewed = []
-        for o in obs_sequential:
-            joint_angles_skewed.append(o[0])
+        # TODO: When changing back to multiple sims per step, change joint_angles to skewed joint angles below
+
+        p.stepSimulation(physicsClientId=self.client_ID)
+        if (self.config["animate"] or render) and True: time.sleep(0.004)
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
@@ -371,7 +376,7 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
-        scaled_joint_angles = self.rads_to_norm(joint_angles_skewed)
+        scaled_joint_angles = self.rads_to_norm(joint_angles) # Change back to skewed here
         scaled_joint_angles_true = self.rads_to_norm(joint_angles)
         scaled_joint_angles = np.clip(scaled_joint_angles, -2, 2)
         scaled_joint_angles_true = np.clip(scaled_joint_angles_true, -2, 2)

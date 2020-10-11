@@ -20,7 +20,6 @@ import src.policies as policies
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 from torch.utils.tensorboard import SummaryWriter
 
-
 def f_wrapper(env, policy):
     def f(w):
         reward = 0

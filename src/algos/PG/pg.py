@@ -75,7 +75,7 @@ def train(env, policy, config):
     t1 = time.time()
 
     for i in range(config["iters"]):
-        observations, clean_actions, actions, rewards, terminals, step_ctr_list = make_rollout(env, policy)
+        observations, clean_actions, actions, rewards, terminals = make_rollout(env, policy)
 
         batch_observations.extend(observations)
         batch_actions.extend(actions)
