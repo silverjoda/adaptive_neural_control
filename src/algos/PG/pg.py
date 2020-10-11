@@ -246,6 +246,8 @@ def parse_args():
     return args.__dict__
 
 def test_agent(env, policy):
+    env.test_agent(policy)
+    exit()
     for _ in range(100):
         obs = env.reset()
         cum_rew = 0
@@ -258,6 +260,7 @@ def test_agent(env, policy):
                 print(cum_rew)
                 break
     env.close()
+
 
 if __name__=="__main__":
     args = parse_args()

@@ -351,24 +351,24 @@ class HexapodBulletEnv(gym.Env):
                                     maxVelocity=self.randomized_robot_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
-        # # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        # leg_ctr = 0
-        # obs_sequential = []
-        # for i in range(self.config["sim_steps_per_iter"]):
-        #     if leg_ctr < 6:
-        #         obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-        #         leg_ctr += 1
-        #     p.stepSimulation(physicsClientId=self.client_ID)
-        #     if (self.config["animate"] or render) and True: time.sleep(0.0038)
-        #
-        # joint_angles_skewed = []
-        # for o in obs_sequential:
-        #     joint_angles_skewed.append(o[0])
+        # Read out joint angles sequentially (to simulate servo daisy chain delay)
+        leg_ctr = 0
+        obs_sequential = []
+        for i in range(self.config["sim_steps_per_iter"]):
+            if leg_ctr < 6:
+                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+                leg_ctr += 1
+            p.stepSimulation(physicsClientId=self.client_ID)
+            if (self.config["animate"] or render) and True: time.sleep(0.0038)
+
+        joint_angles_skewed = []
+        for o in obs_sequential:
+            joint_angles_skewed.append(o[0])
 
         # TODO: When changing back to multiple sims per step, change joint_angles to skewed joint angles below
 
-        p.stepSimulation(physicsClientId=self.client_ID)
-        if (self.config["animate"] or render) and True: time.sleep(0.004)
+        #p.stepSimulation(physicsClientId=self.client_ID)
+        #if (self.config["animate"] or render) and True: time.sleep(0.004)
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
@@ -376,7 +376,7 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
-        scaled_joint_angles = self.rads_to_norm(joint_angles) # Change back to skewed here
+        scaled_joint_angles = self.rads_to_norm(joint_angles_skewed) # Change back to skewed here
         scaled_joint_angles_true = self.rads_to_norm(joint_angles)
         scaled_joint_angles = np.clip(scaled_joint_angles, -2, 2)
         scaled_joint_angles_true = np.clip(scaled_joint_angles_true, -2, 2)
@@ -585,21 +585,50 @@ class HexapodBulletEnv(gym.Env):
 
         return obs
 
-    def test(self, policy, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        total_rew = 0
-        for i in range(100):
+    def test_agent(self, policy):
+        # TODO: This is not what we want though. At given state we should look at action and simulate that one action until convergence. THEN  do the back and forth
+        import src.my_utils as my_utils
+        for _ in range(100):
             obs = self.reset()
-            cr = 0
-            for j in range(self.config["max_steps"]):
-                nn_obs = T.FloatTensor(obs).unsqueeze(0)
-                action = policy(nn_obs).detach()
-                obs, r, done, od, = self.step(action[0].numpy(), render=True)
-                cr += r
-                total_rew += r
-            print("Total episode reward: {}".format(cr))
-        print("Total reward: {}".format(total_rew))
+            cum_rew = 0
+            ctr = 0
+            while True:
+                torso_pos_prev, torso_quat_prev, _, _, joint_angles_prev, _, _, _, _ = self.get_obs()
+                action, noisy_action = policy.sample_action(my_utils.to_tensor(obs, True))
+                obs, reward, done, info = self.step(action.detach().squeeze(0).numpy())
+                cum_rew += reward
+                self.render()
+
+                if ctr % 10 == 0:
+                    p.setJointMotorControlArray(bodyUniqueId=self.robot,
+                                                jointIndices=range(18),
+                                                controlMode=p.POSITION_CONTROL,
+                                                targetPositions=[0] * 18,
+                                                forces=[0] * 18,
+                                                physicsClientId=self.client_ID)
+
+                    torso_pos_cur, torso_quat_cur, _, _, joint_angles_cur, _, _, _, _ = self.get_obs()
+
+                    for _ in range(5):
+                        p.resetBasePositionAndOrientation(self.robot, torso_pos_prev, torso_quat_prev,
+                                                          physicsClientId=self.client_ID)
+                        [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k
+                         in
+                         range(18)]
+                        p.stepSimulation(physicsClientId=self.client_ID)
+                        time.sleep(1)
+                        p.resetBasePositionAndOrientation(self.robot, torso_pos_cur, torso_quat_cur,
+                                                          physicsClientId=self.client_ID)
+                        [p.resetJointState(self.robot, k, joint_angles_cur[k], 0, physicsClientId=self.client_ID) for k in
+                         range(18)]
+                        p.stepSimulation(physicsClientId=self.client_ID)
+                        time.sleep(1)
+                ctr += 1
+
+                if done:
+                    print(cum_rew)
+                    break
+        env.close()
 
     def test_leg_coordination(self):
         np.set_printoptions(precision=3)
