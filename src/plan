@@ -75,7 +75,7 @@ MAML:
 # TODO: Try ES MAML
 # TODO: MAML for model training
 # TODO: Continue training hexapod
-
+k
 # Video explaining learning:
 - Using a programmed approach vs learning approach for a general problem
 - Creating a suitable solution space (either directly or through a function approximator)
