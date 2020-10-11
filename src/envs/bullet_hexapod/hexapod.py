@@ -352,23 +352,23 @@ class HexapodBulletEnv(gym.Env):
                                     physicsClientId=self.client_ID)
 
         # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        leg_ctr = 0
-        obs_sequential = []
-        for i in range(self.config["sim_steps_per_iter"]):
-            if leg_ctr < 6:
-                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-                leg_ctr += 1
-            p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.config["animate"] or render) and True: time.sleep(0.0038)
-
-        joint_angles_skewed = []
-        for o in obs_sequential:
-            joint_angles_skewed.append(o[0])
+        # leg_ctr = 0
+        # obs_sequential = []
+        # for i in range(self.config["sim_steps_per_iter"]):
+        #     if leg_ctr < 6:
+        #         obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+        #         leg_ctr += 1
+        #     p.stepSimulation(physicsClientId=self.client_ID)
+        #     if (self.config["animate"] or render) and True: time.sleep(0.0038)
+        #
+        # joint_angles_skewed = []
+        # for o in obs_sequential:
+        #     joint_angles_skewed.append(o[0])
 
         # TODO: When changing back to multiple sims per step, change joint_angles to skewed joint angles below
 
-        #p.stepSimulation(physicsClientId=self.client_ID)
-        #if (self.config["animate"] or render) and True: time.sleep(0.004)
+        p.stepSimulation(physicsClientId=self.client_ID)
+        if (self.config["animate"] or render) and True: time.sleep(0.004)
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
@@ -376,7 +376,7 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
-        scaled_joint_angles = self.rads_to_norm(joint_angles_skewed) # Change back to skewed here
+        scaled_joint_angles = self.rads_to_norm(joint_angles) # Change back to skewed here
         scaled_joint_angles_true = self.rads_to_norm(joint_angles)
         scaled_joint_angles = np.clip(scaled_joint_angles, -2, 2)
         scaled_joint_angles_true = np.clip(scaled_joint_angles_true, -2, 2)
@@ -599,27 +599,22 @@ class HexapodBulletEnv(gym.Env):
                 cum_rew += reward
                 self.render()
 
-                if ctr % 10 == 0:
+                if ctr % 100 == 0 and ctr > 0 and False:
                     p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                                 jointIndices=range(18),
                                                 controlMode=p.POSITION_CONTROL,
                                                 targetPositions=[0] * 18,
                                                 forces=[0] * 18,
                                                 physicsClientId=self.client_ID)
-
-                    torso_pos_cur, torso_quat_cur, _, _, joint_angles_cur, _, _, _, _ = self.get_obs()
-
+                    joint_angles_desired = self.norm_to_rads(action.detach().squeeze(0).numpy())
                     for _ in range(5):
-                        p.resetBasePositionAndOrientation(self.robot, torso_pos_prev, torso_quat_prev,
-                                                          physicsClientId=self.client_ID)
                         [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k
                          in
                          range(18)]
                         p.stepSimulation(physicsClientId=self.client_ID)
                         time.sleep(1)
-                        p.resetBasePositionAndOrientation(self.robot, torso_pos_cur, torso_quat_cur,
-                                                          physicsClientId=self.client_ID)
-                        [p.resetJointState(self.robot, k, joint_angles_cur[k], 0, physicsClientId=self.client_ID) for k in
+
+                        [p.resetJointState(self.robot, k, joint_angles_desired[k], 0, physicsClientId=self.client_ID) for k in
                          range(18)]
                         p.stepSimulation(physicsClientId=self.client_ID)
                         time.sleep(1)
