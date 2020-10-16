@@ -1,29 +1,31 @@
 import math
-
-
+from fractions import Fraction
 
 def solution(pegs):
 
-    # Get lower and upper bounds on all gears
+    # Get lower and upper bounds on all gears.
     gear_lbs, gear_ubs = get_bounds(pegs)
 
-    nom = 0
-    denom = 1
-    sol = 0
+    # Initialize variables.
+    solution = Fraction(1, 1)
+    final_ratio = 0
 
+    # Go!
     while True:
-        if sol > 2:
-            nom += 1
+        if final_ratio > 2:
+            # Increment numerator by 1.
+            solution += Fraction(1, solution.denominator)
         else:
-            denom += 1
+            # Increment denominator by 1.
+            solution -= Fraction(solution.numerator, solution.denominator ** 2 + solution.denominator) # <- Lol.
 
-        if upper_bound_reached():
-            return [-1, -1]
+        # If we are searching beyond the bound of the first gear then there is no solution.
+        if solution > gear_lbs[0]:
+           return [-1, -1]
 
-        sol = forward(nom, denom, pegs)
-        if sol == 2:
-            return simplify(nom, denom)
-
+        final_ratio = forward(solution, pegs, gear_lbs, gear_ubs)
+        if final_ratio == 2:
+            return solution.numerator, solution.denominator
 
 def get_bounds(pegs):
     N = len(pegs)
@@ -50,21 +52,38 @@ def get_bounds(pegs):
 
     return gear_lbs, gear_ubs
 
-def upper_bound_reached():
-    pass
+def forward(solution, pegs, gear_lbs, gear_ubs):
+    N = len(pegs)
+    current_gear_size = solution
+    current_ratio = 1
 
-def forward(nom, denom, pegs):
-    pass
+    for i in range(1, N):
+        # Calculate manditory size of next gear
+        dist_to_peg = pegs[i] - pegs[i - 1] - current_gear_size
 
-def simplify(nom, denom):
-    return 0
+        # Calculate the resulting ratio
+        current_ratio = current_ratio * current_gear_size * dist_to_peg
 
-def intify(nom, denom):
-    return 0
+        current_gear_size = dist_to_peg
+
+        # Invalid solution
+        if dist_to_peg < 1:
+            return -1
+
+        # Prune
+        if current_gear_size < gear_lbs[i] or current_gear_size > gear_ubs[i]:
+            return -1
+
+    current_ratio
 
 def main():
     print(solution([4, 30, 50]))
     print(solution([4, 17, 50]))
 
 if __name__=="__main__":
+    a = Fraction(3, 4)
+    a -= Fraction(a.numerator, a.denominator ** 2 + a.denominator)
+
+    print(a)
+    exit()
     main()
