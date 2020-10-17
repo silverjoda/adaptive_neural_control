@@ -1,10 +1,18 @@
 import math
+import numpy as np
 from fractions import Fraction
+import time
 
 def solution(pegs):
+    N = len(pegs)
+
+    # Check if even or odd, this affects the output ratio differential w.r.t input
+    even_n_pegs = N % 2 == 0
 
     # Get lower and upper bounds on all gears.
     gear_lbs, gear_ubs = get_bounds(pegs)
+    if any(np.array(gear_lbs) < 1):
+        return [-1, -1]
 
     # Initialize variables.
     solution = Fraction(gear_lbs[0])
@@ -13,21 +21,22 @@ def solution(pegs):
     while True:
         final_ratio = forward(solution, pegs, gear_lbs, gear_ubs)
 
-        if final_ratio < 1:
-            return [-1, -1]
-
+        # Found solution
         if final_ratio == 2:
             return solution.numerator, solution.denominator
 
-        if final_ratio > 2:
+        if (final_ratio > 2 and not even_n_pegs) or (final_ratio < 2 and even_n_pegs):
             # Increment numerator by 1.
-            solution += Fraction(1, solution.denominator)
+            solution._numerator += 1
         else:
+            # If we are already at 1 then nowhere to go
+            if solution <= 1: return [-1, -1]
+
             # Increment denominator by 1.
-            solution -= Fraction(solution.numerator, solution.denominator ** 2 + solution.denominator) # <- Lol.
+            solution._denomerator += 1
 
         # If we are searching beyond the bound of the first gear then there is no solution.
-        if solution > gear_ubs[0]:
+        if solution > gear_ubs[0] + 1:
            return [-1, -1]
 
 def get_bounds(pegs):
@@ -51,7 +60,7 @@ def get_bounds(pegs):
             continue
 
         dist_to_right_peg = pegs[i + 1] - pegs[i]
-        gear_lbs[i] = dist_to_right_peg - gear_ubs[i + 1]
+        gear_lbs[i] = max(dist_to_right_peg - gear_ubs[i + 1], 1)
         gear_ubs[i] = dist_to_right_peg - gear_lbs[i + 1]
 
     return gear_lbs, gear_ubs
@@ -65,14 +74,14 @@ def forward(solution, pegs, gear_lbs, gear_ubs):
         # Calculate mandatory size of next gear
         size_of_gear_to_the_right = pegs[i] - pegs[i - 1] - current_gear_size
 
+        # Invalid solution
+        if size_of_gear_to_the_right < 1:
+            return -1
+
         # Calculate the resulting ratio
         current_ratio = current_ratio * (current_gear_size / size_of_gear_to_the_right)
 
         current_gear_size = size_of_gear_to_the_right
-
-        # Invalid solution
-        if size_of_gear_to_the_right < 1:
-            return -1
 
         # Prune
         if current_gear_size < gear_lbs[i] or current_gear_size > gear_ubs[i]:
@@ -105,17 +114,42 @@ def main():
     print(solution([4, 17, 50]))
 
 if __name__=="__main__":
-    # import numpy as np
-    # N = 3
-    # pegs = [4, 30, 50]#np.cumsum(np.random.randint(1,100,size=N))
-    # print(pegs)
-    # for i in np.linspace(1, 30, 100):
-    #     print(f"Solution: {i}: ratio: {forward_test(i, pegs)}")
-    # exit()
 
-    # a = Fraction(3, 4)
-    # a -= Fraction(a.numerator, a.denominator ** 2 + a.denominator)
+    # for c in range(2, 100):
+    #     for a in range(c+1, 100):
+    #         for b in range(c+1, 100):
+    #             for k in range(1, 100):
+    #                 if a + b == c * k and (a / c) == (b / c) * 2 and a % c != 0 and b % c != 0:
+    #                     print(a,b,c,k)
+    #                     exit()
     #
-    # print(a)
     # exit()
-    main()
+    rnd_seed = 6653151 # int((time.time() % 1) * 10000000)
+    np.random.seed(rnd_seed)
+    print(rnd_seed)
+    pegs = [1, 5] # [15, 31, 42, 55, 66] should have a fraction output maybe
+    print(f"solution: {solution(pegs)}")
+    for sol in np.linspace(1, 20, 20):
+        print(sol, forward_test(sol, pegs))
+
+    # N = 3
+    # for i in range(1000):
+    #     pegs = np.cumsum(np.random.randint(2, 50, size=N))
+    #     sol = solution(pegs)
+    #     if sol == [-1, -1]:
+    #         print("---------------")
+    #         print("---------------")
+    #         print(f"For Pegs: {pegs}")
+    #         clean = False
+    #         for sol in np.linspace(1, 50, 100):
+    #             result = forward_test(sol, pegs)
+    #             print(sol, result)
+    #             if result == -1 and clean: break
+    #             if result != -1:
+    #                 clean = True
+    #         print("===============")
+    #         print("===============")
+
+        #print(i, pegs, sol)
+
+    #main()
