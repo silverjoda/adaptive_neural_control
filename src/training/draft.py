@@ -13,10 +13,13 @@ def solution(pegs):
     while True:
         final_ratio = forward(solution, pegs, gear_lbs, gear_ubs)
 
+        if final_ratio < 1:
+            return [-1, -1]
+
         if final_ratio == 2:
             return solution.numerator, solution.denominator
 
-        if final_ratio < 2:
+        if final_ratio > 2:
             # Increment numerator by 1.
             solution += Fraction(1, solution.denominator)
         else:
@@ -26,8 +29,6 @@ def solution(pegs):
         # If we are searching beyond the bound of the first gear then there is no solution.
         if solution > gear_ubs[0]:
            return [-1, -1]
-
-
 
 def get_bounds(pegs):
     N = len(pegs)
@@ -79,11 +80,39 @@ def forward(solution, pegs, gear_lbs, gear_ubs):
 
     return current_ratio
 
+def forward_test(solution, pegs):
+    N = len(pegs)
+    current_gear_size = solution
+    current_ratio = 1
+
+    for i in range(1, N):
+        # Calculate mandatory size of next gear
+        size_of_gear_to_the_right = pegs[i] - pegs[i - 1] - current_gear_size
+
+        # Invalid solution
+        if size_of_gear_to_the_right < 1:
+            return -1
+
+        # Calculate the resulting ratio
+        current_ratio = current_ratio * (current_gear_size / size_of_gear_to_the_right)
+
+        current_gear_size = size_of_gear_to_the_right
+
+    return current_ratio
+
 def main():
     print(solution([4, 30, 50]))
     print(solution([4, 17, 50]))
 
 if __name__=="__main__":
+    # import numpy as np
+    # N = 3
+    # pegs = [4, 30, 50]#np.cumsum(np.random.randint(1,100,size=N))
+    # print(pegs)
+    # for i in np.linspace(1, 30, 100):
+    #     print(f"Solution: {i}: ratio: {forward_test(i, pegs)}")
+    # exit()
+
     # a = Fraction(3, 4)
     # a -= Fraction(a.numerator, a.denominator ** 2 + a.denominator)
     #
