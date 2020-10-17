@@ -11,32 +11,34 @@ def solution(pegs):
 
     # Get lower and upper bounds on all gears.
     gear_lbs, gear_ubs = get_bounds(pegs)
-    if any(np.array(gear_lbs) < 1):
+    if (np.array(gear_lbs) < 1).any():
         return [-1, -1]
 
     # Initialize variables.
-    solution = Fraction(gear_lbs[0])
+    solution = [gear_lbs[0], 1]
 
     # Go!
     while True:
-        final_ratio = forward(solution, pegs, gear_lbs, gear_ubs)
+        final_ratio = forward(Fraction(*solution), pegs, gear_lbs, gear_ubs)
 
         # Found solution
         if final_ratio == 2:
-            return solution.numerator, solution.denominator
+            solution_simplified = Fraction(*solution)
+            return [solution_simplified.numerator, solution_simplified.denominator]
 
-        if (final_ratio > 2 and not even_n_pegs) or (final_ratio < 2 and even_n_pegs):
+        if ((final_ratio > 2) != even_n_pegs):
             # Increment numerator by 1.
-            solution._numerator += 1
+            solution[0] += 1
         else:
             # If we are already at 1 then nowhere to go
-            if solution <= 1: return [-1, -1]
+            if Fraction(*solution) <= gear_lbs[0]:
+                return [-1, -1]
 
             # Increment denominator by 1.
-            solution._denomerator += 1
+            solution[1] += 1
 
         # If we are searching beyond the bound of the first gear then there is no solution.
-        if solution > gear_ubs[0] + 1:
+        if Fraction(*solution) > gear_ubs[0] + 1:
            return [-1, -1]
 
 def get_bounds(pegs):
@@ -84,7 +86,7 @@ def forward(solution, pegs, gear_lbs, gear_ubs):
         current_gear_size = size_of_gear_to_the_right
 
         # Prune
-        if current_gear_size < gear_lbs[i] or current_gear_size > gear_ubs[i]:
+        if not(gear_lbs[i] <= current_gear_size <= gear_ubs[i]):
             return -1
 
     return current_ratio
@@ -120,36 +122,38 @@ if __name__=="__main__":
     #         for b in range(c+1, 100):
     #             for k in range(1, 100):
     #                 if a + b == c * k and (a / c) == (b / c) * 2 and a % c != 0 and b % c != 0:
-    #                     print(a,b,c,k)
-    #                     exit()
+    #                     print(a,b,c,k, [1, 1 + (a + b) / c])
+    #
     #
     # exit()
     rnd_seed = 6653151 # int((time.time() % 1) * 10000000)
     np.random.seed(rnd_seed)
-    print(rnd_seed)
-    pegs = [1, 5] # [15, 31, 42, 55, 66] should have a fraction output maybe
-    print(f"solution: {solution(pegs)}")
-    for sol in np.linspace(1, 20, 20):
-        print(sol, forward_test(sol, pegs))
+    # print(rnd_seed)
+    # pegs = [1, 18, 20] # [15, 31, 42, 55, 66] should have a fraction output maybe
+    # print(f"solution: {solution(pegs)}")
+    # for sol in np.linspace(1, 20, 20):
+    #     print(sol, forward_test(sol, pegs))
 
-    # N = 3
-    # for i in range(1000):
-    #     pegs = np.cumsum(np.random.randint(2, 50, size=N))
-    #     sol = solution(pegs)
-    #     if sol == [-1, -1]:
-    #         print("---------------")
-    #         print("---------------")
-    #         print(f"For Pegs: {pegs}")
-    #         clean = False
-    #         for sol in np.linspace(1, 50, 100):
-    #             result = forward_test(sol, pegs)
-    #             print(sol, result)
-    #             if result == -1 and clean: break
-    #             if result != -1:
-    #                 clean = True
-    #         print("===============")
-    #         print("===============")
+    N = 6
+    for i in range(100):
+        print(i)
+        pegs = np.cumsum(np.random.randint(2, 50, size=N))
+        sol = solution(pegs)
 
-        #print(i, pegs, sol)
+        if sol == [-1, -1] and False:
+            print("---------------")
+            print("---------------")
+            print(f"For Pegs: {pegs}")
+            clean = False
+            for sol in np.linspace(1, 50, 100):
+                result = forward_test(sol, pegs)
+                print(sol, result)
+                if result == -1 and clean: break
+                if result != -1:
+                    clean = True
+            print("===============")
+            print("===============")
+
+        print(i, pegs, sol)
 
     #main()
