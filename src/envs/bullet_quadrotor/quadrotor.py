@@ -1,6 +1,6 @@
 import os
 import time
-
+import math as m
 import gym
 import numpy as np
 import pybullet as p
@@ -23,7 +23,7 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 16
+        self.obs_dim = 10
         self.act_dim = 4
         self.parasitic_torque_dir_vec = [1,-1,-1,1]
 
@@ -94,10 +94,17 @@ class QuadrotorBulletEnv(gym.Env):
 
         return robot
 
+    def _quat_to_euler(self, w, x, y, z):
+        pitch =  -m.asin(2.0 * (x*z - w*y))
+        roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
+        yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
+        return (pitch, roll, yaw)
+
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
-        return torso_pos, torso_quat, torso_vel, torso_angular_vel
+        torso_euler = self._quat_to_euler(*torso_quat)
+        return torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
 
     def update_motor_vel(self, ctrl):
         self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.robot_params["motor_inertia_coeff"] +
@@ -131,25 +138,25 @@ class QuadrotorBulletEnv(gym.Env):
         self.update_motor_vel(ctrl)
 
         # Make turbulence near ground
-        motor_positions_near_ground = p.getLinkStates(self.robot, linkIndices=[1, 3, 5, 7])
-        turbulence_coeffs = self.calc_turbulence_coeffs([pos[0][2] for pos in motor_positions_near_ground])
+        #motor_positions_near_ground = p.getLinkStates(self.robot, linkIndices=[1, 3, 5, 7])
+        #turbulence_coeffs = self.calc_turbulence_coeffs([pos[0][2] for pos in motor_positions_near_ground])
 
         # Apply forces
         for i in range(4):
             motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
-                                          + self.current_motor_velocity_vec[i] * turbulence_coeffs[i], 0, 1)
+                                          + self.current_motor_velocity_vec[i], 0, 1)
             motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, motor_force_scaled],
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
 
-        self.apply_external_disturbances()
+        #self.apply_external_disturbances()
 
         p.stepSimulation()
         self.step_ctr += 1
 
-        torso_pos, torso_quat, torso_vel, torso_angular_vel = obs = self.get_obs()
+        torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
         r = np.mean(np.square(torso_pos - np.array(self.config["target_pos"])))

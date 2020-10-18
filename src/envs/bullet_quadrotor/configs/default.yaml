@@ -1,4 +1,5 @@
 "env_name" : quadrotor
+"controller_source" : "nn"
 "max_steps" : 1000
 "step_counter" : True
 "latent_input" : False
