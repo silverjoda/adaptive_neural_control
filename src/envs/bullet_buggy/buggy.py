@@ -1,13 +1,12 @@
 import os
 import time
-
+import math as m
 import gym
 import numpy as np
 import pybullet as p
 import pybullet_data
 from gym import spaces
 import torch as T
-
 import src.my_utils as my_utils
 
 class BuggyBulletEnv(gym.Env):
@@ -23,7 +22,7 @@ class BuggyBulletEnv(gym.Env):
 
         self.config = config
 
-        self.obs_dim = 9
+        self.obs_dim = 6
         self.act_dim = 2
 
         # Episode variables
@@ -39,18 +38,17 @@ class BuggyBulletEnv(gym.Env):
         p.setTimeStep(self.config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
+        self.wheels = [2, 3, 5, 7]
+        self.steering = [4, 6]
+
         self.robot = None
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        self.observation_space = spaces.Box(low=np.array([-1] * self.obs_dim), high=np.array([1] * self.obs_dim))
+        self.observation_space = spaces.Box(low=np.array([-4,-1,-1,-1,-np.pi,-1]), high=np.array([4, 1, 1, 1, np.pi, 1]))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
-        self.inactive_wheels = [3, 5, 7]
-        self.wheels = [2]
-        self.steering = [4, 6]
-
-        for wheel in self.inactive_wheels:
+        for wheel in self.wheels:
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
         # self.targetVelocitySlider = p.addUserDebugParameter("wheelVelocity", -100, 100, 0)
@@ -69,39 +67,39 @@ class BuggyBulletEnv(gym.Env):
 
     def load_robot(self):
         # Remove old robot
-        if self.robot is not None:
-            p.removeBody(self.robot)
+        if self.robot is None:
+            robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+                               physicsClientId=self.client_ID)
+        else:
+            robot = self.robot
 
         # Randomize robot params
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "front_wheels_friction": 0.5 + np.random.rand() * 2.5 * self.config["randomize_env"],
-                             "motor_force_multiplier": 50 + np.random.rand() * 30 * self.config["randomize_env"]}
-
-        if not self.config["randomize_env"]:
-            robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
-                               physicsClientId=self.client_ID)
-            return robot
-
-        # Write params to URDF file
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
-            buf = in_file.readlines()
-
-        index = self.config["urdf_name"].find('.urdf')
-        output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
-
-        # Load urdf
-        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), physicsClientId=self.client_ID)
+                             "wheels_friction": 0.3 + np.random.rand() * 1.5 * self.config["randomize_env"],
+                             "max_force": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
+                             "velocity_scaler": 50 + np.random.rand() * 80 * self.config["randomize_env"]}
 
         # Change params
-        #p.changeDynamics(self.robot, -1, mass=self.robot_params["mass"])
+        p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
+        for w in self.wheels:
+            p.changeDynamics(robot, w,
+                             lateralFriction=self.robot_params["wheels_friction"],
+                             physicsClientId=self.client_ID)
         return robot
+
+    def _quat_to_euler(self, w, x, y, z):
+        pitch =  -m.asin(2.0 * (x*z - w*y))
+        roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
+        yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
+        return (pitch, roll, yaw)
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
-        return torso_pos, torso_quat, torso_vel, torso_angular_vel
+        torso_euler = self._quat_to_euler(*torso_quat)
+        return torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
 
     def update_targets(self):
         if self.target_A is None:
@@ -137,8 +135,8 @@ class BuggyBulletEnv(gym.Env):
             p.setJointMotorControl2(self.robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
-                                    targetVelocity=ctrl[0] * self.config["velocity_scaler"],
-                                    force=self.config["max_force"])
+                                    targetVelocity=ctrl[0] * self.robot_params["velocity_scaler"],
+                                    force=self.robot_params["max_force"])
 
         for steer in self.steering:
             p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=ctrl[1])
@@ -146,7 +144,7 @@ class BuggyBulletEnv(gym.Env):
         p.stepSimulation()
         self.step_ctr += 1
 
-        torso_pos, torso_quat, torso_vel, torso_angular_vel = self.get_obs()
+        torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
         # Check if the agent has reached a target
@@ -157,7 +155,7 @@ class BuggyBulletEnv(gym.Env):
             self.update_targets()
         done = (self.step_ctr > self.config["max_steps"])
 
-        obs = np.concatenate((torso_pos[0:2], [yaw], torso_vel[0:2], self.target_A, self.target_B))
+        obs = np.concatenate((torso_pos[0:2], torso_vel[0:2], torso_euler[2:], torso_angular_vel[2:], self.target_A, self.target_B))
 
         return obs, r, done, {}
 
@@ -186,7 +184,7 @@ class BuggyBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/buggy_config.yaml") as f:
+    with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
