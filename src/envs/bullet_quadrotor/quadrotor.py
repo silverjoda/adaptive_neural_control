@@ -7,8 +7,44 @@ import pybullet as p
 import pybullet_data
 from gym import spaces
 import torch as T
+import logging
+import pygame
 
 import src.my_utils as my_utils
+
+class JoyController():
+    def __init__(self):
+        logging.info("Initializing joystick controller")
+        pygame.init()
+        self.joystick = pygame.joystick.Joystick(0)
+        self.joystick.init()
+        logging.info("Initialized gamepad: {}".format(self.joystick.get_name()))
+        logging.info("Finished initializing the joystick controller.")
+        self.button_x_state = 0
+
+    def get_joystick_input(self):
+        pygame.event.pump()
+        throttle, t_yaw, t_roll, t_pitch = \
+            [self.joystick.get_axis(i) for i in range(4)]
+        button_x = self.joystick.get_button(1)
+        pygame.event.clear()
+
+        # button_x only when upon press
+        if self.button_x_state == 0 and button_x == 1:
+            self.button_x_state = 1
+            button_x = 1
+        elif self.button_x_state == 1 and button_x == 0:
+            self.button_x_state = 0
+            button_x = 0
+        elif self.button_x_state == 1 and button_x == 1:
+            self.button_x_state = 1
+            button_x = 0
+        else:
+            self.button_x_state = 0
+            button_x = 0
+
+        return t_yaw, -throttle, -t_roll, -t_pitch, button_x
+
 
 # Variable params: Mass, boom length, motor "inertia", motor max_force
 class QuadrotorBulletEnv(gym.Env):
@@ -23,7 +59,7 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 10
+        self.obs_dim = 14
         self.act_dim = 4
         self.parasitic_torque_dir_vec = [1,-1,-1,1]
 
@@ -47,6 +83,9 @@ class QuadrotorBulletEnv(gym.Env):
 
         self.observation_space = spaces.Box(low=np.array([-1] * self.obs_dim), high=np.array([1] * self.obs_dim))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+
+        self.rnd_target_vel_source = my_utils.SimplexNoise(4)
+        self.joystick_controller = JoyController()
 
     def set_randomize_env(self, rnd):
         self.config["randomize_env"] = rnd
@@ -133,6 +172,16 @@ class QuadrotorBulletEnv(gym.Env):
                 #p.removeBody(self.current_disturbance["visual_shape"])
                 self.current_disturbance = None
 
+    def get_velocity_target(self):
+        velocity_target = None
+        if self.config["target_vel_source"] == "still":
+            velocity_target = np.zeros(4, dtype=np.float32)
+        elif self.config["target_vel_source"] == "rnd":
+            velocity_target = self.rnd_target_vel_source() / 3
+        elif self.config["target_vel_source"] == "rnd":
+            velocity_target = self.joystick_controller.get_joystick_input()[:4]
+        return velocity_target
+
     def step(self, ctrl):
         # Take into account motor delay
         self.update_motor_vel(ctrl)
@@ -156,16 +205,19 @@ class QuadrotorBulletEnv(gym.Env):
         p.stepSimulation()
         self.step_ctr += 1
 
+        # Read current velocity target
+        velocity_target = self.get_velocity_target()
+
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
-        r = np.mean(np.square(torso_pos - np.array(self.config["target_pos"])))
+        r = np.mean(np.square(np.concatenate((torso_vel, torso_angular_vel[2:])) - velocity_target))
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 2) \
                or np.any(np.array(torso_pos[0:2]) > 2)
 
-        obs = np.concatenate((np.array(self.config["target_pos"]), torso_pos, torso_quat, torso_vel, torso_angular_vel))
+        obs = np.concatenate((velocity_target, torso_pos, torso_quat, torso_vel, torso_angular_vel))
 
         return obs, r, done, {}
 
