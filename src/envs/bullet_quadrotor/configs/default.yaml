@@ -1,6 +1,6 @@
 "env_name" : quadrotor
 "controller_source" : "nn"
-"target_vel_source" : "rnd"
+"target_vel_source" : "still"
 "max_steps" : 1000
 "step_counter" : True
 "latent_input" : False
@@ -10,7 +10,7 @@
 "propeller_parasitic_torque_coeff" : 0.3
 "motor_power_variance" : 0.1
 "env_change_prob" : 0.1
-"starting_pos" : [0, 0, 0.0]
+"starting_pos" : [0, 0, 1.0]
 "target_pos" : [0, 0, 1.0]
 "disturbance_intensity" : 10
 "disturbance_frequency" : 0.05
