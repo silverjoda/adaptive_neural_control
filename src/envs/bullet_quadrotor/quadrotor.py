@@ -219,7 +219,7 @@ class QuadrotorBulletEnv(gym.Env):
                or np.any(np.array([roll, pitch]) > np.pi / 2) \
                or np.any(np.array(torso_pos[0:2]) > 2)
 
-        obs = np.concatenate((velocity_target, torso_pos, torso_quat, torso_vel, torso_angular_vel))
+        obs = np.concatenate((velocity_target, torso_quat, torso_vel, torso_angular_vel))
 
         return obs, r, done, {}
 
