@@ -43,7 +43,7 @@ class JoyController():
             self.button_x_state = 0
             button_x = 0
 
-        return t_yaw, -throttle, -t_roll, -t_pitch, button_x
+        return throttle, t_roll, t_pitch, t_yaw, button_x
 
 
 # Variable params: Mass, boom length, motor "inertia", motor max_force
@@ -179,7 +179,8 @@ class QuadrotorBulletEnv(gym.Env):
         elif self.config["target_vel_source"] == "rnd":
             velocity_target = self.rnd_target_vel_source() / 3
         elif self.config["target_vel_source"] == "rnd":
-            velocity_target = self.joystick_controller.get_joystick_input()[:4]
+            throttle, roll, pitch, yaw = self.joystick_controller.get_joystick_input()[:4]
+            velocity_target = -throttle, -roll, -pitch, -yaw
         return velocity_target
 
     def step(self, ctrl):
@@ -211,13 +212,14 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
-        r = np.mean(np.square(np.concatenate((torso_vel, torso_angular_vel[2:])) - velocity_target))
+        r = np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
+                            - np.array(velocity_target)))
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 2) \
                or np.any(np.array(torso_pos[0:2]) > 2)
 
-        obs = np.concatenate((velocity_target, torso_pos, torso_quat, torso_vel, torso_angular_vel))
+        obs = np.concatenate((velocity_target, torso_quat, torso_vel, torso_angular_vel))
 
         return obs, r, done, {}
 
