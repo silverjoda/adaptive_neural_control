@@ -209,7 +209,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     loss.backward()
 
     # Step policy update
-    policy_optim.step()
+    policy_optim.step()#
 
     return loss.data
 
