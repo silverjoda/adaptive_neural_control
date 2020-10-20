@@ -586,7 +586,7 @@ class HexapodBulletEnv(gym.Env):
         return obs
 
     def test_agent(self, policy):
-        # TODO: This is not what we want though. At given state we should look at action and simulate that one action until convergence. THEN  do the back and forth
+        # TODO: This is not what we want though. At given state we should look at action and simulate that one action until convergence. THEN do the back and forth
         import src.my_utils as my_utils
         for _ in range(100):
             obs = self.reset()
@@ -599,7 +599,7 @@ class HexapodBulletEnv(gym.Env):
                 cum_rew += reward
                 self.render()
 
-                if ctr % 100 == 0 and ctr > 0 and False:
+                if ctr % 300 == 0 and ctr > 0 and True:
                     p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                                 jointIndices=range(18),
                                                 controlMode=p.POSITION_CONTROL,
@@ -607,17 +607,19 @@ class HexapodBulletEnv(gym.Env):
                                                 forces=[0] * 18,
                                                 physicsClientId=self.client_ID)
                     joint_angles_desired = self.norm_to_rads(action.detach().squeeze(0).numpy())
-                    for _ in range(5):
-                        [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k
-                         in
-                         range(18)]
+                    for _ in range(3):
+                        [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in range(18)]
                         p.stepSimulation(physicsClientId=self.client_ID)
-                        time.sleep(1)
+                        time.sleep(0.6)
 
-                        [p.resetJointState(self.robot, k, joint_angles_desired[k], 0, physicsClientId=self.client_ID) for k in
-                         range(18)]
+                        [p.resetJointState(self.robot, k, joint_angles_desired[k], 0, physicsClientId=self.client_ID) for k in range(18)]
                         p.stepSimulation(physicsClientId=self.client_ID)
-                        time.sleep(1)
+                        time.sleep(0.6)
+
+                    [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in
+                     range(18)]
+                    p.stepSimulation(physicsClientId=self.client_ID)
+
                 ctr += 1
 
                 if done:

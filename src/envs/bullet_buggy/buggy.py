@@ -22,7 +22,7 @@ class BuggyBulletEnv(gym.Env):
 
         self.config = config
 
-        self.obs_dim = 6
+        self.obs_dim = 10
         self.act_dim = 2
 
         # Episode variables
@@ -45,7 +45,8 @@ class BuggyBulletEnv(gym.Env):
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        self.observation_space = spaces.Box(low=np.array([-4,-1,-1,-1,-np.pi,-1]), high=np.array([4, 1, 1, 1, np.pi, 1]))
+        self.observation_space = spaces.Box(low=np.array([-4,-1,-1,-1,-np.pi,-1, -4, -4, -4, -4]),
+                                            high=np.array([4, 1, 1, 1, np.pi, 1, 4, 4, 4, 4]))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         for wheel in self.wheels:
@@ -135,11 +136,11 @@ class BuggyBulletEnv(gym.Env):
             p.setJointMotorControl2(self.robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
-                                    targetVelocity=ctrl[0] * self.robot_params["velocity_scaler"],
+                                    targetVelocity=np.clip(ctrl[0], -1, 1) * self.robot_params["velocity_scaler"],
                                     force=self.robot_params["max_force"])
 
         for steer in self.steering:
-            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=ctrl[1])
+            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.clip(ctrl[1], -1, 1))
 
         p.stepSimulation()
         self.step_ctr += 1
@@ -149,23 +150,31 @@ class BuggyBulletEnv(gym.Env):
 
         # Check if the agent has reached a target
         target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
-        r = -target_dist
+        r = (self.prev_target_dist - target_dist) * 50
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
-        done = (self.step_ctr > self.config["max_steps"])
+            self.prev_target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
+        else:
+            self.prev_target_dist = target_dist
 
-        obs = np.concatenate((torso_pos[0:2], torso_vel[0:2], torso_euler[2:], torso_angular_vel[2:], self.target_A, self.target_B))
+        done = (self.step_ctr > self.config["max_steps"])
+        obs = np.concatenate((torso_pos[0:2], torso_vel[0:2], torso_euler[2:], torso_angular_vel[2:], self.target_A, self.target_B)).astype(np.float32)
 
         return obs, r, done, {}
 
     def reset(self, force_randomize=None):
+        self.prev_target_dist = 0
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
         self.step_ctr = 0
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
+
+        torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
+        self.prev_target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
+
         return obs
 
     def demo(self):
