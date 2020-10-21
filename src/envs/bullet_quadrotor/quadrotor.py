@@ -101,7 +101,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "motor_inertia_coeff": 0.7 + np.random.rand() * 0.25 * self.config["randomize_env"],
+                             "motor_inertia_coeff": 0.0 + np.random.rand() * 0.25 * self.config["randomize_env"],
                              "motor_force_multiplier": 30 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
