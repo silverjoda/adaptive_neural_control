@@ -62,7 +62,7 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 14
+        self.obs_dim = 13
         self.act_dim = 4
         self.parasitic_torque_dir_vec = [1,-1,-1,1]
 
@@ -220,15 +220,16 @@ class QuadrotorBulletEnv(gym.Env):
         p_vel = np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
                             - np.array(velocity_target))) * 0.1
         p_vel = np.clip(p_vel, -3, 3)
-        p_pose = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.7, -1, 1)
+        p_pose = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.2, -1, 1)
         p_height = np.clip(np.mean(np.square(1 - torso_pos[2])) * 0.3, -1, 1)
-        r = 1 - p_height - p_pose - p_vel
+        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array([0,0,1.]))) * .2, -1, 1)
+        r = 1 - p_position - p_pose
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 2) \
-               or abs(1 - torso_pos[2]) > 0.7
+               or (abs(np.array(torso_pos) - np.array([0,0,1.])) > 1.5).any()
 
-        obs = np.concatenate((velocity_target, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
+        obs = np.concatenate((torso_pos, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 
         return obs, r, done, {}
 
