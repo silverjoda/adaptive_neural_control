@@ -128,7 +128,7 @@ class NN_PG(nn.Module):
             self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
 
         self.activation_fun = eval(config["activation_fun"])
-        self.log_std = T.zeros(1, self.act_dim)
+        self.log_std = -T.ones(1, self.act_dim) * 0.4
 
         self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
         self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
@@ -141,8 +141,8 @@ class NN_PG(nn.Module):
         T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
         T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
-        #for p in self.parameters():
-        #    p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
         x = self.activation_fun(self.fc1(x))
