@@ -246,13 +246,14 @@ def parse_args():
     return args.__dict__
 
 def test_agent(env, policy):
-    env.test_agent(policy)
-    exit()
+    #env.test_agent(policy)
+    #exit()
     for _ in range(100):
         obs = env.reset()
         cum_rew = 0
         while True:
             action, noisy_action = policy.sample_action(my_utils.to_tensor(obs, True))
+            print(action)
             obs, reward, done, info = env.step(action.detach().squeeze(0).numpy())
             cum_rew += reward
             env.render()

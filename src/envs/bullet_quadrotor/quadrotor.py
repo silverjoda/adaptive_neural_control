@@ -13,12 +13,15 @@ import pygame
 import src.my_utils as my_utils
 
 class JoyController():
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         logging.info("Initializing joystick controller")
         pygame.init()
-        self.joystick = pygame.joystick.Joystick(0)
-        self.joystick.init()
-        logging.info("Initialized gamepad: {}".format(self.joystick.get_name()))
+        if self.config["target_vel_source"] == "joystick":
+            self.joystick = pygame.joystick.Joystick(0)
+            self.joystick.init()
+            logging.info("Initialized gamepad: {}".format(self.joystick.get_name()))
+        logging.info("No joystick found")
         logging.info("Finished initializing the joystick controller.")
         self.button_x_state = 0
 
@@ -85,7 +88,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         self.rnd_target_vel_source = my_utils.SimplexNoise(4)
-        self.joystick_controller = JoyController()
+        self.joystick_controller = JoyController(self.config)
 
     def set_randomize_env(self, rnd):
         self.config["randomize_env"] = rnd
@@ -99,7 +102,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.7 + np.random.rand() * 0.25 * self.config["randomize_env"],
-                             "motor_force_multiplier": 60 + np.random.rand() * 30 * self.config["randomize_env"]}
+                             "motor_force_multiplier": 30 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
@@ -150,7 +153,7 @@ class QuadrotorBulletEnv(gym.Env):
                                                   np.array(ctrl) * (1 - self.robot_params["motor_inertia_coeff"]), 0, 1)
 
     def render(self, close=False):
-        pass
+        time.sleep(self.config["sim_timestep"])
 
     def calc_turbulence_coeffs(self, height_vec):
         height_vec_arr = np.array(height_vec)
@@ -212,14 +215,16 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
-        r = np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
-                            - np.array(velocity_target)))
+        r_vel = -np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
+                            - np.array(velocity_target))) * 0.1
+        r_vel = np.clip(r_vel, -3, 3)
+        r_pose = -np.clip(np.mean(np.square(np.array([roll, pitch]))) * 1., -1, 1)
+        r = r_vel + r_pose
 
         done = (self.step_ctr > self.config["max_steps"]) \
-               or np.any(np.array([roll, pitch]) > np.pi / 2) \
-               or np.any(np.array(torso_pos[0:2]) > 2)
+               or np.any(np.array([roll, pitch]) > np.pi / 2)
 
-        obs = np.concatenate((velocity_target, torso_quat, torso_vel, torso_angular_vel))
+        obs = np.concatenate((velocity_target, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 
         return obs, r, done, {}
 
@@ -239,7 +244,7 @@ class QuadrotorBulletEnv(gym.Env):
     def demo(self):
         for i in range(100):
             self.reset()
-            act = np.array([0.1, 0.1, 0.1, 0.1])
+            act = np.array([0.4, 0.4, 0.4, 0.4])
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
