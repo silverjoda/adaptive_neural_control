@@ -187,8 +187,10 @@ class QuadrotorBulletEnv(gym.Env):
         return velocity_target
 
     def step(self, ctrl):
+        bounded_act = np.tanh(ctrl * self.config["action_scaler"])
+
         # Take into account motor delay
-        self.update_motor_vel(ctrl)
+        self.update_motor_vel(bounded_act)
 
         # Make turbulence near ground
         #motor_positions_near_ground = p.getLinkStates(self.robot, linkIndices=[1, 3, 5, 7])
@@ -199,7 +201,7 @@ class QuadrotorBulletEnv(gym.Env):
             motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
                                           + self.current_motor_velocity_vec[i], 0, 1)
             motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
-            p.applyExternalForce(self.robot, linkIndex=i*2 + 1, forceObj=[0, 0, motor_force_scaled],
+            p.applyExternalForce(self.robot, linkIndex=i * 2 + 1, forceObj=[0, 0, motor_force_scaled],
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
@@ -215,14 +217,16 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
-        r_vel = -np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
+        p_vel = np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
                             - np.array(velocity_target))) * 0.1
-        r_vel = np.clip(r_vel, -3, 3)
-        r_pose = -np.clip(np.mean(np.square(np.array([roll, pitch]))) * 1., -1, 1)
-        r = r_vel + r_pose
+        p_vel = np.clip(p_vel, -3, 3)
+        p_pose = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.7, -1, 1)
+        p_height = np.clip(np.mean(np.square(1 - torso_pos[2])) * 0.3, -1, 1)
+        r = 1 - p_height - p_pose - p_vel
 
         done = (self.step_ctr > self.config["max_steps"]) \
-               or np.any(np.array([roll, pitch]) > np.pi / 2)
+               or np.any(np.array([roll, pitch]) > np.pi / 2) \
+               or abs(1 - torso_pos[2]) > 0.7
 
         obs = np.concatenate((velocity_target, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 
