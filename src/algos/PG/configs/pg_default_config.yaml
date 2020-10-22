@@ -10,7 +10,7 @@
 "log_std_decay" : 0.0
 "iters" : 200000
 "c_eps" : 0.2
-"gamma" : 0.99
+"gamma" : 0.5
 "batchsize" : 60
 "alpha" : 0.99
 "epsilon" : 1e-5

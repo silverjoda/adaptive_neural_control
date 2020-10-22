@@ -337,8 +337,8 @@ class HexapodBulletEnv(gym.Env):
         else:
             ctrl_clipped = ctrl
 
-        ctrl_clipped = np.clip(np.array(ctrl) * self.config["action_scaler"], -1, 1)
-        #ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
+        #ctrl_clipped = np.clip(np.array(ctrl) * self.config["action_scaler"], -1, 1)
+        ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
         for i in range(18):
@@ -376,7 +376,7 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
 
-        scaled_joint_angles = self.rads_to_norm(joint_angles) # Change back to skewed here
+        scaled_joint_angles = self.rads_to_norm(joint_angles_skewed) # Change back to skewed here
         scaled_joint_angles_true = self.rads_to_norm(joint_angles)
         scaled_joint_angles = np.clip(scaled_joint_angles, -2, 2)
         scaled_joint_angles_true = np.clip(scaled_joint_angles_true, -2, 2)
@@ -425,6 +425,7 @@ class HexapodBulletEnv(gym.Env):
             r_neg = {"yaw_pen" : np.square(yaw) * 0.7}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0., -1, 1)}
+
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
             r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
@@ -593,7 +594,7 @@ class HexapodBulletEnv(gym.Env):
             ctr = 0
             while True:
                 torso_pos_prev, torso_quat_prev, _, _, joint_angles_prev, _, _, _, _ = self.get_obs()
-                action, noisy_action = policy.sample_action(my_utils.to_tensor(obs, True))
+                action, _ = policy.sample_action(my_utils.to_tensor(obs, True))
                 obs, reward, done, info = self.step(action.detach().squeeze(0).numpy())
                 cum_rew += reward
                 self.render()
@@ -605,7 +606,7 @@ class HexapodBulletEnv(gym.Env):
                                                 targetPositions=[0] * 18,
                                                 forces=[0] * 18,
                                                 physicsClientId=self.client_ID)
-                    joint_angles_desired = self.norm_to_rads(action.detach().squeeze(0).numpy())
+                    joint_angles_desired = self.norm_to_rads(np.tanh(action.detach().squeeze(0).numpy() * 0.5))
                     for _ in range(3):
                         [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in range(18)]
                         p.stepSimulation(physicsClientId=self.client_ID)

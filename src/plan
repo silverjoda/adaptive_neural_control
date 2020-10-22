@@ -85,10 +85,6 @@ MAML:
 - Priors, from LUT to hard-priored function
 - Optimization of solution, brute force & random search
 
-# Next
-- Scalar 1 vs 0.5
-- std 1 vs 0.4
-- Selu vs relu (tanh sucks apparently)
-- Residual connection
+
 
 
