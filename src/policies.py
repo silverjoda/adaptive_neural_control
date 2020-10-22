@@ -145,19 +145,21 @@ class NN_PG(nn.Module):
             p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
-        x = self.activation_fun(self.fc1(x))
-        x = self.activation_fun(self.fc2(x))
+        l1 = self.activation_fun(self.fc1(x))
+        l2 = self.activation_fun(self.fc2(l1))
         if self.config["policy_residual_connection"]:
-            x = self.fc3(x) + self.fc_res(x)
+            out = self.fc3(l2) + self.fc_res(x)
         else:
-            x = self.fc3(x)
+            out = self.fc3(l2)
         if self.config["policy_lastlayer_tanh"]:
-            x = T.tanh(x)
-        return x
+            return T.tanh(out)
+        return out
 
     def sample_action(self, s):
         act = self.forward(s)
-        return act, T.normal(act, T.exp(self.log_std))
+        rnd_act = T.normal(act, T.exp(self.log_std))
+        rnd_act_center = T.normal(T.zeros_like(act), T.exp(self.log_std)) + act
+        return act, rnd_act
 
     def sample_action_w_activations(self, l0):
         l1_activ = self.fc1(l0)

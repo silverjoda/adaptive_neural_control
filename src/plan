@@ -75,7 +75,7 @@ MAML:
 # TODO: Try ES MAML
 # TODO: MAML for model training
 # TODO: Continue training hexapod
-k
+
 # Video explaining learning:
 - Using a programmed approach vs learning approach for a general problem
 - Creating a suitable solution space (either directly or through a function approximator)
@@ -84,5 +84,11 @@ k
 - 5 images classification with pixel in the top corner
 - Priors, from LUT to hard-priored function
 - Optimization of solution, brute force & random search
+
+# Next
+- Scalar 1 vs 0.5
+- std 1 vs 0.4
+- Selu vs relu (tanh sucks apparently)
+- Residual connection
 
 

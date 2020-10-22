@@ -333,11 +333,12 @@ class HexapodBulletEnv(gym.Env):
 
     def step(self, ctrl, render=False):
         if np.max(ctrl) > 1:
-            ctrl_normalized = ctrl / np.abs(np.max(ctrl))
+            ctrl_clipped = ctrl / np.abs(np.max(ctrl))
         else:
-            ctrl_normalized = ctrl
+            ctrl_clipped = ctrl
 
         ctrl_clipped = np.clip(np.array(ctrl) * self.config["action_scaler"], -1, 1)
+        #ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
         for i in range(18):
@@ -352,21 +353,20 @@ class HexapodBulletEnv(gym.Env):
                                     physicsClientId=self.client_ID)
 
         # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        # leg_ctr = 0
-        # obs_sequential = []
-        # for i in range(self.config["sim_steps_per_iter"]):
-        #     if leg_ctr < 6:
-        #         obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-        #         leg_ctr += 1
-        #     p.stepSimulation(physicsClientId=self.client_ID)
-        #     if (self.config["animate"] or render) and True: time.sleep(0.0038)
-        #
-        # joint_angles_skewed = []
-        # for o in obs_sequential:
-        #     joint_angles_skewed.append(o[0])
+        leg_ctr = 0
+        obs_sequential = []
+        for i in range(self.config["sim_steps_per_iter"]):
+            if leg_ctr < 6:
+                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+                leg_ctr += 1
+            p.stepSimulation(physicsClientId=self.client_ID)
+            if (self.config["animate"] or render) and True: time.sleep(0.0038)
+
+        joint_angles_skewed = []
+        for o in obs_sequential:
+            joint_angles_skewed.append(o[0])
 
         # TODO: When changing back to multiple sims per step, change joint_angles to skewed joint angles below
-
         p.stepSimulation(physicsClientId=self.client_ID)
         if (self.config["animate"] or render) and True: time.sleep(0.004)
 
@@ -586,7 +586,6 @@ class HexapodBulletEnv(gym.Env):
         return obs
 
     def test_agent(self, policy):
-        # TODO: This is not what we want though. At given state we should look at action and simulate that one action until convergence. THEN do the back and forth
         import src.my_utils as my_utils
         for _ in range(100):
             obs = self.reset()
@@ -599,7 +598,7 @@ class HexapodBulletEnv(gym.Env):
                 cum_rew += reward
                 self.render()
 
-                if ctr % 300 == 0 and ctr > 0 and True:
+                if ctr % 10 == 0 and ctr > 0 and True:
                     p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                                 jointIndices=range(18),
                                                 controlMode=p.POSITION_CONTROL,
