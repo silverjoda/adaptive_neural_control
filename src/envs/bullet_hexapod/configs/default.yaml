@@ -7,7 +7,7 @@
 "force_target_velocity" : False
 "forced_target_velocity" : 0.2
 "sim_step" : 0.0042
-"action_scaler" : .99
+"action_scaler" : .5
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 0.1
@@ -24,7 +24,7 @@
 "perlin_height" : 40
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
-"joints_rads_low" : [-0.4, -0.5, 0.7]
-"joints_rads_high" : [0.4, 0.5, 1.7]
+"joints_rads_low" : [-0.4, -0.7, 0.5]
+"joints_rads_high" : [0.4, 0.7, 1.4]
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :

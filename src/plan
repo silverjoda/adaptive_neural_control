@@ -85,6 +85,6 @@ MAML:
 - Priors, from LUT to hard-priored function
 - Optimization of solution, brute force & random search
 
-
+# TODO: COnsider ending the episode when the leg is folded so that it never happens
 
 
