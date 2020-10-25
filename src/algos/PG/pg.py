@@ -261,7 +261,6 @@ def test_agent(env, policy):
                 break
     env.close()
 
-
 if __name__=="__main__":
     args = parse_args()
     algo_config = my_utils.read_config(args["algo_config"])

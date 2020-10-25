@@ -57,9 +57,13 @@ class BuggyBulletEnv(gym.Env):
         # self.steeringSlider = p.addUserDebugParameter("steering", -0.5, 0.5, 0)
 
         self.target_A = self.target_B = None
-        self.target_visualshape = p.createVisualShape(shapeType=p.GEOM_SPHERE,
+        self.target_visualshape_A = p.createVisualShape(shapeType=p.GEOM_SPHERE,
                                                       radius=0.1,
                                                       rgbaColor=[1,0,0,1],
+                                                      physicsClientId=self.client_ID)
+        self.target_visualshape_B = p.createVisualShape(shapeType=p.GEOM_SPHERE,
+                                                      radius=0.1,
+                                                      rgbaColor=[0, 0, 1, 1],
                                                       physicsClientId=self.client_ID)
         self.update_targets()
 
@@ -78,7 +82,7 @@ class BuggyBulletEnv(gym.Env):
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "wheels_friction": 0.3 + np.random.rand() * 1.5 * self.config["randomize_env"],
+                             "wheels_friction": 1.0 + np.random.rand() * 1.5 * self.config["randomize_env"],
                              "max_force": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
                              "velocity_scaler": 50 + np.random.rand() * 80 * self.config["randomize_env"]}
 
@@ -110,11 +114,11 @@ class BuggyBulletEnv(gym.Env):
                 "target_dispersal_distance"] / 2
 
             self.target_A_body = p.createMultiBody(baseMass=0,
-                                                   baseVisualShapeIndex=self.target_visualshape,
+                                                   baseVisualShapeIndex=self.target_visualshape_A,
                                                    basePosition=[self.target_A[0], self.target_A[1], 0],
                                                    physicsClientId=self.client_ID)
             self.target_B_body = p.createMultiBody(baseMass=0,
-                                                   baseVisualShapeIndex=self.target_visualshape,
+                                                   baseVisualShapeIndex=self.target_visualshape_B,
                                                    basePosition=[self.target_B[0], self.target_B[1], 0],
                                                    physicsClientId=self.client_ID)
         else:

@@ -6,7 +6,7 @@
 "randomize_env" : False
 "sim_timestep" : 0.01
 "env_change_prob" : 0.1
-"target_proximity_threshold" : 0.2
+"target_proximity_threshold" : 0.4
 "target_dispersal_distance" : 8
 "urdf_name" : buggy.urdf
 "seed" :
