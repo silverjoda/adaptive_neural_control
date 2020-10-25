@@ -1,13 +1,13 @@
 "env_name" : "hexapod"
 "max_steps" : 80
 "step_counter" : True
-"terrain_name" : "flat"
+"terrain_name" : "perlin"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.2
 "sim_step" : 0.0042
-"action_scaler" : .5
+"action_scaler" : .6
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 0.1
@@ -15,7 +15,7 @@
 "max_actuator_velocity" : 3.0
 "lateral_friction" : 1.2
 "max_joint_force" : 1.5
-"target_vel" : 0.15
+"target_vel" : 0.2
 "target_vell_nn_input" : 0
 "target_vel_range" : [0.1, 0.3]
 "sim_steps_per_iter" : 24
@@ -24,7 +24,7 @@
 "perlin_height" : 40
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
-"joints_rads_low" : [-0.4, -0.7, 0.5]
-"joints_rads_high" : [0.4, 0.7, 1.4]
+"joints_rads_low" : [-0.5, -0.9, 0.2]
+"joints_rads_high" : [0.5, 0.7, 1.4]
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :

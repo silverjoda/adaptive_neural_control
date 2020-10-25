@@ -527,6 +527,12 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
+        # for i in range(6):
+        #     if scaled_joint_angles[i * 3 + 1] > .5 and scaled_joint_angles[i * 3 + 2] > .8:
+        #         done = True
+        #         r -= 1.
+        #         break
+
         return env_obs.astype(np.float32), r, done, {}
 
     def reset(self, force_randomize=None):

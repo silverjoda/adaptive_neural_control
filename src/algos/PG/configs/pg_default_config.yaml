@@ -1,6 +1,6 @@
 "algo_name" : "PG"
 "policy_type" : "mlp"
-"default_session_ID" : "TST"
+"default_session_ID" :
 "activation_fun" : "T.selu"
 "policy_optim" : "adam"
 "log_tb_all" : False

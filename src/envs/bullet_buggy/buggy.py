@@ -126,6 +126,7 @@ class BuggyBulletEnv(gym.Env):
 
     def render(self, close=False):
         pass
+        time.sleep(0.01)
 
     def step(self, ctrl):
         # maxForce = p.readUserDebugParameter(self.maxForceSlider)
@@ -150,7 +151,7 @@ class BuggyBulletEnv(gym.Env):
 
         # Check if the agent has reached a target
         target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
-        r = (self.prev_target_dist - target_dist) * 50
+        r = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -173,6 +174,7 @@ class BuggyBulletEnv(gym.Env):
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
+        self.update_targets()
         self.prev_target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
 
         return obs
@@ -180,13 +182,12 @@ class BuggyBulletEnv(gym.Env):
     def demo(self):
         for i in range(100):
             act = np.random.rand(2) * 2 - 1
+            self.reset()
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
                 #print(obs)
                 time.sleep(0.01)
-
-            self.reset()
 
     def close(self):
         p.disconnect()
