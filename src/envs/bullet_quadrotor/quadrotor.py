@@ -285,15 +285,23 @@ def _euler_to_quaternion(roll, pitch, yaw):
 def test_rotations():
     import quaternion
 
-    for i in range(100):
+    for i in range(10000):
         euler_angle = np.random.randn(3)
 
         q1 = p.getQuaternionFromEuler(euler_angle)
         q2 = _euler_to_quaternion(*euler_angle)
 
+        if not np.allclose(q1, q1, rtol=0.001):
+           print(f"Quats not close, {q1}, {q2}")
+
         e1 = _quat_to_euler(*q1)
         e2 = p.getEulerFromQuaternion(q2)
-        #print(e1,e2)
+
+        q1 = p.getQuaternionFromEuler(e1)
+        q2 = _euler_to_quaternion(*e2)
+
+        if not np.allclose(q1, q1, rtol=0.001):
+            print(f"Quats not close, {q1}, {q2}")
 
         if not np.allclose(e1, e2, rtol=0.001):
            print(f"Eulers not close, {e1}, {e2}")
