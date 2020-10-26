@@ -264,7 +264,45 @@ class QuadrotorBulletEnv(gym.Env):
     def close(self):
         self.kill()
 
+def _quat_to_euler(x, y, z, w):
+    pitch =  -m.asin(2.0 * (x*z - w*y))
+    roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
+    yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
+    return (roll, pitch, yaw)
+
+def _euler_to_quaternion(roll, pitch, yaw):
+    qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(
+        yaw / 2)
+    qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(
+        yaw / 2)
+    qz = np.cos(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2) - np.sin(roll / 2) * np.sin(pitch / 2) * np.cos(
+        yaw / 2)
+    qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(
+        yaw / 2)
+
+    return [qx, qy, qz, qw]
+
+def test_rotations():
+    import quaternion
+
+    for i in range(100):
+        euler_angle = np.random.randn(3)
+
+        q1 = p.getQuaternionFromEuler(euler_angle)
+        q2 = _euler_to_quaternion(*euler_angle)
+
+        e1 = _quat_to_euler(*q1)
+        e2 = p.getEulerFromQuaternion(q2)
+        #print(e1,e2)
+
+        if not np.allclose(e1, e2, rtol=0.001):
+           print(f"Eulers not close, {e1}, {e2}")
+
+
+    exit()
+
 if __name__ == "__main__":
+    test_rotations()
     import yaml
     with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
