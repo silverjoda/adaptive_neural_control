@@ -111,7 +111,6 @@ if __name__ == "__main__":
     algo_config = read_config(args["algo_config"])
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
-    pprint(config)
 
     for s in ["agents", "agents_cp", "tb"]:
         if not os.path.exists(s):
@@ -122,6 +121,8 @@ if __name__ == "__main__":
         config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     else:
         config["session_ID"] = "TST"
+
+    pprint(config)
 
     # Import correct env by name
     env_fun = my_utils.import_env(env_config["env_name"])

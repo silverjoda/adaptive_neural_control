@@ -85,6 +85,7 @@ MAML:
 - Priors, from LUT to hard-priored function
 - Optimization of solution, brute force & random search
 
-# TODO: COnsider ending the episode when the leg is folded so that it never happens
+# GOEDEL: Currently put action scaler to .99 and training on perlin with TD3, A3C and TD3. Previous TD3 was meh,
+A2C was better but very speedy, not smooth. Goal is to get a decent gait on perlin.
 
 

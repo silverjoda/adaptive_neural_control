@@ -1,7 +1,7 @@
 "algo_name" : "TD3"
 "default_session_ID" :
 "n_envs" : 1
-"iters" : 2000000
+"iters" : 3000000
 "gamma" : 0.99
 "learning_rate" : 0.0007
 "buffer_size" : 1000000
