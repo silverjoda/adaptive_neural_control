@@ -9,6 +9,7 @@ import socket
 import argparse
 import yaml
 import os
+from pprint import pprint
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -110,7 +111,7 @@ if __name__ == "__main__":
     algo_config = read_config(args["algo_config"])
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
-    print(config)
+    pprint(config)
 
     for s in ["agents", "agents_cp", "tb"]:
         if not os.path.exists(s):
@@ -138,7 +139,7 @@ if __name__ == "__main__":
         t2 = time.time()
 
         print("Training time: {}".format(t2-t1))
-        print(config)
+        pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()

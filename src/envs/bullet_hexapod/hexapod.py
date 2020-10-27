@@ -366,7 +366,6 @@ class HexapodBulletEnv(gym.Env):
         for o in obs_sequential:
             joint_angles_skewed.append(o[0])
 
-        # TODO: When changing back to multiple sims per step, change joint_angles to skewed joint angles below
         p.stepSimulation(physicsClientId=self.client_ID)
         if (self.config["animate"] or render) and True: time.sleep(0.004)
 
