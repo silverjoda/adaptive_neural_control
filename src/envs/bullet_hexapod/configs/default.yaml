@@ -1,7 +1,7 @@
 "env_name" : "hexapod"
 "max_steps" : 80
 "step_counter" : True
-"terrain_name" : "perlin"
+"terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
@@ -10,7 +10,7 @@
 "action_scaler" : .99
 "env_width" : 60
 "env_length" : 100
-"env_change_prob" : 0.1
+"env_change_prob" : 0.2
 "randomize_env" : False
 "max_actuator_velocity" : 3.0
 "lateral_friction" : 1.2

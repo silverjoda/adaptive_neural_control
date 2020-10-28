@@ -61,15 +61,14 @@ MAML:
 
 # VIR Projects:
 1) Learning model of fast RC buggie using script which gathers data and using it to
-   learn a forward function of the buggie using supervised learning.
-2) Learning online stabilizing or flying for real quadcopter
-3) Control of real buggie or quad using RL
-5) Design RL rew and input features for driving a car around racetrack
+   learn a forward function of the buggie using supervised learning. The state space should then be plotted using TSNE or something similar.
+   Outliers can be ommited from dataset and model retrained to see if it can generalize to them.
 6) Atlas entering and leaving car using RL
 7) Hardware wireless sensor using neural nets (only for hw people)
 8) Voice masking for anonymity
+9) Make racecar in simulation drive fast around track using RL. Compare with human performance.
 
-# TODO: Try PG with various hyperparams to see which such
+# TODO: Try PG with various hyperparams to se which such
 # TODO: Check PG again with full tb
 # TODO: Check MAML with full gradients (Also try hyperparams from initial paper)
 # TODO: Try ES MAML
@@ -85,7 +84,9 @@ MAML:
 - Priors, from LUT to hard-priored function
 - Optimization of solution, brute force & random search
 
-# GOEDEL: Currently put action scaler to .99 and training on perlin with TD3, A3C and TD3. Previous TD3 was meh,
-A2C was better but very speedy, not smooth. Goal is to get a decent gait on perlin.
+# GOEDEL:
+Hexapod: Gait on flat is ok, but body slightly tilted, should add tilt penalty. Should try increasing range and putting rew to keep actions centered
+
+Buggy: Needs debugging. Env probably bad because not training with any algo
 
 
