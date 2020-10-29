@@ -86,7 +86,7 @@ MAML:
 
 # GOEDEL:
 Adding training to goedel 0&1 with much greater tilt penalty.
-Try leg shuffle penalty. Add dummy sensor link to leg tips and penalize contact * legtip velocity
+Added training to goedel 2 with legtip sensor. INitial results show that the penalty is effective
 Buggy: Needs debugging. Env probably bad because not training with any algo
 
 
