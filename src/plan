@@ -85,8 +85,8 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Adding training to goedel 0&1 with much greater tilt penalty.
-Added training to goedel 2 with legtip sensor. INitial results show that the penalty is effective
+Added 1x td3 and 3x a2c to train with shuffle penalty. Looks like gait is better but last attempt was going slightly off direction.
+Lowered the pitch penalty from 6 to 2.
 Buggy: Needs debugging. Env probably bad because not training with any algo
 
 
