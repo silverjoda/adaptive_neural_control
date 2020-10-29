@@ -1,7 +1,7 @@
 "algo_name" : "TD3"
 "default_session_ID" :
 "n_envs" : 1
-"iters" : 600000
+"iters" : 1000000
 "gamma" : 0.99
 "learning_rate" : 0.0007
 "buffer_size" : 1000000
@@ -15,4 +15,4 @@
 "target_policy_noise" : 0.2
 "target_noise_clip" : 0.5
 "verbose" : 1
-"policy_kwargs" : {layers : [198, 198]}
+"policy_kwargs" : {layers : [256, 256]}
