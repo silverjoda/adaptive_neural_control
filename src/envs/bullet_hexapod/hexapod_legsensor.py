@@ -58,8 +58,9 @@ class HexapodBulletEnv(gym.Env):
         self.coxa_joint_ids = range(0, 18, 3)
         self.femur_joint_ids = range(1, 18, 3)
         self.tibia_joint_ids = range(2, 18, 3)
-        self.left_joints_ids = [0,1,2,6,7,8,12,13,14]
-        self.right_joints_ids = [3,4,5,9,10,11,15,16,17]
+        self.left_joints_ids = [0,1,2,8,9,10,15,16,17]
+        self.right_joints_ids = [4,5,6,12,13,14,19,20,21]
+        self.total_joint_ids = [0,1,2,4,5,6,8,9,10,12,13,14,16,17,18,20,21,22]
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
@@ -77,7 +78,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Change contact friction for legs and torso
         for i in range(6):
-            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
+            p.changeDynamics(self.robot, 4 * i + 3, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
         p.changeDynamics(self.robot, -1, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
 
         # Episodal parameters
@@ -261,15 +262,9 @@ class HexapodBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
 
-        ctct_leg_1 = int(len(p.getContactPoints(self.robot, self.terrain, 2, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_2 = int(len(p.getContactPoints(self.robot, self.terrain, 5, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_3 = int(len(p.getContactPoints(self.robot, self.terrain, 8, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_4 = int(len(p.getContactPoints(self.robot, self.terrain, 11, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_5 = int(len(p.getContactPoints(self.robot, self.terrain, 14, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        ctct_leg_6 = int(len(p.getContactPoints(self.robot, self.terrain, 17, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
-        contacts = [ctct_leg_1, ctct_leg_2, ctct_leg_3, ctct_leg_4, ctct_leg_5, ctct_leg_6]
         #contacts = np.zeros(6)
 
         # Joints
@@ -281,7 +276,14 @@ class HexapodBulletEnv(gym.Env):
             joint_angles.append(o[0])
             joint_velocities.append(o[1])
             joint_torques.append(o[3])
-        return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso
+
+        # Legtip velocities
+        tip_link_ids = [3, 7, 11, 15, 19, 23]  #
+        link_states = p.getLinkStates(bodyUniqueId=self.robot, linkIndices=tip_link_ids, computeLinkVelocity=True,
+                                      physicsClientId=self.client_ID)
+        tip_velocities = [o[6] for o in link_states]
+
+        return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso, tip_velocities
 
     def rads_to_norm(self, joints):
         sjoints = np.array(joints)
@@ -329,7 +331,7 @@ class HexapodBulletEnv(gym.Env):
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
-                                    jointIndex=i,
+                                    jointIndex=self.total_joint_ids[i],
                                     controlMode=p.POSITION_CONTROL,
                                     targetPosition=scaled_action[i],
                                     force=self.randomized_robot_params["max_joint_force"],
@@ -343,7 +345,7 @@ class HexapodBulletEnv(gym.Env):
         obs_sequential = []
         for i in range(self.config["sim_steps_per_iter"]):
             if leg_ctr < 6:
-                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+                obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 4, ((leg_ctr + 1) * 4) - 1), physicsClientId=self.client_ID))
                 leg_ctr += 1
             p.stepSimulation(physicsClientId=self.client_ID)
             if (self.config["animate"] or render) and True: time.sleep(0.0038)
@@ -356,7 +358,7 @@ class HexapodBulletEnv(gym.Env):
         if (self.config["animate"] or render) and True: time.sleep(0.004)
 
         # Get all observations
-        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
+        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso, tip_velocities = self.get_obs()
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
         qx, qy, qz, qw = torso_quat
@@ -395,6 +397,10 @@ class HexapodBulletEnv(gym.Env):
         # Tmp spoofs
         quantile_pen = symmetry_work_pen = torso_contact_pen = 0
 
+        # Calculate shuffle penalty
+
+        shuffle_pen = np.sum([(np.square(x_tip) + np.square(y_tip)) * (contacts[k] == 1) for k, (x_tip, y_tip, _) in enumerate(tip_velocities)])
+
         if self.config["training_mode"] == "straight":
             # r_neg = {"pitch" : np.square(pitch) * 1.2 * self.config["training_difficulty"],
             #         "roll" : np.square(roll) * 1.2 * self.config["training_difficulty"],
@@ -410,6 +416,7 @@ class HexapodBulletEnv(gym.Env):
 
             r_neg = {"pitch" : np.square(pitch) * 6,
                      "roll": np.square(roll) * 6,
+                     "shuffle_pen" : shuffle_pen,
                      "yaw_pen" : np.square(yaw) * 0.7}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0., -1, 1)}
@@ -587,7 +594,7 @@ class HexapodBulletEnv(gym.Env):
             cum_rew = 0
             ctr = 0
             while True:
-                torso_pos_prev, torso_quat_prev, _, _, joint_angles_prev, _, _, _, _ = self.get_obs()
+                torso_pos_prev, torso_quat_prev, _, _, joint_angles_prev, _, _, _, _, _ = self.get_obs()
                 action, _ = policy.sample_action(my_utils.to_tensor(obs, True))
                 obs, reward, done, info = self.step(action.detach().squeeze(0).numpy())
                 cum_rew += reward
@@ -634,7 +641,7 @@ class HexapodBulletEnv(gym.Env):
                 for j in range(n_steps):
                     #a = list(np.random.randn(3))
                     scaled_obs, _, _, _ = self.step(a * 6)
-                _, _, _, _, joint_angles, _, joint_torques, contacts, ctct_torso = self.get_obs()
+                _, _, _, _, joint_angles, _, joint_torques, contacts, ctct_torso, _ = self.get_obs()
                 if VERBOSE:
                     print("Obs rads: ", joint_angles)
                     print("Obs normed: ", self.rads_to_norm(joint_angles))
