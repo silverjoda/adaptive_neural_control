@@ -85,8 +85,8 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: Gait on flat is ok, but body slightly tilted, should add tilt penalty. Should try increasing range and putting rew to keep actions centered
-
+Adding training to goedel 0&1 with much greater tilt penalty.
+Try leg shuffle penalty. Add dummy sensor link to leg tips and penalize contact * legtip velocity
 Buggy: Needs debugging. Env probably bad because not training with any algo
 
 
