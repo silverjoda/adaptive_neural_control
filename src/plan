@@ -85,8 +85,9 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Added 1x td3 and 3x a2c to train with shuffle penalty. Looks like gait is better but last attempt was going slightly off direction.
-Lowered the pitch penalty from 6 to 2.
+Still goes to the side for some reason
+Lowered the pitch penalty from 6 to 2 (really this time, last time it was in wrong file) and yaw pen from 0.7 to 0.9 and shuffle pen from 1.0 to 0.6.
+Put goedel 1,2,3 to train with A2C only, td3 sucks
 Buggy: Needs debugging. Env probably bad because not training with any algo
 
 
