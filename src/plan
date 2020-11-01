@@ -85,9 +85,8 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Still goes to the side for some reason
-Lowered the pitch penalty from 6 to 2 (really this time, last time it was in wrong file) and yaw pen from 0.7 to 0.9 and shuffle pen from 1.0 to 0.6.
-Put goedel 1,2,3 to train with A2C only, td3 sucks
+Just training hexapod until we get a good gait, added square yaw improvement rew and decreased the rest of penalties, put to train in goedel
+Currently: Just do buggy
 Buggy: Needs debugging. Env probably bad because not training with any algo
 
 
