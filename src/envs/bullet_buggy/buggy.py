@@ -81,8 +81,8 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.0 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
-                             "velocity_scaler": 50 + np.random.rand() * 80 * self.config["randomize_env"]}
+                             "max_force": 1.5 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "velocity_scaler": 80 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -139,15 +139,24 @@ class BuggyBulletEnv(gym.Env):
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
 
+        # Orientation reward
+        tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
+        yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
+
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         r = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
+        r += np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
             self.prev_target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
+            tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
+            yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
+            self.prev_yaw_deviation = yaw_deviation
         else:
             self.prev_target_dist = target_dist
+            self.prev_yaw_deviation = yaw_deviation
 
         # Calculate relative positions of targets
         relative_target_A = self.target_A[0] - torso_pos[0], self.target_A[1] - torso_pos[1]
@@ -166,9 +175,12 @@ class BuggyBulletEnv(gym.Env):
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
-        torso_pos, _, _, _, _ = self.get_obs()
+        torso_pos, _, torso_euler, _, _ = self.get_obs()
         self.update_targets()
         self.prev_target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
+        tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
+        yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
+        self.prev_yaw_deviation = yaw_deviation
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 

@@ -86,8 +86,10 @@ MAML:
 
 # GOEDEL:
 Hexapod: Lowered shuffle penalty, trained RDK and PNV are pretty decent to try out, but they use contacts :(
-# TODO: Train hexapod straight policy with this config without contacts
+Currently training in goedel without contacts
 
-Buggy: Pretty decent, now should try add orientation penalty so it prefers to face its target and also try increasing motor velocities.
+Buggy: Currently trying with higher velocity and maxforce + yaw deviation penalty copied from nexabots
+
+Quadcopter: ??? Need to check
 
 

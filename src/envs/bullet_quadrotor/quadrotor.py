@@ -98,7 +98,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "motor_inertia_coeff": 0.0 + np.random.rand() * 0.25 * self.config["randomize_env"],
+                             "motor_inertia_coeff": 0.1 + np.random.rand() * 0.25 * self.config["randomize_env"],
                              "motor_force_multiplier": 15 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
@@ -155,7 +155,7 @@ class QuadrotorBulletEnv(gym.Env):
     def apply_external_disturbances(self):
         #Apply external disturbance force
         if np.random.rand() < self.config["disturbance_frequency"]:
-            self.current_disturbance = {"vector" : np.array([np.random.rand(), np.random.rand(), 0]), "remaining_life" : np.random.randint(20, 60)}
+            self.current_disturbance = {"vector" : np.array([np.random.rand() - 0.5, np.random.rand() - 0.5, 0.2 * np.random.rand() - 0.1]), "remaining_life" : np.random.randint(20, 60)}
             #self.current_disturbance["visual_shape"] = p.createVisualShape()
         if self.current_disturbance is None: return
         p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
@@ -197,9 +197,7 @@ class QuadrotorBulletEnv(gym.Env):
             p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.reactive_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
 
-        # TODO: continue here
-
-        #self.apply_external_disturbances()
+        self.apply_external_disturbances()
 
         p.stepSimulation()
         self.step_ctr += 1
@@ -210,7 +208,7 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = torso_euler
 
-        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array(self.config["target_pos"]))) * .2, -1, 1)
+        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array(self.config["target_pos"]))) * 1.5, -1, 1)
         p_rp = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.2, -1, 1)
         p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1 - p_position - p_rp - p_rotvel
