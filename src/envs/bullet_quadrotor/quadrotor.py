@@ -283,7 +283,6 @@ def _euler_to_quaternion(roll, pitch, yaw):
     return [qx, qy, qz, qw]
 
 def test_rotations():
-    import quaternion
 
     for i in range(10000):
         euler_angle = np.random.randn(3)
@@ -310,7 +309,6 @@ def test_rotations():
     exit()
 
 if __name__ == "__main__":
-    test_rotations()
     import yaml
     with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
