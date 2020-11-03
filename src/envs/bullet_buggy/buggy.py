@@ -41,30 +41,28 @@ class BuggyBulletEnv(gym.Env):
         self.wheels = [2, 3, 5, 7]
         self.steering = [4, 6]
 
-        self.robot = None
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
-
-        self.observation_space = spaces.Box(low=np.array([-4,-1,-1,-1,-np.pi,-1, -4, -4, -4, -4]),
-                                            high=np.array([4, 1, 1, 1, np.pi, 1, 4, 4, 4, 4]))
+        # yaw, x_dot, y_dot, yaw_dot, relative_target_A, relative_target_B
+        self.observation_space = spaces.Box(low=np.array([-np.pi,-2.,-2.,-2., -4., -4., -4., -4.], dtype=np.float32),
+                                            high=np.array([np.pi, 2., 2., 2., 4., 4., 4., 4.], dtype=np.float32))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
-        # self.targetVelocitySlider = p.addUserDebugParameter("wheelVelocity", -100, 100, 0)
-        # self.maxForceSlider = p.addUserDebugParameter("maxForce", 0, 100, 10)
-        # self.steeringSlider = p.addUserDebugParameter("steering", -0.5, 0.5, 0)
+        self.create_targets()
 
+    def create_targets(self):
         self.target_A = self.target_B = None
         self.target_visualshape_A = p.createVisualShape(shapeType=p.GEOM_SPHERE,
-                                                      radius=0.1,
-                                                      rgbaColor=[1,0,0,1],
-                                                      physicsClientId=self.client_ID)
+                                                        radius=0.1,
+                                                        rgbaColor=[1, 0, 0, 1],
+                                                        physicsClientId=self.client_ID)
         self.target_visualshape_B = p.createVisualShape(shapeType=p.GEOM_SPHERE,
-                                                      radius=0.1,
-                                                      rgbaColor=[0, 0, 1, 1],
-                                                      physicsClientId=self.client_ID)
+                                                        radius=0.1,
+                                                        rgbaColor=[1, 1, 0, 1],
+                                                        physicsClientId=self.client_ID)
         self.update_targets()
 
     def set_randomize_env(self, rnd):
@@ -72,11 +70,11 @@ class BuggyBulletEnv(gym.Env):
 
     def load_robot(self):
         # Remove old robot
-        if self.robot is None:
+        if hasattr(self, 'robot'):
+            robot = self.robot
+        else:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
                                physicsClientId=self.client_ID)
-        else:
-            robot = self.robot
 
         # Randomize robot params
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
@@ -94,16 +92,10 @@ class BuggyBulletEnv(gym.Env):
                              physicsClientId=self.client_ID)
         return robot
 
-    def _quat_to_euler(self, w, x, y, z):
-        pitch =  -m.asin(2.0 * (x*z - w*y))
-        roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
-        yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
-        return (pitch, roll, yaw)
-
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
-        torso_euler = self._quat_to_euler(*torso_quat)
+        torso_euler = p.getEulerFromQuaternion(torso_quat)
         return torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
 
     def update_targets(self):
@@ -129,57 +121,56 @@ class BuggyBulletEnv(gym.Env):
             p.resetBasePositionAndOrientation(self.target_B_body, [self.target_B[0], self.target_B[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
     def render(self, close=False):
-        pass
         time.sleep(0.01)
 
     def step(self, ctrl):
-        # maxForce = p.readUserDebugParameter(self.maxForceSlider)
-        # targetVelocity = p.readUserDebugParameter(self.targetVelocitySlider)
-        # steeringAngle = p.readUserDebugParameter(self.steeringSlider)
-
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
-                                    targetVelocity=np.clip(ctrl[0], -1, 1) * self.robot_params["velocity_scaler"],
+                                    targetVelocity=np.tanh(ctrl[0]) * self.robot_params["velocity_scaler"],
                                     force=self.robot_params["max_force"])
 
         for steer in self.steering:
-            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.clip(ctrl[1], -1, 1))
+            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.tanh(ctrl[1]))
 
         p.stepSimulation()
         self.step_ctr += 1
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
-        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
 
         # Check if the agent has reached a target
-        target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
+        target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         r = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
-            self.prev_target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
+            self.prev_target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         else:
             self.prev_target_dist = target_dist
 
+        # Calculate relative positions of targets
+        relative_target_A = self.target_A[0] - torso_pos[0], self.target_A[1] - torso_pos[1]
+        relative_target_B = self.target_B[0] - torso_pos[0], self.target_B[1] - torso_pos[1]
+
         done = (self.step_ctr > self.config["max_steps"])
-        obs = np.concatenate((torso_pos[0:2], torso_vel[0:2], torso_euler[2:], torso_angular_vel[2:], self.target_A, self.target_B)).astype(np.float32)
+        obs = np.concatenate((torso_euler[2:3], torso_vel[0:2], torso_angular_vel[2:3], relative_target_A, relative_target_B)).astype(np.float32)
 
         return obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        self.prev_target_dist = 0
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
         self.step_ctr = 0
+
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
-        obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
-        torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
+        torso_pos, _, _, _, _ = self.get_obs()
         self.update_targets()
-        self.prev_target_dist = np.sqrt(np.square(torso_pos[0] - self.target_A[0]) ** 2 + np.square(torso_pos[1] - self.target_A[1]) ** 2)
+        self.prev_target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
+
+        obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
 

@@ -1,6 +1,6 @@
 import torch as T
 import numpy as np
-import math
+import math as m
 import yaml
 import src.policies as policies
 from opensimplex import OpenSimplex
@@ -69,6 +69,12 @@ def read_config(path):
 
 def make_action_noise_policy(env, config):
     return None
+
+def _quat_to_euler(x, y, z, w):
+        pitch =  -m.asin(2.0 * (x*z - w*y))
+        roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
+        yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
+        return (roll, pitch, yaw)
 
 if __name__=="__main__":
     noise = SimplexNoise(3)
