@@ -74,7 +74,18 @@ def _quat_to_euler(x, y, z, w):
         pitch =  -m.asin(2.0 * (x*z - w*y))
         roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
         yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
-        return (roll, pitch, yaw)
+        return [roll, pitch, yaw]
+
+def _euler_to_quaternion(roll, pitch, yaw):
+    qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(
+        yaw / 2)
+    qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(
+        yaw / 2)
+    qz = np.cos(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2) - np.sin(roll / 2) * np.sin(pitch / 2) * np.cos(
+        yaw / 2)
+    qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(
+        yaw / 2)
+    return [qx, qy, qz, qw]
 
 if __name__=="__main__":
     noise = SimplexNoise(3)

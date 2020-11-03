@@ -85,8 +85,9 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Just training hexapod until we get a good gait, added square yaw improvement rew and decreased the rest of penalties, put to train in goedel
-Currently: Just do buggy
-Buggy: Needs debugging. Env probably bad because not training with any algo
+Hexapod: Lowered shuffle penalty, trained RDK and PNV are pretty decent to try out, but they use contacts :(
+# TODO: Train hexapod straight policy with this config without contacts
+
+Buggy: Pretty decent, now should try add orientation penalty so it prefers to face its target and also try increasing motor velocities.
 
 

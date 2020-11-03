@@ -48,7 +48,6 @@ class JoyController():
 
         return throttle, t_roll, t_pitch, t_yaw, button_x
 
-
 # Variable params: Mass, boom length, motor "inertia", motor max_force
 class QuadrotorBulletEnv(gym.Env):
     def __init__(self, config):
@@ -62,9 +61,9 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 13
+        self.obs_dim = 13 #
         self.act_dim = 4
-        self.parasitic_torque_dir_vec = [1,-1,-1,1]
+        self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
         # Episode variables
         self.step_ctr = 0
@@ -80,11 +79,10 @@ class QuadrotorBulletEnv(gym.Env):
         p.setTimeStep(config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.robot = None
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        self.observation_space = spaces.Box(low=np.array([-1] * self.obs_dim), high=np.array([1] * self.obs_dim))
+        self.observation_space = spaces.Box(low=-1.5, high=1.5, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         self.rnd_target_vel_source = my_utils.SimplexNoise(4)
@@ -94,15 +92,14 @@ class QuadrotorBulletEnv(gym.Env):
         self.config["randomize_env"] = rnd
 
     def load_robot(self):
-        # Remove old robot
-        if self.robot is not None:
+        if hasattr(self, 'robot'):
             p.removeBody(self.robot)
 
         # Randomize robot params
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.0 + np.random.rand() * 0.25 * self.config["randomize_env"],
-                             "motor_force_multiplier": 30 + np.random.rand() * 20 * self.config["randomize_env"]}
+                             "motor_force_multiplier": 15 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
@@ -136,16 +133,10 @@ class QuadrotorBulletEnv(gym.Env):
 
         return robot
 
-    def _quat_to_euler(self, w, x, y, z):
-        pitch =  -m.asin(2.0 * (x*z - w*y))
-        roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
-        yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
-        return (pitch, roll, yaw)
-
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
-        torso_euler = self._quat_to_euler(*torso_quat)
+        torso_euler = my_utils._quat_to_euler(*torso_quat)
         return torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
 
     def update_motor_vel(self, ctrl):
@@ -181,13 +172,13 @@ class QuadrotorBulletEnv(gym.Env):
             velocity_target = np.zeros(4, dtype=np.float32)
         elif self.config["target_vel_source"] == "rnd":
             velocity_target = self.rnd_target_vel_source() / 3
-        elif self.config["target_vel_source"] == "rnd":
+        elif self.config["target_vel_source"] == "joystick":
             throttle, roll, pitch, yaw = self.joystick_controller.get_joystick_input()[:4]
             velocity_target = -throttle, -roll, -pitch, -yaw
         return velocity_target
 
     def step(self, ctrl):
-        bounded_act = np.tanh(ctrl * self.config["action_scaler"])
+        bounded_act = np.tanh(ctrl * self.config["action_scaler"]) * 0.5 + 0.5
 
         # Take into account motor delay
         self.update_motor_vel(bounded_act)
@@ -203,8 +194,10 @@ class QuadrotorBulletEnv(gym.Env):
             motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot, linkIndex=i * 2 + 1, forceObj=[0, 0, motor_force_scaled],
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
-            p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.parasitic_torque_dir_vec[i]],
+            p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.reactive_torque_dir_vec[i]],
                                   flags=p.LINK_FRAME)
+
+        # TODO: continue here
 
         #self.apply_external_disturbances()
 
@@ -215,20 +208,16 @@ class QuadrotorBulletEnv(gym.Env):
         velocity_target = self.get_velocity_target()
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
-        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
+        roll, pitch, yaw = torso_euler
 
-        p_vel = np.mean(np.square(np.array([torso_vel[2], torso_vel[1], torso_vel[0], torso_angular_vel[2]])
-                            - np.array(velocity_target))) * 0.1
-        p_vel = np.clip(p_vel, -3, 3)
-        p_pose = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.2, -1, 1)
-        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array([0,0,1.]))) * .2, -1, 1)
-        p_rot = np.mean(np.square(torso_angular_vel[2])) * 0.1
-        p_rot = np.clip(p_rot, -1, 1)
-        r = 1 - p_position - p_pose - p_rot
+        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array(self.config["target_pos"]))) * .2, -1, 1)
+        p_rp = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.2, -1, 1)
+        p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        r = 1 - p_position - p_rp - p_rotvel
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 2) \
-               or (abs(np.array(torso_pos) - np.array([0,0,1.])) > np.array([1.5,1.5,0.7])).any()
+               or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > np.array([1.5,1.5,0.8])).any()
 
         obs = np.concatenate((torso_pos, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 
@@ -250,11 +239,11 @@ class QuadrotorBulletEnv(gym.Env):
     def demo(self):
         for i in range(100):
             self.reset()
-            act = np.array([0.4, 0.4, 0.4, 0.4])
+            act = np.array([-1., -1., -1., -1.])
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
-                time.sleep(0.01)
+                time.sleep(0.05)
 
             self.reset()
 
@@ -263,50 +252,6 @@ class QuadrotorBulletEnv(gym.Env):
 
     def close(self):
         self.kill()
-
-def _quat_to_euler(x, y, z, w):
-    pitch =  -m.asin(2.0 * (x*z - w*y))
-    roll  =  m.atan2(2.0 * (w*x + y*z), w*w - x*x - y*y + z*z)
-    yaw   =  m.atan2(2.0 * (w*z + x*y), w*w + x*x - y*y - z*z)
-    return (roll, pitch, yaw)
-
-def _euler_to_quaternion(roll, pitch, yaw):
-    qx = np.sin(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) - np.cos(roll / 2) * np.sin(pitch / 2) * np.sin(
-        yaw / 2)
-    qy = np.cos(roll / 2) * np.sin(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.cos(pitch / 2) * np.sin(
-        yaw / 2)
-    qz = np.cos(roll / 2) * np.cos(pitch / 2) * np.sin(yaw / 2) - np.sin(roll / 2) * np.sin(pitch / 2) * np.cos(
-        yaw / 2)
-    qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(
-        yaw / 2)
-
-    return [qx, qy, qz, qw]
-
-def test_rotations():
-
-    for i in range(10000):
-        euler_angle = np.random.randn(3)
-
-        q1 = p.getQuaternionFromEuler(euler_angle)
-        q2 = _euler_to_quaternion(*euler_angle)
-
-        if not np.allclose(q1, q1, rtol=0.001):
-           print(f"Quats not close, {q1}, {q2}")
-
-        e1 = _quat_to_euler(*q1)
-        e2 = p.getEulerFromQuaternion(q2)
-
-        q1 = p.getQuaternionFromEuler(e1)
-        q2 = _euler_to_quaternion(*e2)
-
-        if not np.allclose(q1, q1, rtol=0.001):
-            print(f"Quats not close, {q1}, {q2}")
-
-        if not np.allclose(e1, e2, rtol=0.001):
-           print(f"Eulers not close, {e1}, {e2}")
-
-
-    exit()
 
 if __name__ == "__main__":
     import yaml
