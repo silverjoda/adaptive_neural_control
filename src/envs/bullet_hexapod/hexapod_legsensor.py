@@ -413,13 +413,13 @@ class HexapodBulletEnv(gym.Env):
             # r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
             #          "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
             #          "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 2.0}
-            r_neg = {"pitch" : np.square(pitch) * 1,
-                     "roll": np.square(roll) * 1,
-                     "shuffle_pen" : shuffle_pen * 0.9,
-                     "yaw_pen" : np.square(yaw) * 0.5}
+            r_neg = {"pitch" : np.square(pitch) * 1.5,
+                     "roll": np.square(roll) * 1.5,
+                     "shuffle_pen" : shuffle_pen * 0.2,
+                     "yaw_pen" : np.square(yaw) * 0.7}
 
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
-                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.5, -1, 1)}
+                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.3, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
