@@ -27,7 +27,7 @@ class JoyController():
 
     def get_joystick_input(self):
         pygame.event.pump()
-        throttle, t_yaw, t_roll, t_pitch = \
+        t_roll, t_pitch, t_yaw, throttle = \
             [self.joystick.get_axis(i) for i in range(4)]
         button_x = self.joystick.get_button(1)
         pygame.event.clear()
@@ -46,7 +46,7 @@ class JoyController():
             self.button_x_state = 0
             button_x = 0
 
-        return throttle, t_roll, t_pitch, t_yaw, button_x
+        return throttle, -t_roll, t_pitch, t_yaw, button_x
 
 # Variable params: Mass, boom length, motor "inertia", motor max_force
 class QuadrotorBulletEnv(gym.Env):
@@ -95,9 +95,9 @@ class QuadrotorBulletEnv(gym.Env):
         self.p_pitch = 0.1
         self.p_yaw = 0.1
 
-        self.d_roll = 0.01
-        self.d_pitch = 0.01
-        self.d_yaw = 0.01
+        self.d_roll = 1.8
+        self.d_pitch = 1.8
+        self.d_yaw = 0.1
 
         self.e_roll_prev = 0
         self.e_pitch_prev = 0
@@ -192,14 +192,21 @@ class QuadrotorBulletEnv(gym.Env):
             velocity_target = -throttle, -roll, -pitch, -yaw
         return velocity_target
 
-    def calculate_stabilization_action(self, orientation, target_orientation, throttle):
-        roll, pitch, yaw = orientation
-        t_roll, t_pitch, t_yaw = target_orientation
+    def calculate_stabilization_action(self, orientation, angular_velocities, targets):
+        roll, pitch, _ = p.getEulerFromQuaternion(orientation)
+        roll_vel, pitch_vel, yaw_vel = angular_velocities
+        t_throttle, t_roll, t_pitch, t_yaw_vel = targets
+
+        # Increase t_yaw_vel because it's slow as shit
+        t_yaw_vel *= 5
+
+        #print(f"Throttle_target: {t_throttle}, Roll_target: {t_roll}, Pitch_target: {t_pitch}, Yaw_vel_target: {t_yaw_vel}")
+        #print(f"Roll: {roll}, Pitch: {pitch}, Yaw_vel: {yaw_vel}")
 
         # Target errors
         e_roll = t_roll - roll
         e_pitch = t_pitch - pitch
-        e_yaw = t_yaw - yaw
+        e_yaw = t_yaw_vel - yaw_vel
 
         # Desired correction action
         roll_act = e_roll * self.p_roll + (e_roll - self.e_roll_prev) * self.d_roll
@@ -210,27 +217,29 @@ class QuadrotorBulletEnv(gym.Env):
         self.e_pitch_prev = e_pitch
         self.e_yaw_prev = e_yaw
 
-        m_1_act_total = + roll_act / (2 * np.pi) + pitch_act / (2 * np.pi) - yaw_act / (2 * np.pi)
-        m_2_act_total = - roll_act / (2 * np.pi) + pitch_act / (2 * np.pi) + yaw_act / (2 * np.pi)
-        m_3_act_total = + roll_act / (2 * np.pi) - pitch_act / (2 * np.pi) + yaw_act / (2 * np.pi)
-        m_4_act_total = - roll_act / (2 * np.pi) - pitch_act / (2 * np.pi) - yaw_act / (2 * np.pi)
-
-        max_act = np.max([m_1_act_total, m_1_act_total, m_1_act_total, m_2_act_total])
-        clipped_throttle = np.minimum(throttle, 1 - max_act)
+        m_1_act_total = + roll_act - pitch_act + yaw_act
+        m_2_act_total = - roll_act - pitch_act - yaw_act
+        m_3_act_total = + roll_act + pitch_act - yaw_act
+        m_4_act_total = - roll_act + pitch_act + yaw_act
 
         # Translate desired correction actions to servo commands
-        m_1 = clipped_throttle + m_1_act_total
-        m_2 = clipped_throttle + m_2_act_total
-        m_3 = clipped_throttle + m_3_act_total
-        m_4 = clipped_throttle + m_4_act_total
+        m_1 = np.clip(t_throttle + m_1_act_total, 0, 1)
+        m_2 = np.clip(t_throttle + m_2_act_total, 0, 1)
+        m_3 = np.clip(t_throttle + m_3_act_total, 0, 1)
+        m_4 = np.clip(t_throttle + m_4_act_total, 0, 1)
 
-        if np.max([m_1, m_2, m_3, m_4]) > 1:
-            print("Warning: motor commands exceed 1.0. This signifies an error in the system")
+        #print([m_1, m_2, m_3, m_4])
+
+        if np.max([m_1, m_2, m_3, m_4]) > 1.1:
+            print("Warning: motor commands exceed 1.0. This signifies an error in the system", m_1, m_2, m_3, m_4, t_throttle)
 
         return m_1, m_2, m_3, m_4
 
     def step(self, ctrl):
-        bounded_act = np.tanh(ctrl * self.config["action_scaler"]) * 0.5 + 0.5
+        if self.config["controller_source"] == "nn":
+            bounded_act = np.tanh(ctrl * self.config["action_scaler"]) * 0.5 + 0.5
+        else:
+            bounded_act = ctrl
 
         # Take into account motor delay
         self.update_motor_vel(bounded_act)
@@ -244,9 +253,14 @@ class QuadrotorBulletEnv(gym.Env):
             motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
                                           + self.current_motor_velocity_vec[i], 0, 1)
             motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
-            p.applyExternalForce(self.robot, linkIndex=i * 2 + 1, forceObj=[0, 0, motor_force_scaled],
-                                 posObj=[0, 0, 0], flags=p.LINK_FRAME)
-            p.applyExternalTorque(self.robot, linkIndex=i * 2 + 1, torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.reactive_torque_dir_vec[i]],
+            p.applyExternalForce(self.robot,
+                                 linkIndex=i * 2 + 1,
+                                 forceObj=[0, 0, motor_force_scaled],
+                                 posObj=[0, 0, 0],
+                                 flags=p.LINK_FRAME)
+            p.applyExternalTorque(self.robot,
+                                  linkIndex=i * 2 + 1,
+                                  torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.reactive_torque_dir_vec[i] * self.config["propeller_parasitic_torque_coeff"]],
                                   flags=p.LINK_FRAME)
 
         self.apply_external_disturbances()
@@ -298,24 +312,30 @@ class QuadrotorBulletEnv(gym.Env):
             self.reset()
 
     def demo_joystick(self):
+        self.config["policy_type"] = "mlp"
+
         # Load neural network policy
-        policy = my_utils.make_policy(env, self.config)
+        from stable_baselines import A2C
         try:
-            policy.load_state_dict(T.load("../../algos/SB/agents/XXX_SB_policy.py"))
+            model = A2C.load("agents/{}".format("../../algos/SB/agents/XXX_SB_policy.py"))
         except:
-            print("Didn't load NN policy, agent could not be found. ")
+            model = None
+            print("Failed to load nn. ")
 
         obs = self.reset()
         while True:
             velocity_target = self.get_velocity_target()
 
             if self.config["controller_source"] == "nn":
-                act = policy(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
+                if model == None:
+                    act = np.zeros(self.act_dim, dtype=np.float32)
+                else:
+                    act, _states = model.predict(obs, deterministic=True)
             else:
-                act = self.calculate_stabilization_action(obs[3:7], velocity_target[1:], velocity_target[0])
+                act = self.calculate_stabilization_action(obs[3:7], obs[10:13], velocity_target)
             obs, r, done, _ = self.step(act)
             time.sleep(self.config["sim_timestep"])
-            if done: break
+            #if done: break
 
     def kill(self):
         p.disconnect()
