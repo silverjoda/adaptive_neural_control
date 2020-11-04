@@ -124,11 +124,12 @@ class BuggyBulletEnv(gym.Env):
         time.sleep(0.01)
 
     def step(self, ctrl):
+        wheel_action = np.tanh(ctrl[0]) * 0.5 + 0.5
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
-                                    targetVelocity=np.tanh(ctrl[0]) * self.robot_params["velocity_scaler"],
+                                    targetVelocity= wheel_action * self.robot_params["velocity_scaler"],
                                     force=self.robot_params["max_force"])
 
         for steer in self.steering:
@@ -187,6 +188,7 @@ class BuggyBulletEnv(gym.Env):
         return obs
 
     def demo(self):
+        acts = [[1,0], [0,0], [1,0], [-1,0]]
         for i in range(100):
             act = np.random.rand(2) * 2 - 1
             self.reset()
@@ -194,6 +196,14 @@ class BuggyBulletEnv(gym.Env):
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
                 #print(obs)
+                time.sleep(0.01)
+
+    def test_motors(self):
+        acts = [[1,0], [0,0], [1,0], [-1,0]]
+        self.reset()
+        for act in acts:
+            for i in range(100):
+                obs, r, done, _ = self.step(act)
                 time.sleep(0.01)
 
     def close(self):
