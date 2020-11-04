@@ -259,7 +259,7 @@ class QuadrotorBulletEnv(gym.Env):
         for i in range(4):
             motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
                                           + self.current_motor_velocity_vec[i], 0, 1)
-            motor_force_non_linear = np.sin(motor_force_w_noise * np.pi * 0.5)
+            motor_force_non_linear = 1 - np.square(motor_force_w_noise - 1)
             motor_force_scaled = motor_force_non_linear * self.robot_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot,
                                  linkIndex=i * 2 + 1,
