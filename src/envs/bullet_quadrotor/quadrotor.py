@@ -113,7 +113,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "motor_inertia_coeff": 0.1 + np.random.rand() * 0.25 * self.config["randomize_env"],
+                             "motor_inertia_coeff": 0.8 + np.random.rand() * 0.25 * self.config["randomize_env"],
                              "motor_force_multiplier": 15 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
@@ -170,11 +170,18 @@ class QuadrotorBulletEnv(gym.Env):
     def apply_external_disturbances(self):
         #Apply external disturbance force
         if np.random.rand() < self.config["disturbance_frequency"]:
-            self.current_disturbance = {"vector" : np.array([2 * np.random.rand() - 1.0, 2 * np.random.rand() - 1.0, 0.4 * np.random.rand() - 0.2]), "remaining_life" : np.random.randint(40, 100)}
+            self.current_disturbance = {"vector" : np.array([2 * np.random.rand() - 1.0, 2 * np.random.rand() - 1.0, 0.4 * np.random.rand() - 0.2]),
+                                        "remaining_life" : np.random.randint(40, 100),
+                                        "effect" : np.random.choice(["translation", "rotation"])}
             #self.current_disturbance["visual_shape"] = p.createVisualShape()
         if self.current_disturbance is None: return
-        p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
-                             posObj=[0, 0, 0], flags=p.LINK_FRAME)
+        if self.current_disturbance["effect"] == "translation":
+            p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
+                                 posObj=[0, 0, 0], flags=p.LINK_FRAME)
+        else:
+            p.applyExternalTorque(self.robot, linkIndex=-1,
+                                 torqueObj=self.current_disturbance["vector"] * 0.5,
+                                 flags=p.LINK_FRAME)
         if self.current_disturbance is not None:
             self.current_disturbance["remaining_life"] -= 1
             if self.current_disturbance["remaining_life"] <= 0:

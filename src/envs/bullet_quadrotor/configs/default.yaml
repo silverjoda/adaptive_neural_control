@@ -9,7 +9,7 @@
 "sim_timestep" : 0.00417
 "action_scaler" : .99
 "propeller_parasitic_torque_coeff" : 1.0
-"motor_power_variance" : 0.07
+"motor_power_variance" : 0.1
 "env_change_prob" : 0.1
 "starting_pos" : [0, 0, 1.0]
 "target_pos" : [0, 0, 1.0]
