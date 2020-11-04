@@ -114,7 +114,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.8 + np.random.rand() * 0.25 * self.config["randomize_env"],
-                             "motor_force_multiplier": 15 + np.random.rand() * 20 * self.config["randomize_env"]}
+                             "motor_force_multiplier": 12 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
@@ -259,7 +259,8 @@ class QuadrotorBulletEnv(gym.Env):
         for i in range(4):
             motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
                                           + self.current_motor_velocity_vec[i], 0, 1)
-            motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
+            motor_force_non_linear = np.sin(motor_force_w_noise * np.pi * 0.5)
+            motor_force_scaled = motor_force_non_linear * self.robot_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot,
                                  linkIndex=i * 2 + 1,
                                  forceObj=[0, 0, motor_force_scaled],
