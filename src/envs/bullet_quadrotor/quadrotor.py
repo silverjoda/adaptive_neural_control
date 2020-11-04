@@ -88,6 +88,21 @@ class QuadrotorBulletEnv(gym.Env):
         self.rnd_target_vel_source = my_utils.SimplexNoise(4)
         self.joystick_controller = JoyController(self.config)
 
+        self.setup_stabilization_control()
+
+    def setup_stabilization_control(self):
+        self.p_roll = 0.1
+        self.p_pitch = 0.1
+        self.p_yaw = 0.1
+
+        self.d_roll = 0.01
+        self.d_pitch = 0.01
+        self.d_yaw = 0.01
+
+        self.e_roll_prev = 0
+        self.e_pitch_prev = 0
+        self.e_yaw_prev = 0
+
     def set_randomize_env(self, rnd):
         self.config["randomize_env"] = rnd
 
@@ -155,7 +170,7 @@ class QuadrotorBulletEnv(gym.Env):
     def apply_external_disturbances(self):
         #Apply external disturbance force
         if np.random.rand() < self.config["disturbance_frequency"]:
-            self.current_disturbance = {"vector" : np.array([np.random.rand() - 0.5, np.random.rand() - 0.5, 0.2 * np.random.rand() - 0.1]), "remaining_life" : np.random.randint(20, 60)}
+            self.current_disturbance = {"vector" : np.array([2 * np.random.rand() - 1.0, 2 * np.random.rand() - 1.0, 0.4 * np.random.rand() - 0.2]), "remaining_life" : np.random.randint(40, 100)}
             #self.current_disturbance["visual_shape"] = p.createVisualShape()
         if self.current_disturbance is None: return
         p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
@@ -176,6 +191,43 @@ class QuadrotorBulletEnv(gym.Env):
             throttle, roll, pitch, yaw = self.joystick_controller.get_joystick_input()[:4]
             velocity_target = -throttle, -roll, -pitch, -yaw
         return velocity_target
+
+    def calculate_stabilization_action(self, orientation, target_orientation, throttle):
+        roll, pitch, yaw = orientation
+        t_roll, t_pitch, t_yaw = target_orientation
+
+        # Target errors
+        e_roll = t_roll - roll
+        e_pitch = t_pitch - pitch
+        e_yaw = t_yaw - yaw
+
+        # Desired correction action
+        roll_act = e_roll * self.p_roll + (e_roll - self.e_roll_prev) * self.d_roll
+        pitch_act = e_pitch * self.p_pitch + (e_pitch - self.e_pitch_prev) * self.d_pitch
+        yaw_act = e_yaw * self.p_yaw + (e_yaw - self.e_yaw_prev) * self.d_yaw
+
+        self.e_roll_prev = e_roll
+        self.e_pitch_prev = e_pitch
+        self.e_yaw_prev = e_yaw
+
+        m_1_act_total = + roll_act / (2 * np.pi) + pitch_act / (2 * np.pi) - yaw_act / (2 * np.pi)
+        m_2_act_total = - roll_act / (2 * np.pi) + pitch_act / (2 * np.pi) + yaw_act / (2 * np.pi)
+        m_3_act_total = + roll_act / (2 * np.pi) - pitch_act / (2 * np.pi) + yaw_act / (2 * np.pi)
+        m_4_act_total = - roll_act / (2 * np.pi) - pitch_act / (2 * np.pi) - yaw_act / (2 * np.pi)
+
+        max_act = np.max([m_1_act_total, m_1_act_total, m_1_act_total, m_2_act_total])
+        clipped_throttle = np.minimum(throttle, 1 - max_act)
+
+        # Translate desired correction actions to servo commands
+        m_1 = clipped_throttle + m_1_act_total
+        m_2 = clipped_throttle + m_2_act_total
+        m_3 = clipped_throttle + m_3_act_total
+        m_4 = clipped_throttle + m_4_act_total
+
+        if np.max([m_1, m_2, m_3, m_4]) > 1:
+            print("Warning: motor commands exceed 1.0. This signifies an error in the system")
+
+        return m_1, m_2, m_3, m_4
 
     def step(self, ctrl):
         bounded_act = np.tanh(ctrl * self.config["action_scaler"]) * 0.5 + 0.5
@@ -245,6 +297,26 @@ class QuadrotorBulletEnv(gym.Env):
 
             self.reset()
 
+    def demo_joystick(self):
+        # Load neural network policy
+        policy = my_utils.make_policy(env, self.config)
+        try:
+            policy.load_state_dict(T.load("../../algos/SB/agents/XXX_SB_policy.py"))
+        except:
+            print("Didn't load NN policy, agent could not be found. ")
+
+        obs = self.reset()
+        while True:
+            velocity_target = self.get_velocity_target()
+
+            if self.config["controller_source"] == "nn":
+                act = policy(my_utils.to_tensor(obs, True)).squeeze(0).detach().numpy()
+            else:
+                act = self.calculate_stabilization_action(obs[3:7], velocity_target[1:], velocity_target[0])
+            obs, r, done, _ = self.step(act)
+            time.sleep(self.config["sim_timestep"])
+            if done: break
+
     def kill(self):
         p.disconnect()
 
@@ -257,4 +329,4 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
-    env.demo()
+    env.demo_joystick()

@@ -557,10 +557,8 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
-        rnd_rot = np.random.rand() * 0.6 - 0.3
+        rnd_rot = np.random.rand() * 1.2 - 0.6
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
-        rnd_quat2 = p.getQuaternionFromEuler([0, 0, rnd_rot]) # JOOI, remove later
-        assert np.isclose(rnd_quat, rnd_quat2, rtol=0.001).all(), print(rnd_quat, rnd_quat2) # JOOI, remove later
         self.prev_yaw_dev = rnd_rot
 
         joint_init_pos_list = self.norm_to_rads([0] * 18)

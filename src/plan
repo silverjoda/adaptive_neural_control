@@ -85,11 +85,10 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: Lowered shuffle penalty, trained RDK and PNV are pretty decent to try out, but they use contacts :(
-Currently training in goedel without contacts
+Hexapod: XXW works decently on flat without contacts, should try on HW platform. Meanwhile Trying out harder initial yaw deviations and shorter episodes
 
-Buggy: Currently trying with higher velocity and maxforce + yaw deviation penalty copied from nexabots
+Buggy: Block rear drive, leave only breaking, same as in hw buggy
 
-Quadcopter: ??? Need to check
+Quadcopter: Test PID controller + joystick input on env
 
 

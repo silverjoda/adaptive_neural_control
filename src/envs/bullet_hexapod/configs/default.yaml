@@ -1,5 +1,5 @@
 "env_name" : "hexapod"
-"max_steps" : 80
+"max_steps" : 50
 "step_counter" : True
 "terrain_name" : "flat"
 "training_mode" : "straight"
