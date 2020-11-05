@@ -38,7 +38,8 @@ class BuggyBulletEnv(gym.Env):
         p.setTimeStep(self.config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.wheels = [2, 3, 5, 7]
+        self.wheels = [2,3,5,7] # [2, 3, 5, 7]
+        self.inactive_wheels = []
         self.steering = [4, 6]
 
         self.robot = self.load_robot()
@@ -49,6 +50,9 @@ class BuggyBulletEnv(gym.Env):
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         for wheel in self.wheels:
+            p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
+
+        for wheel in self.inactive_wheels:
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
         self.create_targets()
@@ -80,9 +84,9 @@ class BuggyBulletEnv(gym.Env):
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "wheels_friction": 1.0 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 1.5 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 80 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+                             "wheels_friction": 0.7 + np.random.rand() * 1.5 * self.config["randomize_env"],
+                             "max_force": 20.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "velocity_scaler": 100 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -124,7 +128,7 @@ class BuggyBulletEnv(gym.Env):
         time.sleep(0.01)
 
     def step(self, ctrl):
-        wheel_action = np.tanh(ctrl[0]) * 0.5 + 0.5
+        wheel_action = np.clip(ctrl[0], -1, 1) * 0.5 + 0.5
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
@@ -147,7 +151,7 @@ class BuggyBulletEnv(gym.Env):
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         r = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
-        r += np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
+        #r += np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -199,12 +203,13 @@ class BuggyBulletEnv(gym.Env):
                 time.sleep(0.01)
 
     def test_motors(self):
-        acts = [[1,0], [0,0], [1,0], [-1,0]]
+        #acts = [[1,-0.5], [-1,0], [1,0.5], [0.5,1]]
+        acts = [[1, 0], [-1, 0], [1, -1], [0.5, 1]]
         self.reset()
         for act in acts:
             for i in range(100):
                 obs, r, done, _ = self.step(act)
-                time.sleep(0.01)
+                time.sleep(self.config["sim_timestep"])
 
     def close(self):
         p.disconnect()
@@ -215,4 +220,4 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
-    env.demo()
+    env.test_motors()

@@ -315,7 +315,7 @@ class QuadrotorBulletEnv(gym.Env):
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
-                time.sleep(0.05)
+                time.sleep(self.config["sim_timestep"])
 
             self.reset()
 
@@ -324,8 +324,9 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Load neural network policy
         from stable_baselines import A2C
+        src_file = os.path.split(os.path.split(os.path.join(os.path.dirname(os.path.realpath(__file__))))[0])[0]
         try:
-            model = A2C.load("agents/{}".format("../../algos/SB/agents/XXX_SB_policy.py"))
+            model = A2C.load(os.path.join(src_file, "algos/SB/agents/KLH_SB_policy.zip"))
         except:
             model = None
             print("Failed to load nn. ")
