@@ -262,10 +262,10 @@ class HexapodBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
 
-        contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
+        #contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
 
-        #contacts = np.zeros(6)
+        contacts = np.zeros(6)
 
         # Joints
         obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
@@ -564,7 +564,7 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
-        rnd_rot = np.random.rand() * 0.6 - 0.3
+        rnd_rot = np.random.rand() * 1.2 - 0.6
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
         rnd_quat2 = p.getQuaternionFromEuler([0, 0, rnd_rot]) # JOOI, remove later
         assert np.isclose(rnd_quat, rnd_quat2, rtol=0.001).all(), print(rnd_quat, rnd_quat2) # JOOI, remove later

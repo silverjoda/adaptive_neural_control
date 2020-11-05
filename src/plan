@@ -87,8 +87,8 @@ MAML:
 # GOEDEL:
 Hexapod: XXW works decently on flat without contacts, should try on HW platform. Meanwhile Trying out harder initial yaw deviations and shorter episodes
 
-Buggy: Block rear drive, leave only breaking, same as in hw buggy
+Buggy: Try different programs in HW ESC. Removing backwards drive make it fail now. Removed yaw deviation penalty, increased wheel force, put to train again.
 
-Quadcopter: Test PID controller + joystick input on env
+Quadcopter: Something is wrong with everything, need to go over the inputs/outputs.
 
 
