@@ -118,7 +118,7 @@ if __name__ == "__main__":
 
     # Random ID of this session
     if config["default_session_ID"] is None:
-        config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+        config["session_ID"] = ''.join(random.choices('ABCDEFGHIJKLMNPQRSTUVWXYZ', k=3))
     else:
         config["session_ID"] = "TST"
 
