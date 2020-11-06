@@ -85,7 +85,7 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod:
+Hexapod: Changed target vel to 0.4 and lowered shuffle pen to 0.1 and rnd init to 0.6 range. Want to see what gait looks like on flat. Also put 1 perlin to train.
 
 Buggy: Slightly lowered power and vel, added backward velocity and removed orientation reward. Should train to see if ok, then see what the problem was.
 

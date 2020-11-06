@@ -6,7 +6,7 @@ if NO_LIMITS:
 input_filename = "hexapod.urdf"
 output_filename = "hexapod_normal.urdf"
 
-with open(input_filename, "r") as in_file: #
+with open(input_filename, "r") as in_file: 
     buf = in_file.readlines()
 
 with open(output_filename, "w") as out_file:

@@ -46,12 +46,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.052"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
@@ -103,12 +97,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.132"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
@@ -151,7 +139,7 @@
     </link>
 
      <joint name="tibia_tip_fl" type="fixed">
-      <origin xyz="0.0 0.132 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.112 0" rpy="0 0 0"/>
       <parent link="tibia_fl"/>
       <child link="tip_fl"/>
     </joint>
@@ -165,13 +153,6 @@
         </geometry>
         <material name="black"/>
       </visual>
-
-      <collision>
-        <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.052"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
@@ -223,13 +204,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.132"/>
-        </geometry>
-      </collision>
-
       <inertial>
         <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
         <mass value="0.1"/>
@@ -271,7 +245,7 @@
     </link>
 
      <joint name="tibia_tip_fr" type="fixed">
-      <origin xyz="0.0 0.132 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.112 0" rpy="0 0 0"/>
       <parent link="tibia_fr"/>
       <child link="tip_fr"/>
     </joint>
@@ -287,12 +261,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.052"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
@@ -344,12 +312,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.132"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
@@ -392,7 +354,7 @@
     </link>
 
      <joint name="tibia_tip_ml" type="fixed">
-      <origin xyz="0.0 0.132 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.112 0" rpy="0 0 0"/>
       <parent link="tibia_ml"/>
       <child link="tip_ml"/>
     </joint>
@@ -406,13 +368,6 @@
         </geometry>
         <material name="black"/>
       </visual>
-
-      <collision>
-        <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.052"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
@@ -464,12 +419,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.132"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
@@ -512,7 +461,7 @@
     </link>
 
      <joint name="tibia_tip_mr" type="fixed">
-      <origin xyz="0.0 0.132 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.112 0" rpy="0 0 0"/>
       <parent link="tibia_mr"/>
       <child link="tip_mr"/>
     </joint>
@@ -528,12 +477,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.052"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
@@ -585,12 +528,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.132"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
@@ -633,7 +570,7 @@
     </link>
 
      <joint name="tibia_tip_rl" type="fixed">
-      <origin xyz="0.0 0.132 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.112 0" rpy="0 0 0"/>
       <parent link="tibia_rl"/>
       <child link="tip_rl"/>
     </joint>
@@ -648,12 +585,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.052"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz="0 0.026 0.0" rpy="-1.5708 0 0" />
@@ -705,12 +636,6 @@
         <material name="black"/>
       </visual>
 
-      <collision>
-        <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
-        <geometry>
-          <cylinder radius="0.015" length="0.132"/>
-        </geometry>
-      </collision>
 
       <inertial>
         <origin xyz=".0 .066 0.0" rpy="-1.5708 0 0" />
@@ -753,7 +678,7 @@
     </link>
 
      <joint name="tibia_tip_rr" type="fixed">
-      <origin xyz="0.0 0.132 0" rpy="0 0 0"/>
+      <origin xyz="0.0 0.112 0" rpy="0 0 0"/>
       <parent link="tibia_rr"/>
       <child link="tip_rr"/>
     </joint>
