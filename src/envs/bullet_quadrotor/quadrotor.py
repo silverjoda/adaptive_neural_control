@@ -248,7 +248,7 @@ class QuadrotorBulletEnv(gym.Env):
             bounded_act = np.clip(ctrl * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
         else:
             bounded_act = ctrl
-        print(bounded_act)
+
         # Take into account motor delay
         self.update_motor_vel(bounded_act)
 
