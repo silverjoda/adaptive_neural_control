@@ -413,13 +413,13 @@ class HexapodBulletEnv(gym.Env):
             # r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
             #          "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
             #          "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 2.0}
-            r_neg = {"pitch" : np.square(pitch) * 1.5,
-                     "roll": np.square(roll) * 1.5,
-                     "shuffle_pen" : shuffle_pen * 0.2,
+            r_neg = {"pitch" : np.square(pitch) * 1.4,
+                     "roll": np.square(roll) * 1.4,
+                     "shuffle_pen" : shuffle_pen * 0.1,
                      "yaw_pen" : np.square(yaw) * 0.7}
 
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
-                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.3, -1, 1)}
+                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.1, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
@@ -564,7 +564,7 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
-        rnd_rot = np.random.rand() * 1.2 - 0.6
+        rnd_rot = np.random.rand() * 0.6 - 0.3
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
         rnd_quat2 = p.getQuaternionFromEuler([0, 0, rnd_rot]) # JOOI, remove later
         assert np.isclose(rnd_quat, rnd_quat2, rtol=0.001).all(), print(rnd_quat, rnd_quat2) # JOOI, remove later
@@ -649,7 +649,7 @@ class HexapodBulletEnv(gym.Env):
                     print("action normed: ", a)
                     #input()
 
-                self.reset()
+                #self.reset()
 
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))

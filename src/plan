@@ -85,10 +85,10 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: XXW works decently on flat without contacts, should try on HW platform. Meanwhile Trying out harder initial yaw deviations and shorter episodes
+Hexapod:
 
-Buggy: Try different programs in HW ESC. Removing backwards drive make it fail now. Removed yaw deviation penalty, increased wheel force, put to train again.
+Buggy: Slightly lowered power and vel, added backward velocity and removed orientation reward. Should train to see if ok, then see what the problem was.
 
-Quadcopter: Something is wrong with everything, need to go over the inputs/outputs.
+Quadcopter: Ok, power was too high, tanh didn't let quad land
 
 

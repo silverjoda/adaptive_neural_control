@@ -1,5 +1,5 @@
 "env_name" : "hexapod"
-"max_steps" : 50
+"max_steps" : 60
 "step_counter" : True
 "terrain_name" : "flat"
 "training_mode" : "straight"
@@ -15,7 +15,7 @@
 "max_actuator_velocity" : 3.0
 "lateral_friction" : 1.2
 "max_joint_force" : 1.5
-"target_vel" : 0.2
+"target_vel" : 0.4
 "target_vell_nn_input" : 0
 "target_vel_range" : [0.1, 0.3]
 "sim_steps_per_iter" : 24
