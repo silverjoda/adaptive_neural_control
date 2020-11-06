@@ -21,7 +21,8 @@ class JoyController():
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
             logging.info("Initialized gamepad: {}".format(self.joystick.get_name()))
-        logging.info("No joystick found")
+        else:
+            logging.info("No joystick found")
         logging.info("Finished initializing the joystick controller.")
         self.button_x_state = 0
 
@@ -114,7 +115,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.8 + np.random.rand() * 0.25 * self.config["randomize_env"],
-                             "motor_force_multiplier": 12 + np.random.rand() * 20 * self.config["randomize_env"]}
+                             "motor_force_multiplier": 7 + np.random.rand() * 20 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
@@ -244,10 +245,10 @@ class QuadrotorBulletEnv(gym.Env):
 
     def step(self, ctrl):
         if self.config["controller_source"] == "nn":
-            bounded_act = np.tanh(ctrl * self.config["action_scaler"]) * 0.5 + 0.5
+            bounded_act = np.clip(ctrl * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
         else:
             bounded_act = ctrl
-
+        print(bounded_act)
         # Take into account motor delay
         self.update_motor_vel(bounded_act)
 
@@ -311,7 +312,7 @@ class QuadrotorBulletEnv(gym.Env):
     def demo(self):
         for i in range(100):
             self.reset()
-            act = np.array([-1., -1., -1., -1.])
+            act = np.array([-0.7, -0.7, -0.7, -0.7])
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
@@ -337,7 +338,7 @@ class QuadrotorBulletEnv(gym.Env):
 
             if self.config["controller_source"] == "nn":
                 if model == None:
-                    act = np.zeros(self.act_dim, dtype=np.float32)
+                    act = np.ones(self.act_dim, dtype=np.float32) * -1
                 else:
                     act, _states = model.predict(obs, deterministic=True)
             else:

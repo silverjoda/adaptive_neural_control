@@ -85,8 +85,8 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 0.7 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 20.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 100 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+                             "max_force": 15.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "velocity_scaler": 80 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -128,7 +128,7 @@ class BuggyBulletEnv(gym.Env):
         time.sleep(0.01)
 
     def step(self, ctrl):
-        wheel_action = np.clip(ctrl[0], -1, 1) * 0.5 + 0.5
+        wheel_action = np.clip(ctrl[0], -1, 1)
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
@@ -192,7 +192,7 @@ class BuggyBulletEnv(gym.Env):
         return obs
 
     def demo(self):
-        acts = [[1,0], [0,0], [1,0], [-1,0]]
+        acts = [[1,0], [-1,0], [1,0], [-1,0]]
         for i in range(100):
             act = np.random.rand(2) * 2 - 1
             self.reset()
@@ -204,10 +204,10 @@ class BuggyBulletEnv(gym.Env):
 
     def test_motors(self):
         #acts = [[1,-0.5], [-1,0], [1,0.5], [0.5,1]]
-        acts = [[1, 0], [-1, 0], [1, -1], [0.5, 1]]
+        acts = [[1, 0], [-1, 0], [-1, -1], [0.5, 1]]
         self.reset()
         for act in acts:
-            for i in range(100):
+            for i in range(150):
                 obs, r, done, _ = self.step(act)
                 time.sleep(self.config["sim_timestep"])
 
