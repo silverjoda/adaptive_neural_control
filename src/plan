@@ -88,8 +88,8 @@ MAML:
 Hexapod: Should try out learned policies on platform (flat and perlin) . Code up waypoint navigation env
 NOTE: Do another perlin training session with lowered pitch and roll penalties
 
-Buggy: Lowered force and vel, trying again. Was working last time but not that well.
+Buggy: Works fine, adding heading reward (still allowing for forward and backward)
 
-Quadcopter: Trains ok, launched again with disturbances
+Quadcopter: Works ok, put much higher intensities, lower duration, more rotational
 
 

@@ -151,7 +151,7 @@ class BuggyBulletEnv(gym.Env):
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         r = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
-        #r += np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
+        r += np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()

@@ -172,7 +172,7 @@ class QuadrotorBulletEnv(gym.Env):
         #Apply external disturbance force
         if np.random.rand() < self.config["disturbance_frequency"]:
             self.current_disturbance = {"vector" : np.array([2 * np.random.rand() - 1.0, 2 * np.random.rand() - 1.0, 0.4 * np.random.rand() - 0.2]),
-                                        "remaining_life" : np.random.randint(40, 100),
+                                        "remaining_life" : np.random.randint(20, 50),
                                         "effect" : np.random.choice(["translation", "rotation"])}
             #self.current_disturbance["visual_shape"] = p.createVisualShape()
         if self.current_disturbance is None: return
@@ -181,7 +181,7 @@ class QuadrotorBulletEnv(gym.Env):
                                  posObj=[0, 0, 0], flags=p.LINK_FRAME)
         else:
             p.applyExternalTorque(self.robot, linkIndex=-1,
-                                 torqueObj=self.current_disturbance["vector"] * 0.5,
+                                 torqueObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"] * 0.15,
                                  flags=p.LINK_FRAME)
         if self.current_disturbance is not None:
             self.current_disturbance["remaining_life"] -= 1
