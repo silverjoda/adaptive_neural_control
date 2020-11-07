@@ -85,10 +85,11 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: Changed target vel to 0.4 and lowered shuffle pen to 0.1 and rnd init to 0.6 range. Want to see what gait looks like on flat. Also put 1 perlin to train.
+Hexapod: Should try out learned policies on platform (flat and perlin) . Code up waypoint navigation env
+NOTE: Do another perlin training session with lowered pitch and roll penalties
 
-Buggy: Slightly lowered power and vel, added backward velocity and removed orientation reward. Should train to see if ok, then see what the problem was.
+Buggy: Lowered force and vel, trying again. Was working last time but not that well.
 
-Quadcopter: Ok, power was too high, tanh didn't let quad land
+Quadcopter: Trains ok, launched again with disturbances
 
 

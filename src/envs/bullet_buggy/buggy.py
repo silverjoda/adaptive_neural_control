@@ -145,7 +145,7 @@ class BuggyBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
 
         # Orientation reward
-        tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
+        tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - torso_pos[0])
         yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
 
         # Check if the agent has reached a target
@@ -183,7 +183,7 @@ class BuggyBulletEnv(gym.Env):
         torso_pos, _, torso_euler, _, _ = self.get_obs()
         self.update_targets()
         self.prev_target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
-        tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
+        tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - torso_pos[0])
         yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
         self.prev_yaw_deviation = yaw_deviation
 

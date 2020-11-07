@@ -17,13 +17,12 @@ import torch.nn as nn
 import torch as T
 
 class PyTorchMlp(nn.Module):
-
-    def __init__(self, n_inputs=29, n_actions=18):
+    def __init__(self, n_inputs=29, n_actions=18, n_hidden=96):
         nn.Module.__init__(self)
 
-        self.fc1 = nn.Linear(n_inputs, 96)
-        self.fc2 = nn.Linear(96, 96)
-        self.fc3 = nn.Linear(96, n_actions)
+        self.fc1 = nn.Linear(n_inputs, n_hidden)
+        self.fc2 = nn.Linear(n_hidden, n_hidden)
+        self.fc3 = nn.Linear(n_hidden, n_actions)
         self.activ_fn = nn.Tanh()
         self.out_activ = nn.Softmax(dim=0)
 
@@ -34,7 +33,7 @@ class PyTorchMlp(nn.Module):
         return x
 
 def copy_mlp_weights(baselines_model):
-    torch_mlp = PyTorchMlp(n_inputs=29, n_actions=18)
+    torch_mlp = PyTorchMlp(n_inputs=29, n_actions=18, n_hidden=196)
     model_params = baselines_model.get_parameters()
 
     policy_keys = [key for key in model_params.keys() if "pi" in key or "shared" in key]
@@ -49,7 +48,7 @@ def copy_mlp_weights(baselines_model):
 
     return torch_mlp
 
-policy_name = "FXX"
+policy_name = "IXG"
 policy_path = 'agents/{}_SB_policy'.format(policy_name)
 model = A2C.load(policy_path)
 print("Loading policy from: {}".format(policy_path))
@@ -59,5 +58,5 @@ for key, value in model.get_parameters().items():
 
 t_model = copy_mlp_weights(model)
 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    '../PG/agents/HexapodBulletEnv_NN_PG_{}_pg.p'.format(policy_name))
+                    'agents_storage/HexapodBulletEnv_NN_PG_{}_pg.p'.format(policy_name))
 T.save(t_model.state_dict(), sdir)

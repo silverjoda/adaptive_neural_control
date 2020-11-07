@@ -1,7 +1,7 @@
 "env_name" : "hexapod"
 "max_steps" : 60
 "step_counter" : True
-"terrain_name" : "perlin"
+"terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
@@ -14,10 +14,10 @@
 "randomize_env" : False
 "max_actuator_velocity" : 3.0
 "lateral_friction" : 1.2
-"max_joint_force" : 1.5
-"target_vel" : 0.4
+"max_joint_force" : 1.6
+"target_vel" : 0.5
 "target_vell_nn_input" : 0
-"target_vel_range" : [0.1, 0.3]
+"target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" : 24
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
@@ -26,5 +26,7 @@
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -0.9, 0.2]
 "joints_rads_high" : [0.5, 0.7, 1.4]
+"target_proximity_threshold" : 0.5
+"target_dispersal_distance" : 4
 "urdf_name" : "hexapod_legsensor.urdf"
 "seed" :

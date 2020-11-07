@@ -283,8 +283,8 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = torso_euler
 
-        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array(self.config["target_pos"]))) * 1.5, -1, 1)
-        p_rp = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 0.2, -1, 1)
+        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array(self.config["target_pos"]))) * 1.8, -1, 1)
+        p_rp = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 1.2, -1, 1)
         p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1 - p_position - p_rp - p_rotvel
 
