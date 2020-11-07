@@ -1,12 +1,12 @@
 "env_name" : buggy
-"max_steps" : 600
+"max_steps" : 700
 "step_counter" : True
 "latent_input" : False
 "action_input" : False
 "randomize_env" : False
 "sim_timestep" : 0.006
 "env_change_prob" : 0.1
-"target_proximity_threshold" : 0.4
+"target_proximity_threshold" : 0.5
 "target_dispersal_distance" : 4
 "urdf_name" : buggy.urdf
 "seed" :
