@@ -2,7 +2,7 @@
 "default_session_ID" :
 "n_envs" : 6
 "iters" : 20000000
-"gamma" : 0.98
+"gamma" : 0.999 # 0.98 for hexapod
 "n_steps" : 30
 "vf_coef" : 0.5
 "ent_coef" : 0.0

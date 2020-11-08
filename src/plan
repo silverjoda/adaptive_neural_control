@@ -87,7 +87,7 @@ MAML:
 # GOEDEL:
 Hexapod: Both flat and perlin are ok, should be tested on real HW. Launched last experiment with tvel = 0.9 flat and 0.3 perlin (with zero rp pen on perlin)
 
-Buggy: Fixed bug in heading reward, launching again
+Buggy: strange behavior, looks like reward gaming. Removed heading reward and increased gamma to 0.999 ! Change back later !
 
 Quadcopter: Fixed position input to position input delta, removed disturbances and added initial disturbances, lowered time reward. training again.
 
