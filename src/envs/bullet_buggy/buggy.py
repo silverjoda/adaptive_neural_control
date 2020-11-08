@@ -146,12 +146,13 @@ class BuggyBulletEnv(gym.Env):
 
         # Orientation reward
         tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - torso_pos[0])
-        yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
+        yaw_deviation = np.min((abs((torso_euler[2] % 6.283) - (tar_angle % 6.283)), abs(torso_euler[2] - tar_angle)))
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
-        r = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
-        r += np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
+        vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
+        heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 6, -2, 2)
+        r = vel_rew + heading_rew
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -197,7 +198,7 @@ class BuggyBulletEnv(gym.Env):
             act = np.random.rand(2) * 2 - 1
             self.reset()
 
-            for i in range(self.config["max_steps"]):
+            for i in range(self.config["max_steps"] * 4):
                 obs, r, done, _ = self.step(act)
                 #print(obs)
                 time.sleep(0.01)
@@ -220,4 +221,4 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
-    env.test_motors()
+    env.demo()
