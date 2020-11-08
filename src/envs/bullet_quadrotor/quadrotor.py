@@ -172,7 +172,7 @@ class QuadrotorBulletEnv(gym.Env):
         #Apply external disturbance force
         if np.random.rand() < self.config["disturbance_frequency"]:
             self.current_disturbance = {"vector" : np.array([2 * np.random.rand() - 1.0, 2 * np.random.rand() - 1.0, 0.4 * np.random.rand() - 0.2]),
-                                        "remaining_life" : np.random.randint(20, 50),
+                                        "remaining_life" : np.random.randint(10, 40),
                                         "effect" : np.random.choice(["translation", "rotation"])}
             #self.current_disturbance["visual_shape"] = p.createVisualShape()
         if self.current_disturbance is None: return
@@ -283,16 +283,18 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = torso_euler
 
-        p_position = np.clip(np.mean(np.square(np.array(torso_pos) - np.array(self.config["target_pos"]))) * 1.8, -1, 1)
-        p_rp = np.clip(np.mean(np.square(np.array([roll, pitch]))) * 1.2, -1, 1)
-        p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
-        r = 1 - p_position - p_rp - p_rotvel
+        pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
+
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
+        p_rp = np.clip(np.mean(np.square(np.array([roll, pitch, yaw]))) * 1.0, -1, 1)
+        #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        r = 0.5 - p_position - p_rp
 
         done = (self.step_ctr > self.config["max_steps"]) \
-               or np.any(np.array([roll, pitch]) > np.pi / 2) \
-               or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > np.array([1.5,1.5,0.8])).any()
+               or np.any(np.array([roll, pitch]) > np.pi / 1.5) \
+               or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any()
 
-        obs = np.concatenate((torso_pos, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
+        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 
         return obs, r, done, {}
 
@@ -304,8 +306,14 @@ class QuadrotorBulletEnv(gym.Env):
         self.current_disturbance = None
         self.motor_power_variance_vector = np.ones(4) - np.random.rand(4) * self.config["motor_power_variance"]
 
+        rnd_starting_pos_delta = np.random.rand(3) * 1 - 0.5
+        rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5)
+        rnd_starting_lin_velocity = np.random.rand(3) * 2 - 1
+        rnd_starting_rot_velocity = np.random.rand(3) * 1.6 - 0.8
+
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
-        p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"], [0, 0, 0, 1], physicsClientId=self.client_ID)
+        p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"] + rnd_starting_pos_delta, rnd_starting_orientation, physicsClientId=self.client_ID)
+        p.resetBaseVelocity(self.robot,linearVelocity=rnd_starting_lin_velocity, angularVelocity=rnd_starting_rot_velocity, physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 

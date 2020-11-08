@@ -431,7 +431,7 @@ class HexapodBulletEnv(gym.Env):
                 (torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
             tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
             yaw_deviation = np.min(
-                (abs((yaw % np.pi * 2) - (tar_angle % np.pi * 2)), abs(yaw - tar_angle)))
+                (abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
             self.prev_yaw_deviation = yaw_deviation
         else:
             self.prev_target_dist = target_dist

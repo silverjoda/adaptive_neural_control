@@ -85,11 +85,10 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: Should try out learned policies on platform (flat and perlin) . Code up waypoint navigation env
-NOTE: Do another perlin training session with lowered pitch and roll penalties
+Hexapod: Should try out learned policies on platform (flat and perlin)
 
-Buggy: Works fine, adding heading reward (still allowing for forward and backward)
+Buggy: Fixed bug in heading reward, launching again
 
-Quadcopter: Works ok, put much higher intensities, lower duration, more rotational
+Quadcopter: Fixed position input to position input delta, removed disturbances and added initial disturbances, lowered time reward. training again.
 
 

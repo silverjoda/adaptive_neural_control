@@ -348,14 +348,11 @@ class HexapodBulletEnv(gym.Env):
                 obs_sequential.extend(p.getJointStates(self.robot, range(leg_ctr * 4, ((leg_ctr + 1) * 4) - 1), physicsClientId=self.client_ID))
                 leg_ctr += 1
             p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.config["animate"] or render) and True: time.sleep(0.0038)
+            if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
         joint_angles_skewed = []
         for o in obs_sequential:
             joint_angles_skewed.append(o[0])
-
-        p.stepSimulation(physicsClientId=self.client_ID)
-        if (self.config["animate"] or render) and True: time.sleep(0.004)
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso, tip_velocities = self.get_obs()
@@ -413,8 +410,8 @@ class HexapodBulletEnv(gym.Env):
             # r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
             #          "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
             #          "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 2.0}
-            r_neg = {"pitch" : np.square(pitch) * 0,
-                     "roll": np.square(roll) * 0,
+            r_neg = {"pitch" : np.square(pitch) * 1.6,
+                     "roll": np.square(roll) * 1.6,
                      "shuffle_pen" : shuffle_pen * 0.1,
                      "yaw_pen" : np.square(yaw) * 0.7}
 

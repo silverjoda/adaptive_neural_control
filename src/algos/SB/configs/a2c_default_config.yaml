@@ -1,7 +1,7 @@
 "algo_name" : "A2C"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 16000000
+"iters" : 20000000
 "gamma" : 0.98
 "n_steps" : 30
 "vf_coef" : 0.5

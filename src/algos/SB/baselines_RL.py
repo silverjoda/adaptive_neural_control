@@ -131,7 +131,7 @@ if __name__ == "__main__":
         env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
         model = make_model(config, env, None)
 
-        checkpoint_callback = CheckpointCallback(save_freq=50000,
+        checkpoint_callback = CheckpointCallback(save_freq=300000,
                                                  save_path='agents_cp/',
                                                  name_prefix=config["session_ID"], verbose=1)
 
