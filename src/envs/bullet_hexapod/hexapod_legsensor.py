@@ -399,17 +399,6 @@ class HexapodBulletEnv(gym.Env):
         shuffle_pen = np.sum([(np.square(x_tip) + np.square(y_tip)) * (contacts[k] == 1) for k, (x_tip, y_tip, _) in enumerate(tip_velocities)])
 
         if self.config["training_mode"] == "straight":
-            # r_neg = {"pitch" : np.square(pitch) * 1.2 * self.config["training_difficulty"],
-            #         "roll" : np.square(roll) * 1.2 * self.config["training_difficulty"],
-            #         "zd" : np.square(zd) * 0.5 * self.config["training_difficulty"],
-            #         "yd" : np.square(yd) * 0.5 * self.config["training_difficulty"],
-            #         "phid": np.square(phid) * 0.02 * self.config["training_difficulty"],
-            #         "thd": np.square(thd) * 0.02 * self.config["training_difficulty"],
-            #         "total_work_pen" : np.minimum(total_work_pen * 0.03 * self.config["training_difficulty"] * (self.step_ctr > 10), 1),
-            #         "unsuitable_position_pen" : unsuitable_position_pen * 0.01 * self.config["training_difficulty"]}
-            # r_pos = {"velocity_rew" : np.clip(velocity_rew * 4, -1, 1),
-            #          "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 3., -1, 1),
-            #          "body_height" : np.clip(torso_pos[2] - 0.05, 0, 0.05) * 2.0}
             r_neg = {"pitch" : np.square(pitch) * 1.5,
                      "roll": np.square(roll) * 1.5,
                      "shuffle_pen" : shuffle_pen * 0.1,

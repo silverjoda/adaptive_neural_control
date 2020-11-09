@@ -128,7 +128,7 @@ class BuggyBulletEnv(gym.Env):
         time.sleep(self.config["sim_timestep"])
 
     def step(self, ctrl):
-        wheel_action = np.clip(ctrl[0], -1, 1)
+        wheel_action = np.clip(ctrl[0], -1, 1) * 0.5 + 0.5
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,

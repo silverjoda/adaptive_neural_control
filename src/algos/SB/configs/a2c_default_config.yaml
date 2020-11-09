@@ -2,7 +2,7 @@
 "default_session_ID" :
 "n_envs" : 6
 "iters" : 20000000
-"gamma" : 0.98 # 0.98 for hexapod
+"gamma" : 0.999 # 0.98 for hexapod
 "n_steps" : 30
 "vf_coef" : 0.5
 "ent_coef" : 0.0
@@ -13,9 +13,9 @@
 "lr_schedule" : 'linear'
 "verbose" : 1
 "full_tensorboard_log" : False
-"policy_kwargs" : "dict(layers=[256, 256])"
+"policy_kwargs" : "dict(layers=[196, 196])"
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 256
+"policy_hid_dim" : 196
 "policy_memory_dim" : 128
 "policy_grad_clip_value" : 1.0
 "policy_residual_connection" : False

@@ -85,10 +85,12 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: Both flat and perlin are ok, should be tested on real HW. Launched last experiment with tvel = 0.9 flat and 0.3 perlin (with zero rp pen on perlin)
+Hexapod: Doesn't work on HW at all, something is wrong. Maybe because of the pytorch versions. Also on HW it looks like it's moving too fast.
+(IMPORTANT) Try also in simulator to vary various time parameters to see how robust the policy is to actuator velocity, torque, etc (IMPORTANT)
+Test same policy with sim and HW with same inputs to see what they do.
 
-Buggy: strange behavior, looks like reward gaming. Removed heading reward and increased gamma to 0.999 ! Change back later !
+Buggy: Works fine without heading reward (but tried with backward action added) should try without backwards action (currently running in goedel).
 
-Quadcopter: Fixed position input to position input delta, removed disturbances and added initial disturbances, lowered time reward. training again.
+Quadcopter: Works ok..
 
 

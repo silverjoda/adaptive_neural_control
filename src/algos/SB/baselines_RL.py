@@ -71,7 +71,7 @@ def make_model(config, env, action_noise_fun):
             verbose=config["verbose"],
             tensorboard_log="./tb/{}/".format(config["session_ID"]),
             full_tensorboard_log=config["full_tensorboard_log"],
-            policy_kwargs=dict(net_arch=[int(196), int(196)]))
+            policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
 
     assert model is not None, "Alg name not found, exiting. "
     return model
