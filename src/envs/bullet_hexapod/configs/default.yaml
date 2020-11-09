@@ -15,7 +15,7 @@
 "max_actuator_velocity" : 3.0
 "lateral_friction" : 1.2
 "max_joint_force" : 1.6
-"target_vel" : 0.9
+"target_vel" : 0.4
 "target_vell_nn_input" : 0
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" : 24
