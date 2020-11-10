@@ -85,11 +85,10 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
-Hexapod: Doesn't work on HW at all, something is wrong. Maybe because of the pytorch versions. Also on HW it looks like it's moving too fast.
-(IMPORTANT) Try also in simulator to vary various time parameters to see how robust the policy is to actuator velocity, torque, etc (IMPORTANT)
-Test same policy with sim and HW with same inputs to see what they do.
+Hexapod: HW: Try again with 1) Correct pytorch versions 2) Add tanh scaling to action input on HW, we forgot to add this.
+Currently in goedel training with joint force and lateral friction randomization (params which are most sensitive to failure)
 
-Buggy: Works fine without heading reward (but tried with backward action added) should try without backwards action (currently running in goedel).
+Buggy: Works but fails in many cases, training with more iters
 
 Quadcopter: Works ok..
 

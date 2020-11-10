@@ -1,5 +1,5 @@
 "env_name" : buggy
-"max_steps" : 700
+"max_steps" : 900
 "step_counter" : True
 "latent_input" : False
 "action_input" : False
