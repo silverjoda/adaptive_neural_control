@@ -44,7 +44,7 @@ class HexapodBulletEnv(gym.Env):
             self.config["target_vel"] = 0.15
 
         # Environment parameters
-        self.obs_dim = 18 + 6 + 4 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
+        self.obs_dim = 18 + 4 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -302,10 +302,10 @@ class HexapodBulletEnv(gym.Env):
             p.removeBody(self.robot, physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
-                                        "max_actuator_velocity": self.config["max_actuator_velocity"] + (np.random.rand() * 2.0 - 1.0) * self.config["randomize_env"],
-                                        "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
-                                        "max_joint_force": self.config["max_joint_force"] + np.random.rand() * 1. * self.config["randomize_env"]}
+        self.randomized_robot_params = {"mass": 1,
+                                        "max_actuator_velocity": self.config["max_actuator_velocity"],
+                                        "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 2.0 - 0.2) * self.config["randomize_env"],
+                                        "max_joint_force": self.config["max_joint_force"] + (np.random.rand() * 1.4 - 0.4) * self.config["randomize_env"]}
 
         robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
@@ -488,7 +488,7 @@ class HexapodBulletEnv(gym.Env):
             exit()
 
         # Assemble agent observation
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, contacts))
+        env_obs = np.concatenate((scaled_joint_angles, torso_quat))
 
         if self.config["step_counter"]:
             env_obs = np.concatenate((env_obs, [self.step_encoding]))
@@ -553,8 +553,8 @@ class HexapodBulletEnv(gym.Env):
         # Random initial rotation
         rnd_rot = np.random.rand() * 0.6 - 0.3
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
-        rnd_quat2 = p.getQuaternionFromEuler([0, 0, rnd_rot]) # JOOI, remove later
-        assert np.isclose(rnd_quat, rnd_quat2, rtol=0.001).all(), print(rnd_quat, rnd_quat2) # JOOI, remove later
+        #rnd_quat2 = p.getQuaternionFromEuler([0, 0, rnd_rot]) # JOOI, remove later
+        #assert np.isclose(rnd_quat, rnd_quat2, rtol=0.001).all(), print(rnd_quat, rnd_quat2) # JOOI, remove later
         self.prev_yaw_dev = rnd_rot
 
         joint_init_pos_list = self.norm_to_rads([0] * 18)
