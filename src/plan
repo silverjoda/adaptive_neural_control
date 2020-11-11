@@ -88,13 +88,13 @@ MAML:
 Hexapod: HW: Try again with 1) Correct pytorch versions 2) Add tanh scaling to action input on HW, we forgot to add this.
 Currently in goedel training with joint force and lateral friction randomization (params which are most sensitive to failure)
 
-Buggy: Works but fails in many cases, training with more iters. Also, later test if the second target is doing anything at all.
+Buggy: Poor performance.Tried changing some hyperparams and put to train again. Also, later test if the second target is doing anything at all.
 Think about spline follower implementation after first successfull experiments
 
-Quadcopter: Works ok, removed RP penalty, added stronger pos penalty and put to train again on still. We want a policy to test on real platform
-
+Quadcopter: Training was bizzare (low until half and then high), lowered initial rot vel, put to train again.. We want a policy to test on real platform
 
 # TODO: Start writing data gathering script for simulation as well
 # TODO: Start writing data processing and learning scripts for all data
 # TODO: Start writing Adaptation learning algorithms
 # TODO: Try out a gradient based evolution algorithm (from scratch)
+# TODO: Perhaps maximally informative trajectories can improve MAML/CAVIA

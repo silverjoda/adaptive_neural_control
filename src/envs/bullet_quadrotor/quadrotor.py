@@ -309,7 +309,7 @@ class QuadrotorBulletEnv(gym.Env):
         rnd_starting_pos_delta = np.random.rand(3) * 1 - 0.5
         rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5)
         rnd_starting_lin_velocity = np.random.rand(3) * 2 - 1
-        rnd_starting_rot_velocity = np.random.rand(3) * 1.6 - 0.8
+        rnd_starting_rot_velocity = np.random.rand(3) * 1.2 - 0.6
 
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"] + rnd_starting_pos_delta, rnd_starting_orientation, physicsClientId=self.client_ID)

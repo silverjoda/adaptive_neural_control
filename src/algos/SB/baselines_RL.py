@@ -10,6 +10,7 @@ import argparse
 import yaml
 import os
 from pprint import pprint
+from shutil import copyfile
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -138,6 +139,10 @@ if __name__ == "__main__":
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
         t2 = time.time()
+
+        # Make tb run script inside tb dir
+        if os.path.exists(os.path.join("tb", config["session_ID"])):
+            copyfile("tb_runner.py", os.path.join("tb", config["session_ID"], "tb_runner.py"))
 
         print("Training time: {}".format(t2-t1))
         pprint(config)
