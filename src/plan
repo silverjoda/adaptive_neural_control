@@ -85,6 +85,8 @@ MAML:
 - Optimization of solution, brute force & random search
 
 # GOEDEL:
+# Poor policy performance might have been due to parameter changes, etc. Running all envs again
+
 Hexapod: HW: Try again with 1) Correct pytorch versions 2) Add tanh scaling to action input on HW, we forgot to add this.
 Currently in goedel training with joint force and lateral friction randomization (params which are most sensitive to failure)
 
