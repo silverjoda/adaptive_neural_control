@@ -48,8 +48,8 @@ def copy_mlp_weights(baselines_model):
 
     return torch_mlp
 
-policy_name = "BNA"
-policy_path = 'agents/{}_SB_policy'.format(policy_name)
+policy_name = "TCY"
+policy_path = 'agents_storage/{}_SB_policy'.format(policy_name)
 #policy_path = 'agents_storage/HexapodBulletEnv_NN_PG_{}_pg.p'.format(policy_name)
 model = A2C.load(policy_path)
 print("Loading policy from: {}".format(policy_path))
