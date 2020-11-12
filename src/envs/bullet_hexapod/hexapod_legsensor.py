@@ -626,7 +626,7 @@ class HexapodBulletEnv(gym.Env):
             test_acts = [[0, 0, 0], [0, sc, sc], [0, -sc, -sc], [0, sc, -sc], [0, -sc, sc], [sc, 0, 0], [-sc, 0, 0]]
             for i, a in enumerate(test_acts):
                 for j in range(n_steps):
-                    #a = list(np.random.randn(3))
+                    t1 = time.time()
                     scaled_obs, _, _, _ = self.step(a * 6)
                 _, _, _, _, joint_angles, _, joint_torques, contacts, ctct_torso, _ = self.get_obs()
                 if VERBOSE:

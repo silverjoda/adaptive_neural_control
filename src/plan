@@ -87,15 +87,16 @@ MAML:
 # GOEDEL:
 # Poor policy performance might have been due to parameter changes, etc. Running all envs again
 
-Hexapod: HW: Try again with 1) Correct pytorch versions 2) Add tanh scaling to action input on HW, we forgot to add this.
-Currently in goedel training with joint force and lateral friction randomization (params which are most sensitive to failure)
+Hexapod: TODO: HW: Go straight for waypoint training flat and rough. Add velocity to observation,
+try randomization (if doesn't work then try without reloading the env, only use programmatic changes). Also
+adjust operating point.
 
-Buggy: Poor performance.Tried changing some hyperparams and put to train again. Also, later test if the second target is doing anything at all.
-Think about spline follower implementation after first successfull experiments
+Buggy: Works ok. TODO: Test if second target does anything
 
-Quadcopter: Training was bizzare (low until half and then high), lowered initial rot vel, put to train again.. We want a policy to test on real platform
+Quadcopter: TODO: Works ok, should try input speed training next
 
-# TODO: Start writing data gathering script for simulation as wellshgo
+# TODO: Install stable baselines on robots so that we can use policy directly
+# TODO: Start writing data gathering script for simulation as well
 # TODO: Start writing data processing and learning scripts for all data
 # TODO: Start writing Adaptation learning algorithms
 # TODO: Try out a gradient based evolution algorithm (from scratch)

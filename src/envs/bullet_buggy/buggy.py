@@ -8,6 +8,47 @@ import pybullet_data
 from gym import spaces
 import torch as T
 import src.my_utils as my_utils
+import logging
+import pygame
+
+class JoyController():
+    def __init__(self, config):
+        self.config = config
+        logging.info("Initializing joystick controller")
+        pygame.init()
+        if self.config["controller_source"] == "joystick":
+            self.joystick = pygame.joystick.Joystick(0)
+            self.joystick.init()
+            logging.info("Initialized gamepad: {}".format(self.joystick.get_name()))
+        else:
+            logging.info("No joystick found")
+        logging.info("Finished initializing the joystick controller.")
+        self.button_x_state = 0
+
+    def get_joystick_input(self):
+        pygame.event.pump()
+        turn, vel = [self.joystick.get_axis(2), self.joystick.get_axis(3)]
+        button_x = self.joystick.get_button(1)
+        pygame.event.clear()
+
+        turn = -turn / 2 # [-.5, .5]
+        vel = np.maximum(vel * -1, 0)  # [0, 1]
+
+        # button_x only when upon press
+        if self.button_x_state == 0 and button_x == 1:
+            self.button_x_state = 1
+            button_x = 1
+        elif self.button_x_state == 1 and button_x == 0:
+            self.button_x_state = 0
+            button_x = 0
+        elif self.button_x_state == 1 and button_x == 1:
+            self.button_x_state = 1
+            button_x = 0
+        else:
+            self.button_x_state = 0
+            button_x = 0
+
+        return vel, turn, button_x
 
 class BuggyBulletEnv(gym.Env):
     def __init__(self, config):
@@ -55,6 +96,7 @@ class BuggyBulletEnv(gym.Env):
         for wheel in self.inactive_wheels:
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
+        self.joystick_controller = JoyController(self.config)
         self.create_targets()
 
     def create_targets(self):
@@ -212,8 +254,80 @@ class BuggyBulletEnv(gym.Env):
                 obs, r, done, _ = self.step(act)
                 self.render()
 
+
     def close(self):
         p.disconnect()
+
+
+    def gather_data(self, n_iterations=20000):
+        # Initialize data lists
+        data_position = []
+        data_vel = []
+        data_rotation = []
+        data_angular_vel = []
+        data_timestamp = []
+        data_action = []
+
+        print("Starting the control loop")
+        try:
+            for i in range(n_iterations):
+                iteration_starttime = time.time()
+
+                # Read target control inputs
+                throttle, turn, autonomous_control = self.JOYStick.get_joystick_input()
+
+                # Update sensor data
+                position_rob, vel_rob, rotation_rob, angular_vel_rob, euler_rob, timestamp = self.AHRS.update()
+
+                # Make neural network observation vector
+                obs = np.concatenate((position_rob[:2], vel_rob[:2], euler_rob[2], angular_vel_rob[2]))
+
+                if autonomous_control:
+                    m_1, m_2 = self.get_policy_action(obs)
+                else:
+                    m_1, m_2 = 0.55 + (throttle * 0.45), turn + 0.5
+
+                data_position.append(position_rob)
+                data_vel.append(vel_rob)
+                data_rotation.append(rotation_rob)
+                data_angular_vel.append(angular_vel_rob)
+                data_timestamp.append(timestamp)
+                data_action.append([throttle, turn])
+
+                # Write control to servos
+                # print(m_1, m_2)
+                self.PWMDriver.write_servos([m_1, m_2])
+
+                # Publish telemetry values
+                # self.ROSInterface.publish_telemetry(timestamp, position_rob, quat_rob)
+
+                # Sleep to maintain correct FPS
+                while time.time() - iteration_starttime < self.config["update_period"]: pass
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+
+        # Save data
+        prefix = os.path.join("data", time.strftime("%Y_%m_%d"))
+        if not os.path.exists(prefix):
+            os.makedirs(prefix)
+        prefix = prefix + ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
+
+        data_position = np.array(data_position, dtype=np.float32)
+        data_vel = np.array(data_vel, dtype=np.float32)
+        data_rotation = np.array(data_rotation, dtype=np.float32)
+        data_angular_vel = np.array(data_angular_vel, dtype=np.float32)
+        data_timestamp = np.array(data_timestamp, dtype=np.float32)
+        data_action = np.array(data_action, dtype=np.float32)
+
+        np.save(prefix + "_position", data_position)
+        np.save(prefix + "_vel", data_vel)
+        np.save(prefix + "_rotation", data_rotation)
+        np.save(prefix + "_angular_vel", data_angular_vel)
+        np.save(prefix + "_timestamp", data_timestamp)
+        np.save(prefix + "_action", data_action)
+
+        print("Saved data")
+
 
 if __name__ == "__main__":
     import yaml
@@ -221,4 +335,4 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
-    env.demo()
+    env.gather_data()
