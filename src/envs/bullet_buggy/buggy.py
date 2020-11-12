@@ -85,8 +85,8 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 4.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 80 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+                             "max_force": 1.5 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "velocity_scaler": 100 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -193,15 +193,15 @@ class BuggyBulletEnv(gym.Env):
         return obs
 
     def demo(self):
-        acts = [[1,0], [-1,0], [1,0], [-1,0]]
+        acts = [[1,0], [1,0], [1,-1], [1,1]]
         for i in range(100):
-            act = np.random.rand(2) * 2 - 1
+            act = acts[np.random.randint(0,4)]#np.random.rand(2) * 2 - 1
             self.reset()
 
-            for i in range(self.config["max_steps"] * 4):
+            for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
                 #print(obs)
-                time.sleep(0.01)
+                time.sleep(self.config["sim_timestep"])
 
     def test_motors(self):
         #acts = [[1,-0.5], [-1,0], [1,0.5], [0.5,1]]
@@ -210,7 +210,7 @@ class BuggyBulletEnv(gym.Env):
         for act in acts:
             for i in range(150):
                 obs, r, done, _ = self.step(act)
-                time.sleep(self.config["sim_timestep"])
+                self.render()
 
     def close(self):
         p.disconnect()

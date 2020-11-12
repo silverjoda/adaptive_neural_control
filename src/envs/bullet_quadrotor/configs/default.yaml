@@ -1,7 +1,7 @@
 "env_name" : quadrotor
 "controller_source" : "nn" # nn/pid
 "target_vel_source" : "still" # still/rnd/joystick
-"max_steps" : 600
+"max_steps" : 700
 "step_counter" : True
 "latent_input" : False
 "action_input" : False
@@ -13,7 +13,7 @@
 "env_change_prob" : 0.1
 "starting_pos" : [0, 0, 3.0]
 "target_pos" : [0, 0, 3.0]
-"disturbance_intensity" : 17
+"disturbance_intensity" : 15
 "disturbance_frequency" : 0.000 # 0.005
 "urdf_name" : quadrotor.urdf
 "seed" :

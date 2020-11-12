@@ -285,14 +285,14 @@ class QuadrotorBulletEnv(gym.Env):
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.square(pos_delta)) * 3.0, -2, 2)
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 1.2, -2, 2)
         p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -2, 2)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 0.5 - p_position - p_rp
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 1.5) \
-               or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any()
+               or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any() \
 
         obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 

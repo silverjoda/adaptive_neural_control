@@ -95,7 +95,7 @@ Think about spline follower implementation after first successfull experiments
 
 Quadcopter: Training was bizzare (low until half and then high), lowered initial rot vel, put to train again.. We want a policy to test on real platform
 
-# TODO: Start writing data gathering script for simulation as well
+# TODO: Start writing data gathering script for simulation as wellshgo
 # TODO: Start writing data processing and learning scripts for all data
 # TODO: Start writing Adaptation learning algorithms
 # TODO: Try out a gradient based evolution algorithm (from scratch)
