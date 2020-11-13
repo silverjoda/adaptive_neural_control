@@ -9,6 +9,7 @@ from gym import spaces
 import torch as T
 import logging
 import pygame
+import random
 
 import src.my_utils as my_utils
 
@@ -361,10 +362,74 @@ class QuadrotorBulletEnv(gym.Env):
     def close(self):
         self.kill()
 
+    def gather_data(self, policy=None, n_iterations=20000):
+        # Initialize data lists
+        data_position = []
+        data_vel = []
+        data_rotation = []
+        data_angular_vel = []
+        data_timestamp = []
+        data_action = []
+
+        obs = self.reset()
+
+        print("Starting the control loop")
+        try:
+            for i in range(n_iterations):
+                iteration_starttime = time.time()
+
+                # Update sensor data
+                position_rob, rotation_rob, euler_rob, vel_rob, angular_vel_rob = self.get_obs()
+
+                velocity_target = self.get_velocity_target()
+
+                if self.config["controller_source"] == "pid":
+                    # Read target control inputs
+                    m_1, m_2, m_3, m_4 = self.calculate_stabilization_action(rotation_rob, angular_vel_rob, velocity_target)
+                else:
+                    m_1, m_2, m_3, m_4 = policy(obs)
+
+                data_position.append(position_rob)
+                data_vel.append(vel_rob)
+                data_rotation.append(rotation_rob)
+                data_angular_vel.append(angular_vel_rob)
+                data_timestamp.append(0)
+                data_action.append([m_1, m_2])
+
+                # Write control to servos
+                obs = self.step([m_1, m_2, m_3, m_4])
+
+                # Sleep to maintain correct FPS
+                while time.time() - iteration_starttime < self.config["sim_timestep"]: pass
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+
+        # Save data
+        prefix = os.path.join("data", time.strftime("%Y_%m_%d_"))
+        if not os.path.exists(prefix):
+            os.makedirs(prefix)
+        prefix = os.path.join(prefix, ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3)))
+
+        data_position = np.array(data_position, dtype=np.float32)
+        data_vel = np.array(data_vel, dtype=np.float32)
+        data_rotation = np.array(data_rotation, dtype=np.float32)
+        data_angular_vel = np.array(data_angular_vel, dtype=np.float32)
+        data_timestamp = np.array(data_timestamp, dtype=np.float32)
+        data_action = np.array(data_action, dtype=np.float32)
+
+        np.save(prefix + "_position", data_position)
+        np.save(prefix + "_vel", data_vel)
+        np.save(prefix + "_rotation", data_rotation)
+        np.save(prefix + "_angular_vel", data_angular_vel)
+        np.save(prefix + "_timestamp", data_timestamp)
+        np.save(prefix + "_action", data_action)
+
+        print("Saved data")
+
 if __name__ == "__main__":
     import yaml
     with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
-    env.demo_joystick()
+    env.gather_data()

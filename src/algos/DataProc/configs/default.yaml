@@ -1,0 +1,13 @@
+"in_dim" : 10
+"out_dim" : 10
+"hid_dim" : 196
+"memory_dim" : 10
+"policy_residual_connection" : False
+"activation_fun" : "F.relu"
+"policy_grad_clip_value" : 0.5
+"data_path" : ""
+"trn_val_ratio" : 0.8
+"chunk_size" : 2000
+"lr" : 0.001
+"batchsize" : 64
+"training_iters" : 1000

@@ -10,6 +10,7 @@ import torch as T
 import torch.nn as nn
 from gym import spaces
 from opensimplex import OpenSimplex
+import random
 
 # INFO: To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]
 
@@ -643,6 +644,76 @@ class HexapodBulletEnv(gym.Env):
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
+
+
+    def gather_data(self, policy=None, n_iterations=20000):
+        assert policy is not None
+
+        # Initialize data lists
+        data_position = []
+        data_vel = []
+        data_rotation = []
+        data_angular_vel = []
+        data_timestamp = []
+        data_action = []
+
+        obs = self.reset()
+
+        print("Starting the control loop")
+        try:
+            for i in range(n_iterations):
+                iteration_starttime = time.time()
+
+                # Update sensor data
+                position_rob, \
+                rotation_rob, \
+                vel_rob, \
+                angular_vel_rob, \
+                joint_angles, \
+                joint_velocities, \
+                joint_torques, \
+                contacts, \
+                ctct_torso, \
+                tip_velocities = self.get_obs()
+
+                action = policy(obs)
+
+                data_position.append(position_rob)
+                data_vel.append(vel_rob)
+                data_rotation.append(rotation_rob)
+                data_angular_vel.append(angular_vel_rob)
+                data_timestamp.append(0)
+                data_action.append(action)
+
+                # Write control to servos
+                obs = self.step(action)
+
+                # Sleep to maintain correct FPS
+                while time.time() - iteration_starttime < self.config["sim_timestep"]: pass
+        except KeyboardInterrupt:
+            print("Interrupted by user")
+
+        # Save data
+        prefix = os.path.join("data", time.strftime("%Y_%m_%d_"))
+        if not os.path.exists(prefix):
+            os.makedirs(prefix)
+        prefix = os.path.join(prefix, ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3)))
+
+        data_position = np.array(data_position, dtype=np.float32)
+        data_vel = np.array(data_vel, dtype=np.float32)
+        data_rotation = np.array(data_rotation, dtype=np.float32)
+        data_angular_vel = np.array(data_angular_vel, dtype=np.float32)
+        data_timestamp = np.array(data_timestamp, dtype=np.float32)
+        data_action = np.array(data_action, dtype=np.float32)
+
+        np.save(prefix + "_position", data_position)
+        np.save(prefix + "_vel", data_vel)
+        np.save(prefix + "_rotation", data_rotation)
+        np.save(prefix + "_angular_vel", data_angular_vel)
+        np.save(prefix + "_timestamp", data_timestamp)
+        np.save(prefix + "_action", data_action)
+
+        print("Saved data")
 
 if __name__ == "__main__":
     import yaml

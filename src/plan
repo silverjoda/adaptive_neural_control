@@ -90,14 +90,15 @@ MAML:
 Hexapod: TODO: HW: Go straight for waypoint training flat and rough. Add velocity to observation,
 try randomization (if doesn't work then try without reloading the env, only use programmatic changes). Also
 adjust operating point.
+# TODO: Try without tip velocity penalty
 
 Buggy: Works ok. TODO: Test if second target does anything
 
 Quadcopter: TODO: Works ok, should try input speed training next
 
 # TODO: Install stable baselines on robots so that we can use policy directly
-# TODO: Start writing data gathering script for simulation as well
 # TODO: Start writing data processing and learning scripts for all data
 # TODO: Start writing Adaptation learning algorithms
 # TODO: Try out a gradient based evolution algorithm (from scratch)
 # TODO: Perhaps maximally informative trajectories can improve MAML/CAVIA
+# TODO: Test reactive vs RNN policies on randomized buggy or quad env (Try various rnn architectures)

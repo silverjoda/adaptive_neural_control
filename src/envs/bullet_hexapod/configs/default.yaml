@@ -1,4 +1,5 @@
 "env_name" : "hexapod"
+"controller_source" : "joystick" # joystick
 "max_steps" : 60
 "step_counter" : True
 "terrain_name" : "flat"

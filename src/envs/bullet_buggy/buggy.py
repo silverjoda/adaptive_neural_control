@@ -10,6 +10,7 @@ import torch as T
 import src.my_utils as my_utils
 import logging
 import pygame
+import random
 
 class JoyController():
     def __init__(self, config):
@@ -27,12 +28,13 @@ class JoyController():
 
     def get_joystick_input(self):
         pygame.event.pump()
-        turn, vel = [self.joystick.get_axis(2), self.joystick.get_axis(3)]
+        turn, vel = [self.joystick.get_axis(2), self.joystick.get_axis(1)]
         button_x = self.joystick.get_button(1)
         pygame.event.clear()
 
-        turn = -turn / 2 # [-.5, .5]
-        vel = np.maximum(vel * -1, 0)  # [0, 1]
+        # [-1, 1]
+        turn = -turn
+        vel = -vel
 
         # button_x only when upon press
         if self.button_x_state == 0 and button_x == 1:
@@ -96,7 +98,7 @@ class BuggyBulletEnv(gym.Env):
         for wheel in self.inactive_wheels:
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
-        self.joystick_controller = JoyController(self.config)
+        self.JOYStick = JoyController(self.config)
         self.create_targets()
 
     def create_targets(self):
@@ -127,7 +129,7 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 1.5 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "max_force": 2.5 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
                              "velocity_scaler": 100 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
@@ -179,7 +181,7 @@ class BuggyBulletEnv(gym.Env):
                                     force=self.robot_params["max_force"])
 
         for steer in self.steering:
-            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.tanh(ctrl[1]))
+            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.clip(ctrl[1], -1, 1))
 
         p.stepSimulation()
         self.step_ctr += 1
@@ -193,7 +195,7 @@ class BuggyBulletEnv(gym.Env):
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
-        heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -2, 2)
+        #heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -2, 2)
         r = vel_rew
 
         if target_dist < self.config["target_proximity_threshold"]:
@@ -258,8 +260,7 @@ class BuggyBulletEnv(gym.Env):
     def close(self):
         p.disconnect()
 
-
-    def gather_data(self, n_iterations=20000):
+    def gather_data(self, policy=None, n_iterations=20000):
         # Initialize data lists
         data_position = []
         data_vel = []
@@ -268,49 +269,42 @@ class BuggyBulletEnv(gym.Env):
         data_timestamp = []
         data_action = []
 
+        obs = self.reset()
+
         print("Starting the control loop")
         try:
             for i in range(n_iterations):
                 iteration_starttime = time.time()
 
-                # Read target control inputs
-                throttle, turn, autonomous_control = self.JOYStick.get_joystick_input()
-
                 # Update sensor data
-                position_rob, vel_rob, rotation_rob, angular_vel_rob, euler_rob, timestamp = self.AHRS.update()
+                position_rob, rotation_rob, euler_rob, vel_rob, angular_vel_rob = self.get_obs()
 
-                # Make neural network observation vector
-                obs = np.concatenate((position_rob[:2], vel_rob[:2], euler_rob[2], angular_vel_rob[2]))
-
-                if autonomous_control:
-                    m_1, m_2 = self.get_policy_action(obs)
+                if self.config["controller_source"] == "joystick":
+                    # Read target control inputs
+                    m_1, m_2, _ = self.JOYStick.get_joystick_input()
                 else:
-                    m_1, m_2 = 0.55 + (throttle * 0.45), turn + 0.5
+                    m_1, m_2 = policy(obs)
 
                 data_position.append(position_rob)
                 data_vel.append(vel_rob)
                 data_rotation.append(rotation_rob)
                 data_angular_vel.append(angular_vel_rob)
-                data_timestamp.append(timestamp)
-                data_action.append([throttle, turn])
+                data_timestamp.append(0)
+                data_action.append([m_1, m_2])
 
                 # Write control to servos
-                # print(m_1, m_2)
-                self.PWMDriver.write_servos([m_1, m_2])
-
-                # Publish telemetry values
-                # self.ROSInterface.publish_telemetry(timestamp, position_rob, quat_rob)
+                obs = self.step([m_1, m_2])
 
                 # Sleep to maintain correct FPS
-                while time.time() - iteration_starttime < self.config["update_period"]: pass
-        except KeyboardInterrupt:
+                while time.time() - iteration_starttime < self.config["sim_timestep"]: pass
+        except:
             print("Interrupted by user")
 
         # Save data
-        prefix = os.path.join("data", time.strftime("%Y_%m_%d"))
+        prefix = os.path.join("data", time.strftime("%Y_%m_%d_"))
         if not os.path.exists(prefix):
             os.makedirs(prefix)
-        prefix = prefix + ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
+        prefix = os.path.join(prefix, ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3)))
 
         data_position = np.array(data_position, dtype=np.float32)
         data_vel = np.array(data_vel, dtype=np.float32)
