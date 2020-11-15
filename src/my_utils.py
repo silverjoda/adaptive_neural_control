@@ -10,15 +10,16 @@ class SimplexNoise:
     """
     A simplex action noise
     """
-    def __init__(self, dim):
+    def __init__(self, dim, scale):
         super().__init__()
         self.idx = 0
         self.dim = dim
+        self.scale = scale
         self.noisefun = OpenSimplex(seed=int((time.time() % 1) * 10000000))
 
     def __call__(self) -> np.ndarray:
         self.idx += 1
-        return np.array([(self.noisefun.noise2d(x=self.idx / 2., y=i*10.) + self.noisefun.noise2d(x=self.idx / 10., y=i*10.)) for i in range(self.dim)])
+        return np.array([(self.noisefun.noise2d(x=self.idx / float(self.scale), y=i*10.) + self.noisefun.noise2d(x=self.idx / (self.scale * 7.), y=i*10.)) for i in range(self.dim)])
 
     def __repr__(self) -> str:
         return 'Opensimplex Noise()'.format()
@@ -88,6 +89,6 @@ def _euler_to_quaternion(roll, pitch, yaw):
     return [qx, qy, qz, qw]
 
 if __name__=="__main__":
-    noise = SimplexNoise(3)
+    noise = SimplexNoise(4, 5)
     for i in range(1000):
         print(noise())

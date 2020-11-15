@@ -402,7 +402,7 @@ class HexapodBulletEnv(gym.Env):
         if self.config["training_mode"] == "straight":
             r_neg = {"pitch" : np.square(pitch) * 1.5,
                      "roll": np.square(roll) * 1.5,
-                     "shuffle_pen" : shuffle_pen * 0.0,
+                     "shuffle_pen" : shuffle_pen * 0.00,
                      "yaw_pen" : np.square(yaw) * 0.7}
 
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),

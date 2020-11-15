@@ -1,6 +1,6 @@
 "env_name" : quadrotor
 "controller_source" : "nn" # nn/pid
-"target_vel_source" : "rnd" # still/rnd/joystick
+"target_vel_source" : "still" # still/rnd/joystick
 "max_steps" : 400
 "step_counter" : True
 "latent_input" : False
@@ -11,8 +11,8 @@
 "propeller_parasitic_torque_coeff" : 1.0
 "motor_power_variance" : 0.1
 "env_change_prob" : 0.1
-"starting_pos" : [0, 0, 3.0]
-"target_pos" : [0, 0, 3.0]
+"starting_pos" : [0, 0, 2.0]
+"target_pos" : [0, 0, 2.0]
 "disturbance_intensity" : 10
 "disturbance_frequency" : 0.000 # 0.005
 "urdf_name" : quadrotor.urdf

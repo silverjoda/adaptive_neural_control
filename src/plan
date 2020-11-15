@@ -93,9 +93,9 @@ try randomization (if doesn't work then try without reloading the env, only use 
 adjust operating point.
 # TODO: Try without tip velocity penalty
 
-Buggy: Works ok. TODO: Test if second target does anything
+Buggy: Still training the abs penalty version. Looks like it's more difficult when there are more powerful motors. Also it's much more difficult when there is just forward motion
 
-Quadcopter: TODO: Works ok, should try input speed training next
+Quadcopter: Speed training was corrected, but first training stabilization at 2m to try on real robot
 
 # TODO: Install stable baselines on robots so that we can use policy directly
 # TODO: Start writing data processing and learning scripts for all data

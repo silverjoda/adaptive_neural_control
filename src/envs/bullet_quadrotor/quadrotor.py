@@ -63,7 +63,7 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 17 #
+        self.obs_dim = 13 #
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
@@ -87,7 +87,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.observation_space = spaces.Box(low=-1.5, high=1.5, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
-        self.rnd_target_vel_source = my_utils.SimplexNoise(4)
+        self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
         self.joystick_controller = JoyController(self.config)
 
         self.setup_stabilization_control()
@@ -195,7 +195,7 @@ class QuadrotorBulletEnv(gym.Env):
         if self.config["target_vel_source"] == "still":
             velocity_target = np.zeros(4, dtype=np.float32)
         elif self.config["target_vel_source"] == "rnd":
-            velocity_target = self.rnd_target_vel_source() / 3
+            velocity_target = self.rnd_target_vel_source()
         elif self.config["target_vel_source"] == "joystick":
             throttle, roll, pitch, yaw = self.joystick_controller.get_joystick_input()[:4]
             velocity_target = -throttle, -roll, -pitch, -yaw
@@ -286,25 +286,25 @@ class QuadrotorBulletEnv(gym.Env):
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        #p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
-        #p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -1, 1)
-        #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
-        #r = 0.5 - p_position - p_rp
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
+        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -1, 1)
+        p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        r = 0.5 - p_position - p_rp
 
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
-        p_z_vel = np.clip(np.mean(np.square(torso_vel[2] - velocity_target[0])) * 0.1, -1, 1)
-        p_lr_vel = np.clip(np.mean(np.square(torso_vel[1] - velocity_target[1])) * 0.1, -1, 1)
-        p_fb_vel = np.clip(np.mean(np.square(torso_vel[0] - velocity_target[2])) * 0.1, -1, 1)
-        p_yaw_vel = np.clip(np.mean(np.square(torso_angular_vel[2] - velocity_target[3])) * 0.1, -1, 1)
-        r = 0.5 - p_z_vel - p_lr_vel - p_fb_vel - p_yaw_vel
+        # p_z_vel = np.clip(np.mean(np.square(torso_vel[2] - velocity_target[0])) * 0.1, -1, 1)
+        # p_lr_vel = np.clip(np.mean(np.square(torso_vel[1] - velocity_target[1])) * 0.1, -1, 1)
+        # p_fb_vel = np.clip(np.mean(np.square(torso_vel[0] - velocity_target[2])) * 0.1, -1, 1)
+        # p_yaw_vel = np.clip(np.mean(np.square(torso_angular_vel[2] - velocity_target[3])) * 0.1, -1, 1)
+        # r = 0.5 - p_z_vel - p_lr_vel - p_fb_vel - p_yaw_vel
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 1.5) \
                or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any() \
 
-        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel, velocity_target)).astype(np.float32)
+        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
 
         return obs, r, done, {}
 
