@@ -1,5 +1,5 @@
 "env_name" : buggy
-"controller_source" : "joystick" # nn/joystick
+"controller_source" : "nn" # nn/joystick
 "max_steps" : 500
 "step_counter" : True
 "latent_input" : False

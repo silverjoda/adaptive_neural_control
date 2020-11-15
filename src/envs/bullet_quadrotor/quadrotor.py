@@ -63,7 +63,7 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 13 #
+        self.obs_dim = 17 #
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
@@ -261,8 +261,8 @@ class QuadrotorBulletEnv(gym.Env):
         for i in range(4):
             motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.motor_power_variance_vector[i]
                                           + self.current_motor_velocity_vec[i], 0, 1)
-            motor_force_non_linear = 1 - np.square(motor_force_w_noise - 1)
-            motor_force_scaled = motor_force_non_linear * self.robot_params["motor_force_multiplier"]
+            #motor_force_non_linear = 1 - np.square(motor_force_w_noise - 1)
+            motor_force_scaled = motor_force_w_noise * self.robot_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot,
                                  linkIndex=i * 2 + 1,
                                  forceObj=[0, 0, motor_force_scaled],
@@ -286,16 +286,25 @@ class QuadrotorBulletEnv(gym.Env):
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
-        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -1, 1)
+        #p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
+        #p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -1, 1)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
-        r = 0.5 - p_position - p_rp
+        #r = 0.5 - p_position - p_rp
+
+        if torso_pos[2] < 0.3:
+            velocity_target[0] = 0.3 - torso_pos[2]
+
+        p_z_vel = np.clip(np.mean(np.square(torso_vel[2] - velocity_target[0])) * 0.1, -1, 1)
+        p_lr_vel = np.clip(np.mean(np.square(torso_vel[1] - velocity_target[1])) * 0.1, -1, 1)
+        p_fb_vel = np.clip(np.mean(np.square(torso_vel[0] - velocity_target[2])) * 0.1, -1, 1)
+        p_yaw_vel = np.clip(np.mean(np.square(torso_angular_vel[2] - velocity_target[3])) * 0.1, -1, 1)
+        r = 0.5 - p_z_vel - p_lr_vel - p_fb_vel - p_yaw_vel
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 1.5) \
                or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any() \
 
-        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
+        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel, velocity_target)).astype(np.float32)
 
         return obs, r, done, {}
 
@@ -309,8 +318,8 @@ class QuadrotorBulletEnv(gym.Env):
 
         rnd_starting_pos_delta = np.random.rand(3) * 1 - 0.5
         rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5)
-        rnd_starting_lin_velocity = np.random.rand(3) * 2 - 1
-        rnd_starting_rot_velocity = np.random.rand(3) * 1.2 - 0.6
+        rnd_starting_lin_velocity = np.random.rand(3) * 1 - .5 # 2 - 1
+        rnd_starting_rot_velocity = np.random.rand(3) * .6 - 0.3 # 1.2 - .6
 
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"] + rnd_starting_pos_delta, rnd_starting_orientation, physicsClientId=self.client_ID)
@@ -432,4 +441,5 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
-    env.gather_data()
+    env.demo_joystick()
+    #env.gather_data()

@@ -87,7 +87,8 @@ MAML:
 # GOEDEL:
 # Poor policy performance might have been due to parameter changes, etc. Running all envs again
 
-Hexapod: TODO: HW: Go straight for waypoint training flat and rough. Add velocity to observation,
+Hexapod: Currently training last test /w velocity and trying w/ and w/o footpenalty (last experiment, before going waypoint). 1) is w/ fp, 2) is w/0
+TODO: HW: Go straight for waypoint training flat and rough. Add velocity to observation,
 try randomization (if doesn't work then try without reloading the env, only use programmatic changes). Also
 adjust operating point.
 # TODO: Try without tip velocity penalty
@@ -102,3 +103,11 @@ Quadcopter: TODO: Works ok, should try input speed training next
 # TODO: Try out a gradient based evolution algorithm (from scratch)
 # TODO: Perhaps maximally informative trajectories can improve MAML/CAVIA
 # TODO: Test reactive vs RNN policies on randomized buggy or quad env (Try various rnn architectures)
+
+# Paper extract:
+SNAIL:
+- Gated activation functions: Might be usefull to allow or block output through
+- Carrying over state to next episode apparently crucial. Needs more understanding
+- Use of causal temporal convolutions alongside k,q,v attention
+- Neural network architecture apparently important (skip connections, etc)
+- Use larger batchsize (50k timesteps)

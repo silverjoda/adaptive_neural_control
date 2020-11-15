@@ -1,30 +1,29 @@
 import torch as T
 import torch.nn as nn
 
-x_dim, y_dim, hid_dim, num_layers = 3, 1, 8, 1
+# 2d
+T.manual_seed(2)
+f = nn.Conv2d(2,1,2,1,0,1,bias=True)
+f.weight.data = T.randint(low=-5, high=5, size=(1,2,2,2), dtype=T.float32)
+f.bias.data = T.randint(low=-5, high=5, size=[1], dtype=T.float32)
+X = T.randint(low=-5, high=5, size=(1,2,2,2), dtype=T.float32)
+Y = f(X)
+print(X)
+print(f.weight)
+print(f.bias)
+print(Y)
 
-rnn = nn.RNN(input_size=x_dim,hidden_size=hid_dim,
-             num_layers=num_layers,batch_first=True)
-
-rnn_cell = nn.RNNCell(input_size=x_dim,
-                      hidden_size=hid_dim)
-
-fc = nn.Linear(hid_dim, y_dim)
-
-batchsize = 24
-seq_len = 10
-
-# All at once
-X = T.randn(batchsize, seq_len, x_dim, requires_grad=True)
-H, _ = rnn(X)
-Y = fc(H)
-
-# Step by step with Cell
-h = None
-for i in range(seq_len):
-    h = rnn_cell(X[:,i,:], h)
-    y = fc(h)
-
+# 3d
+T.manual_seed(2)
+f = nn.Conv3d(1,1,2,1,0,1,bias=True)
+f.weight.data = T.randint(low=-5, high=5, size=(1,1,2,2,2), dtype=T.float32)
+f.bias.data = T.randint(low=-5, high=5, size=[1], dtype=T.float32)
+X = T.randint(low=-5, high=5, size=(1,1,2,2,2), dtype=T.float32)
+Y = f(X)
+print(X)
+print(f.weight)
+print(f.bias)
+print(Y)
 
 
 

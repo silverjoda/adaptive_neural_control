@@ -129,7 +129,7 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 2.5 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "max_force": 2.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
                              "velocity_scaler": 100 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
@@ -194,7 +194,7 @@ class BuggyBulletEnv(gym.Env):
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
-        vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
+        vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, 0, 3)
         #heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -2, 2)
         r = vel_rew
 
@@ -329,4 +329,5 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
-    env.gather_data()
+    #env.gather_data()
+    env.demo()
