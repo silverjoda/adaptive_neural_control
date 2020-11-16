@@ -396,17 +396,16 @@ class HexapodBulletEnv(gym.Env):
         quantile_pen = symmetry_work_pen = torso_contact_pen = 0
 
         # Calculate shuffle penalty
-
         shuffle_pen = np.sum([(np.square(x_tip) + np.square(y_tip)) * (contacts[k] == 1) for k, (x_tip, y_tip, _) in enumerate(tip_velocities)])
 
         if self.config["training_mode"] == "straight":
             r_neg = {"pitch" : np.square(pitch) * 1.5,
                      "roll": np.square(roll) * 1.5,
-                     "shuffle_pen" : shuffle_pen * 0.00,
-                     "yaw_pen" : np.square(yaw) * 0.7}
+                     "shuffle_pen" : shuffle_pen * 0.2,
+                     "yaw_pen" : np.square(yaw) * 1.2}
 
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
-                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.1, -1, 1)}
+                     "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5) * 1, r_pos_sum), 0)
