@@ -239,7 +239,7 @@ class BuggyBulletEnv(gym.Env):
     def demo(self):
         acts = [[1,0], [1,0], [1,-1], [1,1]]
         for i in range(100):
-            act = acts[np.random.randint(0,4)]#np.random.rand(2) * 2 - 1
+            act = acts[i % 4]#np.random.rand(2) * 2 - 1
             self.reset()
 
             for i in range(self.config["max_steps"]):

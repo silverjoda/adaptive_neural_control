@@ -87,12 +87,12 @@ MAML:
 # GOEDEL:
 # Poor policy performance might have been due to parameter changes, etc. Running all envs again
 
-Hexapod: training on 0.2 target vel and w and w/o shuffle pen (last experiment something went wrong. Training failed after certain amount of steps)
+Hexapod: Still keeps failing, training again. (set entropy coeff to 0.002)
 TODO: HW: Go straight for waypoint training flat and rough. Add velocity to observation,
 try randomization (if doesn't work then try without reloading the env, only use programmatic changes). Also
 adjust operating point.
 
-Buggy: Put to train again on slightly less powerfull motors
+Buggy: Local minimum sometimes (keeps going in circles). Added entropy coeff to see if it helps
 
 Quadcopter: Speed training was corrected, but first training stabilization at 2m to try on real robot
 
