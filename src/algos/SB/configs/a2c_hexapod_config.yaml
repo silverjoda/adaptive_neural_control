@@ -5,7 +5,7 @@
 "gamma" : 0.98 # 0.98 for hexapod
 "n_steps" : 30
 "vf_coef" : 0.5
-"ent_coef" : 0.002
+"ent_coef" : 0.001
 "max_grad_norm" : 0.5
 "learning_rate" : 0.0007
 "alpha" : 0.99
@@ -13,9 +13,8 @@
 "lr_schedule" : 'linear'
 "verbose" : 1
 "full_tensorboard_log" : False
-"policy_kwargs" : "dict(layers=[196, 196])"
 "policy_lastlayer_tanh" : False
 "policy_hid_dim" : 256
-"policy_memory_dim" : 128
+"policy_memory_dim" : 256
 "policy_grad_clip_value" : 1.0
 "policy_residual_connection" : False

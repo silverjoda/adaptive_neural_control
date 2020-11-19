@@ -129,8 +129,8 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 1.2 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 70 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+                             "max_force": 1.6 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "velocity_scaler": 90 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -172,7 +172,7 @@ class BuggyBulletEnv(gym.Env):
         time.sleep(self.config["sim_timestep"])
 
     def step(self, ctrl):
-        wheel_action = np.clip(ctrl[0], -1, 1) * 0.5 + 0.5
+        wheel_action = np.clip(ctrl[0], -1, 1)
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
