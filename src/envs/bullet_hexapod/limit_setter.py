@@ -1,9 +1,9 @@
 import fnmatch
-NO_LIMITS = False
+NO_LIMITS = True
 joint_limits = {"coxa" : [-0.5, 0.5],"femur" : [-0.9, 0.7],"tibia" : [0.2, 1.4]}
 if NO_LIMITS:
-    joint_limits = {"coxa": [-5., 5.], "femur": [-5., 5.], "tibia": [-5., 5.]}
-input_filename = "hexapod.urdf"
+    joint_limits = {"coxa": [-3., 3.], "femur": [-3., 3.], "tibia": [-3., 3.]}
+input_filename = "hexapod_template.urdf"
 output_filename = "hexapod_normal.urdf"
 
 with open(input_filename, "r") as in_file: 

@@ -351,6 +351,13 @@ class HexapodBulletEnv(gym.Env):
             p.stepSimulation(physicsClientId=self.client_ID)
             if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
+            torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso, tip_velocities = self.get_obs()
+            p.resetDebugVisualizerCamera(cameraDistance=0.8,
+                                         cameraYaw=20,
+                                         cameraPitch=-30,
+                                         cameraTargetPosition=[torso_pos[0] + 0.4, torso_pos[1] - 0.5,
+                                                               torso_pos[2] + 0.5])
+
         joint_angles_skewed = []
         for o in obs_sequential:
             joint_angles_skewed.append(o[0])
