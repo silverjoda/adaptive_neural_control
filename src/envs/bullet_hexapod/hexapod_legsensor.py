@@ -404,7 +404,6 @@ class HexapodBulletEnv(gym.Env):
                      "shuffle_pen" : shuffle_pen * 0.0,
                      "yaw_pen" : np.square(yaw) * 1.2}
 
-
             r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -1, 1),
                      "yaw_improvement_reward" :  np.clip(yaw_improvement_reward * 0.0, -1, 1)}
 

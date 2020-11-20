@@ -129,8 +129,8 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 1.6 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 90 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+                             "max_force": 1.1 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
+                             "velocity_scaler": 70 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -194,7 +194,7 @@ class BuggyBulletEnv(gym.Env):
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
-        vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, 0, 3)
+        vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
         #heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -2, 2)
         r = vel_rew
 
@@ -237,9 +237,9 @@ class BuggyBulletEnv(gym.Env):
         return obs
 
     def demo(self):
-        acts = [[1,0], [1,0], [1,-1], [1,1]]
+        acts = [[1,0], [-1,0], [1,-1], [-1, 1]]
         for i in range(100):
-            act = acts[i % 4]#np.random.rand(2) * 2 - 1
+            act = acts[i % 4] # np.random.rand(2) * 2 - 1
             self.reset()
 
             for i in range(self.config["max_steps"]):
@@ -248,7 +248,7 @@ class BuggyBulletEnv(gym.Env):
                 time.sleep(self.config["sim_timestep"])
 
     def test_motors(self):
-        #acts = [[1,-0.5], [-1,0], [1,0.5], [0.5,1]]
+        # acts = [[1,-0.5], [-1,0], [1,0.5], [0.5,1]]
         acts = [[1, 0], [-1, 0], [-1, -1], [0.5, 1]]
         self.reset()
         for act in acts:
@@ -259,6 +259,7 @@ class BuggyBulletEnv(gym.Env):
 
     def close(self):
         p.disconnect()
+
 
     def gather_data(self, policy=None, n_iterations=20000):
         # Initialize data lists
