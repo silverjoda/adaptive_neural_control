@@ -92,7 +92,7 @@ TODO: HW: Go straight for waypoint training flat and rough. Add velocity to obse
 try randomization (if doesn't work then try without reloading the env, only use programmatic changes). Also
 adjust operating point.
 
-Buggy: Local minimum sometimes (keeps going in circles). Added entropy coeff to see if it helps
+Buggy: Works with fw/bw, ready for testing. Just ooc, put to train fw/bw with higher power.
 
 Quadcopter: Speed training was corrected, but first training stabilization at 2m to try on real robot
 
