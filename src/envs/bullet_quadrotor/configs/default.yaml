@@ -1,6 +1,6 @@
 "env_name" : quadrotor
-"controller_source" : "nn" # nn/pid
-"target_vel_source" : "still" # still/rnd/joystick
+"controller_source" : "pid" # nn/pid
+"target_vel_source" : "joystick" # still/rnd/joystick
 "max_steps" : 400
 "step_counter" : True
 "latent_input" : False
