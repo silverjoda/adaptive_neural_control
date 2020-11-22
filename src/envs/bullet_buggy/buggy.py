@@ -12,7 +12,7 @@ import logging
 import pygame
 import random
 
-class JoyController():
+class JoyController:
     def __init__(self, config):
         self.config = config
         logging.info("Initializing joystick controller")
@@ -51,6 +51,38 @@ class JoyController():
             button_x = 0
 
         return vel, turn, button_x
+
+
+class RandomSeq:
+    def __init__(self, N, config):
+        self.N = N
+        self.config = config
+
+    def __getitem__(self, item):
+        return np.random.rand(2) * self.config["target_dispersal_distance"] - self.config["target_dispersal_distance"] / 2
+
+    def __len__(self):
+        return 2
+
+
+class WPGenerator:
+    def __init__(self, config):
+        self.config = config
+        self.wp_sequence = None
+        if self.config["wp_sequence"] == "two_pole":
+            self.wp_sequence = [[0, 2], [0, -2]]
+        if self.config["wp_sequence"] == "four_pole":
+            self.wp_sequence = [[2, 0], [0, -2], [-2, 0], [0, 2]]
+        if self.config["wp_sequence"] == "rnd":
+            self.wp_sequence = RandomSeq(2, config)
+        self.wp_idx = 0
+        self.N = len(self.wp_sequence)
+
+    def next(self):
+        wp = self.wp_sequence[self.wp_idx]
+        self.wp_idx = (self.wp_idx + 1) % self.N
+        return wp
+
 
 class BuggyBulletEnv(gym.Env):
     def __init__(self, config):
@@ -99,6 +131,7 @@ class BuggyBulletEnv(gym.Env):
             p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
 
         self.JOYStick = JoyController(self.config)
+        self.waypoint_generator = WPGenerator(config)
         self.create_targets()
 
     def create_targets(self):
@@ -130,7 +163,7 @@ class BuggyBulletEnv(gym.Env):
                              "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
                              "max_force": 2.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 100 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+                             "velocity_scaler": 80 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
 
         # Change params
         p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
@@ -148,10 +181,8 @@ class BuggyBulletEnv(gym.Env):
 
     def update_targets(self):
         if self.target_A is None:
-            self.target_A = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
-                "target_dispersal_distance"] / 2
-            self.target_B = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
-                "target_dispersal_distance"] / 2
+            self.target_A = self.waypoint_generator.next()
+            self.target_B = self.waypoint_generator.next()
 
             self.target_A_body = p.createMultiBody(baseMass=0,
                                                    baseVisualShapeIndex=self.target_visualshape_A,
@@ -163,8 +194,7 @@ class BuggyBulletEnv(gym.Env):
                                                    physicsClientId=self.client_ID)
         else:
             self.target_A = self.target_B
-            self.target_B = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
-                "target_dispersal_distance"] / 2
+            self.target_B = self.waypoint_generator.next()
             p.resetBasePositionAndOrientation(self.target_A_body, [self.target_A[0], self.target_A[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
             p.resetBasePositionAndOrientation(self.target_B_body, [self.target_B[0], self.target_B[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
@@ -256,10 +286,8 @@ class BuggyBulletEnv(gym.Env):
                 obs, r, done, _ = self.step(act)
                 self.render()
 
-
     def close(self):
         p.disconnect()
-
 
     def gather_data(self, policy=None, n_iterations=20000):
         # Initialize data lists
