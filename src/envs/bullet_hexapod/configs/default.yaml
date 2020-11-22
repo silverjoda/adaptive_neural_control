@@ -1,12 +1,12 @@
 "env_name" : "hexapod"
 "controller_source" : "joystick" # joystick
-"max_steps" : 160
+"max_steps" : 80
 "step_counter" : True
 "terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
-"forced_target_velocity" : 0.15
+"forced_target_velocity" : 0.2
 "sim_step" : 0.00417
 "action_scaler" : 1
 "env_width" : 60
@@ -22,7 +22,7 @@
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
-"perlin_height" : 40
+"perlin_height" : 35
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -1.0, 0.4]

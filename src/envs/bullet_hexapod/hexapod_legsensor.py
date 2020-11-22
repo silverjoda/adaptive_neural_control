@@ -321,12 +321,6 @@ class HexapodBulletEnv(gym.Env):
         return robot
 
     def step(self, ctrl, render=False):
-        if np.max(ctrl) > 1:
-            ctrl_clipped = ctrl / np.abs(np.max(ctrl))
-        else:
-            ctrl_clipped = ctrl
-
-        #ctrl_clipped = np.clip(np.array(ctrl) * self.config["action_scaler"], -1, 1)
         ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
@@ -351,13 +345,6 @@ class HexapodBulletEnv(gym.Env):
             p.stepSimulation(physicsClientId=self.client_ID)
             if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
-            torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso, tip_velocities = self.get_obs()
-            p.resetDebugVisualizerCamera(cameraDistance=0.8,
-                                         cameraYaw=20,
-                                         cameraPitch=-30,
-                                         cameraTargetPosition=[torso_pos[0] + 0.4, torso_pos[1] - 0.5,
-                                                               torso_pos[2] + 0.5])
-
         joint_angles_skewed = []
         for o in obs_sequential:
             joint_angles_skewed.append(o[0])
@@ -379,21 +366,9 @@ class HexapodBulletEnv(gym.Env):
 
         # Unsuitable position penalty
         unsuitable_position_pen = 0
-        # leg_pen = []
-        # for i in range(6):
-        #     _, a1, a2 = scaled_joint_angles_true[i * 3: i * 3 + 3]
-        #     pen = np.maximum((np.sign(a1) * (a1 ** 2)) * (np.sign(a2) * (a2 ** 2)), 0)
-        #     unsuitable_position_pen += pen
-        #     leg_pen.append(pen)
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
-
-        # Velocity reward
-        # self.xd_queue.append(xd)
-        # if len(self.xd_queue) > 7:
-        #     self.xd_queue.pop(0)
-        # xd_av = sum(self.xd_queue) / len(self.xd_queue)
 
         velocity_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
         yaw_improvement_reward = np.square(self.prev_yaw_dev - yaw)

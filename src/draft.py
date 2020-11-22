@@ -1,31 +1,9 @@
-import torch as T
-import torch.nn as nn
+import numpy as np
+import matplotlib.pyplot as plt
 
-# 2d
-T.manual_seed(2)
-f = nn.Conv2d(2,1,2,1,0,1,bias=True)
-f.weight.data = T.randint(low=-5, high=5, size=(1,2,2,2), dtype=T.float32)
-f.bias.data = T.randint(low=-5, high=5, size=[1], dtype=T.float32)
-X = T.randint(low=-5, high=5, size=(1,2,2,2), dtype=T.float32)
-Y = f(X)
-print(X)
-print(f.weight)
-print(f.bias)
-print(Y)
-
-# 3d
-T.manual_seed(2)
-f = nn.Conv3d(1,1,2,1,0,1,bias=True)
-f.weight.data = T.randint(low=-5, high=5, size=(1,1,2,2,2), dtype=T.float32)
-f.bias.data = T.randint(low=-5, high=5, size=[1], dtype=T.float32)
-X = T.randint(low=-5, high=5, size=(1,1,2,2,2), dtype=T.float32)
-Y = f(X)
-print(X)
-print(f.weight)
-print(f.bias)
-print(Y)
-
-
-
-
-
+N = 1000
+pts = np.random.rand(2, N) * 2 - 1
+pts_normed = pts / np.sqrt(np.sum(np.power(pts, 2), axis=0))
+pts_rnd_scaled = pts_normed * np.random.rand(1, N)
+plt.plot(pts_rnd_scaled[0], pts_rnd_scaled[1], 'bo')
+plt.show()
