@@ -342,6 +342,9 @@ class HexapodBulletEnv(gym.Env):
         ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
+        # TODO: Check if heading reward works correctly
+        # TODO: Modify the reward so that there is no velocity reward until heading is satisfactory
+
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
                                     jointIndex=i,
@@ -388,13 +391,10 @@ class HexapodBulletEnv(gym.Env):
         # Orientation reward
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
-        heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -3, 3)
+        heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation), -1, 1)
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
-
-        # Calculate relative positions of targets
-        relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         velocity_rew = np.minimum((self.prev_target_dist - target_dist) / self.config["sim_step"],
                                   self.config["target_vel"]) / self.config["target_vel"]
@@ -413,10 +413,10 @@ class HexapodBulletEnv(gym.Env):
 
         if self.config["training_mode"] == "straight":
             r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)),
-                     "yaw_pen": np.square(yaw) * 1.2}
+                     "yaw_pen": np.square(tar_angle - yaw) * 0}
 
-            r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -2, 2),
-                     "yaw_improvement_reward" :  np.clip(heading_rew * 1.0, -1, 1)}
+            r_pos = {"velocity_rew": np.clip(velocity_rew * 0, -2, 2),
+                     "yaw_improvement_reward" :  np.clip(heading_rew * 2.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
@@ -444,6 +444,9 @@ class HexapodBulletEnv(gym.Env):
         else:
             print("No mode selected")
             exit()
+
+        # Calculate relative positions of targets
+        relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
         env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target))
@@ -476,9 +479,6 @@ class HexapodBulletEnv(gym.Env):
         # Reset episodal vars
         self.step_ctr = 0
         self.episode_ctr += 1
-        self.xd_queue = []
-        self.joint_work_done_arr_list = []
-        self.joint_angle_arr_list = []
         self.prev_yaw_dev = 0
 
         if self.config["velocity_control"]:
@@ -503,7 +503,7 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
-        rnd_rot = np.random.rand() * 0.6 - 0.3
+        rnd_rot = 0
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
 
         joint_init_pos_list = self.norm_to_rads([0] * 18)
@@ -519,9 +519,9 @@ class HexapodBulletEnv(gym.Env):
         self.update_targets()
         self.prev_target_dist = np.sqrt((0 - self.target[0]) ** 2 + (0 - self.target[1]) ** 2)
         tar_angle = np.arctan2(self.target[1] - 0, self.target[0] - 0)
-        self.prev_yaw_deviation = tar_angle
+        self.prev_yaw_deviation = np.min((abs((rnd_rot % 6.283) - (tar_angle % 6.283)), abs(rnd_rot - tar_angle)))
 
-        for i in range(30):
+        for i in range(10):
             p.stepSimulation(physicsClientId=self.client_ID)
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))

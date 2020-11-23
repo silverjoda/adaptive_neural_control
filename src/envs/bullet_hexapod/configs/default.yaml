@@ -28,6 +28,6 @@
 "joints_rads_low" : [-0.5, -1.0, 0.4]
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.5
-"target_dispersal_distance" : 4
+"target_dispersal_distance" : 2
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
