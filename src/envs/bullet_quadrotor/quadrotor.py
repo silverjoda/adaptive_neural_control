@@ -116,7 +116,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot_params = {"mass": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.8 + np.random.rand() * 0.25 * self.config["randomize_env"],
-                             "motor_force_multiplier": 9 + np.random.rand() * 10 * self.config["randomize_env"]}
+                             "motor_force_multiplier": 9 + np.random.rand() * 7 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
