@@ -30,7 +30,7 @@ class JoyController():
     def get_joystick_input(self):
         pygame.event.pump()
         t_roll, t_pitch, t_yaw, throttle = \
-            [self.joystick.get_axis(i) for i in range(4)]
+            [self.joystick.get_axis(self.config["joystick_mapping"][i]) for i in range(4)]
         button_x = self.joystick.get_button(1)
         pygame.event.clear()
 
@@ -198,7 +198,7 @@ class QuadrotorBulletEnv(gym.Env):
             velocity_target = self.rnd_target_vel_source()
         elif self.config["target_vel_source"] == "joystick":
             throttle, roll, pitch, yaw = self.joystick_controller.get_joystick_input()[:4]
-            velocity_target = -throttle, -roll, -pitch, -yaw
+            velocity_target = [-throttle, -roll, -pitch, -yaw]
         return velocity_target
 
     def calculate_stabilization_action(self, orientation, angular_velocities, targets):

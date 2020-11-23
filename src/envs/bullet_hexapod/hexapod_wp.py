@@ -342,9 +342,6 @@ class HexapodBulletEnv(gym.Env):
         ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
-        # TODO: Check if heading reward works correctly
-        # TODO: Modify the reward so that there is no velocity reward until heading is satisfactory
-
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
                                     jointIndex=i,

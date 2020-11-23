@@ -17,3 +17,4 @@
 "disturbance_frequency" : 0.000 # 0.005
 "urdf_name" : quadrotor.urdf
 "seed" :
+"joystick_mapping" : [2,3,0,1]
