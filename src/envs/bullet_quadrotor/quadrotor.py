@@ -63,7 +63,7 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 13 #
+        self.obs_dim = 13
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
@@ -113,10 +113,10 @@ class QuadrotorBulletEnv(gym.Env):
             p.removeBody(self.robot)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
+        self.robot_params = {"mass": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.8 + np.random.rand() * 0.25 * self.config["randomize_env"],
-                             "motor_force_multiplier": 7 + np.random.rand() * 20 * self.config["randomize_env"]}
+                             "motor_force_multiplier": 9 + np.random.rand() * 10 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
             robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),

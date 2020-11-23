@@ -110,3 +110,5 @@ SNAIL:
 - Use of causal temporal convolutions alongside k,q,v attention
 - Neural network architecture apparently important (skip connections, etc)
 - Use larger batchsize (50k timesteps)
+
+# TODO: Try quadrotor training with randomization
