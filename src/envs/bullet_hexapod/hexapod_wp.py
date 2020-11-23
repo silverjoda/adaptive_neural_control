@@ -44,7 +44,7 @@ class HexapodBulletEnv(gym.Env):
             self.config["target_vel"] = 0.15
 
         # Environment parameters
-        self.obs_dim = 27 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
+        self.obs_dim = 18 + 27 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -395,6 +395,7 @@ class HexapodBulletEnv(gym.Env):
 
         velocity_rew = np.minimum((self.prev_target_dist - target_dist) / self.config["sim_step"],
                                   self.config["target_vel"]) / self.config["target_vel"]
+        straight_vel_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -410,10 +411,10 @@ class HexapodBulletEnv(gym.Env):
 
         if self.config["training_mode"] == "straight":
             r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)),
-                     "yaw_pen": np.square(tar_angle - yaw) * 0}
+                     "yaw_pen": np.square(tar_angle - yaw) * 1}
 
-            r_pos = {"velocity_rew": np.clip(velocity_rew * 0, -2, 2),
-                     "yaw_improvement_reward" :  np.clip(heading_rew * 2.0, -1, 1)}
+            r_pos = {"velocity_rew": np.clip(straight_vel_rew * 1, -2, 2),
+                     "yaw_improvement_reward" :  np.clip(heading_rew * 0.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
@@ -446,7 +447,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target))
+        env_obs = np.concatenate((scaled_joint_angles, joint_torques, torso_quat, torso_vel, relative_target))
 
         if self.config["step_counter"]:
             env_obs = np.concatenate((env_obs, [self.step_encoding]))

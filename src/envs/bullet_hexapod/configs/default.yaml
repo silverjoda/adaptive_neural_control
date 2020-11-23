@@ -2,7 +2,7 @@
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
 "step_counter" : True
-"terrain_name" : "flat"
+"terrain_name" : "tiles"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False

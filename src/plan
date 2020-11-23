@@ -112,3 +112,4 @@ SNAIL:
 - Use larger batchsize (50k timesteps)
 
 # TODO: Try quadrotor training with randomization
+# TODO: Try train hexapod straight perlin with torques added
