@@ -1,4 +1,4 @@
-"env_name" : quadrotor
+"env_name" : "quadrotor"
 "controller_source" : "nn" # nn/pid
 "target_vel_source" : "still" # still/rnd/joystick
 "max_steps" : 400

@@ -1,4 +1,4 @@
-"env_name" : "hexapod"
+"env_name" : "hexapod_straight"
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
 "step_counter" : True

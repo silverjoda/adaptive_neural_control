@@ -31,10 +31,14 @@ def to_tensor(x, add_batchdim=False):
     return x
 
 def import_env(name):
-    if name == "hexapod":
+    if name == "hexapod_wp":
         from src.envs.bullet_hexapod.hexapod_wp import HexapodBulletEnv as env_fun
-    elif name == "quadrotor":
-        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
+    if name == "hexapod_straight":
+        from src.envs.bullet_hexapod.hexapod_straight import HexapodBulletEnv as env_fun
+    elif name == "quadrotor_stab":
+        from src.envs.bullet_quadrotor.quadrotor_stab import QuadrotorBulletEnv as env_fun
+    elif name == "quadrotor_vel":
+        from src.envs.bullet_quadrotor.quadrotor_vel import QuadrotorBulletEnv as env_fun
     elif name == "buggy":
         from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
     elif name == "quadruped":
