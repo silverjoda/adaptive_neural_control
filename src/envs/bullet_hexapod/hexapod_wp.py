@@ -395,7 +395,6 @@ class HexapodBulletEnv(gym.Env):
 
         velocity_rew = np.minimum((self.prev_target_dist - target_dist) / self.config["sim_step"],
                                   self.config["target_vel"]) / self.config["target_vel"]
-        #straight_vel_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -410,10 +409,10 @@ class HexapodBulletEnv(gym.Env):
             self.prev_yaw_deviation = yaw_deviation
 
         if self.config["training_mode"] == "straight":
-            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.5,
-                     "yaw_pen": np.square(tar_angle - yaw) * 0.1}
+            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.0,
+                     "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
-            r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + np.square(tar_angle - yaw) * 10) , -2, 2),
+            r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), # / (1 + np.square(tar_angle - yaw) * 10)
                      "yaw_improvement_reward" : np.clip(heading_rew * 7.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())

@@ -44,7 +44,7 @@ class HexapodBulletEnv(gym.Env):
             self.config["target_vel"] = 0.15
 
         # Environment parameters
-        self.obs_dim = 18 + 27 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
+        self.obs_dim = 27 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -376,8 +376,8 @@ class HexapodBulletEnv(gym.Env):
         scaled_joint_angles = self.rads_to_norm(joint_angles_skewed)
 
         # Calculate work done by each motor
-        joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
-        total_work_pen = np.mean(np.square(joint_work_done_arr))
+        #joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
+        #total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Unsuitable position penalty
         unsuitable_position_pen = 0
@@ -410,7 +410,7 @@ class HexapodBulletEnv(gym.Env):
             self.prev_yaw_deviation = yaw_deviation
 
         if self.config["training_mode"] == "straight":
-            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.0,
+            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.3,
                      "yaw_pen": np.square(yaw) * 0.5}
 
             r_pos = {"velocity_rew": np.clip(straight_vel_rew * 1, -2, 2),
@@ -429,8 +429,6 @@ class HexapodBulletEnv(gym.Env):
                      "yd": np.square(yd) * 0.0 * self.config["training_difficulty"],
                      "phid": np.square(phid) * 0.00 * self.config["training_difficulty"],
                      "thd": np.square(thd) * 0.0 * self.config["training_difficulty"],
-                     "total_work_pen": np.minimum(
-                         total_work_pen * 0.0 * self.config["training_difficulty"] * (self.step_ctr > 10), 1),
                      "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.config["training_difficulty"]}
             r_pos = {"velocity_rew": np.clip(velocity_rew * 6, -1, 1),
                      "yaw_improvement_reward": np.clip(heading_rew * 0.5, -1, 1)}
@@ -448,7 +446,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        env_obs = np.concatenate((scaled_joint_angles, joint_torques, torso_quat, torso_vel, relative_target))
+        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target))
 
         if self.config["step_counter"]:
             env_obs = np.concatenate((env_obs, [self.step_encoding]))

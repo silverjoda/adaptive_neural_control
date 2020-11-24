@@ -112,5 +112,4 @@ SNAIL:
 - Use larger batchsize (50k timesteps)
 
 # TODO: Try quadrotor training with randomization
-# Currently training hexapod with just yaw deviation reward, so that it turns towards target
-# Currently training hexapod hexapod straight perlin with torques added (Afterwards, change back velocity reward, yaw pen, yaw deviation and input dim and torques added to obs)
+#
