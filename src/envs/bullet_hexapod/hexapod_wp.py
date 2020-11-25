@@ -290,16 +290,16 @@ class HexapodBulletEnv(gym.Env):
 
     def update_targets(self):
         if self.target is None:
-            self.target = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
-                "target_dispersal_distance"] / 2
+            self.target = np.array(self.config["target_spawn_mu"]) + np.random.rand(2) * np.array(self.config["target_spawn_sigma"]) - np.array(self.config[
+                "target_spawn_sigma"]) / 2
 
             self.target_body = p.createMultiBody(baseMass=0,
                                                    baseVisualShapeIndex=self.target_visualshape,
                                                    basePosition=[self.target[0], self.target[1], 0],
                                                    physicsClientId=self.client_ID)
         else:
-            self.target = np.random.rand(2) * self.config["target_dispersal_distance"] - self.config[
-                "target_dispersal_distance"] / 2
+            self.target = np.array(self.config["target_spawn_mu"]) + np.random.rand(2) * np.array(
+                self.config["target_spawn_sigma"]) - np.array(self.config["target_spawn_sigma"]) / 2
             p.resetBasePositionAndOrientation(self.target_body, [self.target[0], self.target[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
     def rads_to_norm(self, joints):
@@ -388,12 +388,11 @@ class HexapodBulletEnv(gym.Env):
         # Orientation reward
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
-        heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation), -1, 1)
+        heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]), -2, 2)
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
-
-        velocity_rew = np.minimum((self.prev_target_dist - target_dist) / self.config["sim_step"],
+        velocity_rew = np.minimum((self.prev_target_dist - target_dist) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]),
                                   self.config["target_vel"]) / self.config["target_vel"]
 
         if target_dist < self.config["target_proximity_threshold"]:
@@ -412,8 +411,8 @@ class HexapodBulletEnv(gym.Env):
             r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.0,
                      "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
-            r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), # / (1 + np.square(tar_angle - yaw) * 10)
-                     "yaw_improvement_reward" : np.clip(heading_rew * 7.0, -1, 1)}
+            r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
+                     "yaw_improvement_reward" : np.clip(heading_rew * 3.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
@@ -598,7 +597,7 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/default.yaml") as f:
+    with open("configs/wp.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)

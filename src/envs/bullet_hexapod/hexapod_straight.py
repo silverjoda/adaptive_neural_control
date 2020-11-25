@@ -393,9 +393,7 @@ class HexapodBulletEnv(gym.Env):
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
 
-        velocity_rew = np.minimum((self.prev_target_dist - target_dist) / self.config["sim_step"],
-                                  self.config["target_vel"]) / self.config["target_vel"]
-        straight_vel_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
+        velocity_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -413,7 +411,7 @@ class HexapodBulletEnv(gym.Env):
             r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.3,
                      "yaw_pen": np.square(yaw) * 0.5}
 
-            r_pos = {"velocity_rew": np.clip(straight_vel_rew * 1, -2, 2),
+            r_pos = {"velocity_rew": np.clip(velocity_rew * 1, -2, 2),
                      "yaw_improvement_reward" :  np.clip(heading_rew * 0.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
