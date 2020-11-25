@@ -404,7 +404,7 @@ class HexapodBulletEnv(gym.Env):
                 (abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
             self.prev_yaw_deviation = yaw_deviation
         else:
-            self.prev_target_dist = target_dist
+            self.prev_target_dist = target_dist#
             self.prev_yaw_deviation = yaw_deviation
 
         if self.config["training_mode"] == "straight":
