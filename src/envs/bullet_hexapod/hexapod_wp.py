@@ -395,7 +395,9 @@ class HexapodBulletEnv(gym.Env):
         velocity_rew = np.minimum((self.prev_target_dist - target_dist) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]),
                                   self.config["target_vel"]) / self.config["target_vel"]
 
+
         if target_dist < self.config["target_proximity_threshold"]:
+            reached_target = True
             self.update_targets()
             self.prev_target_dist = np.sqrt(
                 (torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
@@ -404,7 +406,8 @@ class HexapodBulletEnv(gym.Env):
                 (abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
             self.prev_yaw_deviation = yaw_deviation
         else:
-            self.prev_target_dist = target_dist#
+            reached_target = False
+            self.prev_target_dist = target_dist
             self.prev_yaw_deviation = yaw_deviation
 
         if self.config["training_mode"] == "straight":
@@ -457,7 +460,7 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr += 1
         self.step_encoding = (float(self.step_ctr) / self.config["max_steps"]) * 2 - 1
 
-        done = self.step_ctr > self.config["max_steps"]
+        done = self.step_ctr > self.config["max_steps"] or reached_target
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
