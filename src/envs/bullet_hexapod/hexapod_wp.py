@@ -411,7 +411,7 @@ class HexapodBulletEnv(gym.Env):
             self.prev_yaw_deviation = yaw_deviation
 
         if self.config["training_mode"] == "straight":
-            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.0,
+            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.7,
                      "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
             r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
