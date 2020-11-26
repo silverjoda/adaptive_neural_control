@@ -57,7 +57,7 @@ def make_model(config, env, action_noise_fun):
                     tensorboard_log="./tb/{}/".format(config["session_ID"]),
                     policy_kwargs=config["policy_kwargs"])
 
-    if config["algo_name"] == "A2C":
+    if config["algo_name"] == "A2C" and config["policy_name"] == "MlpPolicy":
         model = A2C(config["policy_name"],
             env=env,
             gamma=config["gamma"],
@@ -73,6 +73,22 @@ def make_model(config, env, action_noise_fun):
             tensorboard_log="./tb/{}/".format(config["session_ID"]),
             full_tensorboard_log=config["full_tensorboard_log"],
             policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
+
+    if config["algo_name"] == "A2C" and config["policy_name"] == "MlpLstmPolicy":
+        model = A2C(config["policy_name"],
+            env=env,
+            gamma=config["gamma"],
+            n_steps=config["n_steps"],
+            vf_coef=config["vf_coef"],
+            ent_coef = config["ent_coef"],
+            max_grad_norm=config["max_grad_norm"],
+            learning_rate=config["learning_rate"],
+            alpha=config["alpha"],
+            epsilon=config["epsilon"],
+            lr_schedule=config["lr_schedule"],
+            verbose=config["verbose"],
+            tensorboard_log="./tb/{}/".format(config["session_ID"]),
+            full_tensorboard_log=config["full_tensorboard_log"])
 
     assert model is not None, "Alg name not found, exiting. "
     return model
