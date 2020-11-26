@@ -87,10 +87,7 @@ MAML:
 # GOEDEL:
 # Poor policy performance might have been due to parameter changes, etc. Running all envs again
 
-Hexapod: Still keeps failing, training again. (set entropy coeff to 0.002)
-TODO: HW: Go straight for waypoint training flat and rough. Add velocity to observation,
-try randomization (if doesn't work then try without reloading the env, only use programmatic changes). Also
-adjust operating point.
+Hexapod: Training wp with larger extent, flat and perlin
 
 Buggy: Works with fw/bw, ready for testing. Just ooc, put to train fw/bw with higher power.
 
@@ -111,5 +108,3 @@ SNAIL:
 - Neural network architecture apparently important (skip connections, etc)
 - Use larger batchsize (50k timesteps)
 
-# TODO: Try quadrotor training with randomization
-#

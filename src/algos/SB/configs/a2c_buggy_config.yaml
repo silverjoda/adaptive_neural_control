@@ -1,4 +1,5 @@
 "algo_name" : "A2C"
+"policy_name" : "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 8
 "iters" : 40000000

@@ -58,7 +58,7 @@ def make_model(config, env, action_noise_fun):
                     policy_kwargs=config["policy_kwargs"])
 
     if config["algo_name"] == "A2C":
-        model = A2C('MlpPolicy',
+        model = A2C(config["policy_name"],
             env=env,
             gamma=config["gamma"],
             n_steps=config["n_steps"],
