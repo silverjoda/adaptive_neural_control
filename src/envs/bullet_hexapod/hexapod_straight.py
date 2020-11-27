@@ -44,7 +44,7 @@ class HexapodBulletEnv(gym.Env):
             self.config["target_vel"] = 0.15
 
         # Environment parameters
-        self.obs_dim = 27 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
+        self.obs_dim = 23 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -444,7 +444,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target))
+        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel))
 
         if self.config["step_counter"]:
             env_obs = np.concatenate((env_obs, [self.step_encoding]))

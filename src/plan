@@ -87,9 +87,9 @@ MAML:
 # GOEDEL:
 # Poor policy performance might have been due to parameter changes, etc. Running all envs again
 
-Hexapod: Training wp with larger extent, flat and perlin
+Hexapod: Put to train flat with no heading rew, flat with heading rev, perlin with heading rew,
 
-Buggy: Works with fw/bw, ready for testing. Just ooc, put to train fw/bw with higher power.
+Buggy:
 
 Quadcopter: Speed training was corrected, but first training stabilization at 2m to try on real robot
 

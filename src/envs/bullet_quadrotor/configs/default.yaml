@@ -5,7 +5,7 @@
 "step_counter" : True
 "latent_input" : False
 "action_input" : False
-"randomize_env" : True
+"randomize_env" : False
 "sim_timestep" : 0.01
 "action_scaler" : .99
 "propeller_parasitic_torque_coeff" : 1.0
