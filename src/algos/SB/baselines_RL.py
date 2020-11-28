@@ -118,7 +118,8 @@ def test_agent(env, model, deterministic=True):
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
-            if done:
+            #time.sleep(0.01)
+            if done: # .all() for rnn
                 print(cum_rew)
                 break
     env.close()
@@ -169,6 +170,7 @@ if __name__ == "__main__":
 
     if args["test"] and socket.gethostname() != "goedel":
         env = env_fun(config)
+        #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
 
         if not args["train"]:
             model = load_model(config)
