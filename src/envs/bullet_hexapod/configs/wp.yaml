@@ -2,7 +2,7 @@
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
 "step_counter" : True
-"terrain_name" : "perlin"
+"terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
@@ -27,8 +27,8 @@
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -1.0, 0.4]
 "joints_rads_high" : [0.5, 0.4, 1.0]
-"target_proximity_threshold" : 0.5
-"target_spawn_mu" : [1.0, 0]
-"target_spawn_sigma" : [1.0, 4.0]
+"target_proximity_threshold" : 0.3
+"target_spawn_mu" : [0.0, 0]
+"target_spawn_sigma" : [4.0, 4.0]
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
