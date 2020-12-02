@@ -392,7 +392,7 @@ class HexapodBulletEnv(gym.Env):
         # Compute heading reward
         yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
         yaw_dev_sign = np.sign(yaw_dev_diff)
-        heading_rew = np.clip(yaw_dev_sign * np.square(yaw_dev_diff) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]), -2, 2)
+        heading_rew = np.minimum(np.abs(yaw_deviation), 3) * np.clip(yaw_dev_sign * np.square(yaw_dev_diff) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]), -2, 2)
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
@@ -414,11 +414,11 @@ class HexapodBulletEnv(gym.Env):
             self.prev_yaw_deviation = yaw_deviation
 
         if self.config["training_mode"] == "straight":
-            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.0,
+            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
                      "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
             r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
-                     "yaw_improvement_reward" : np.clip(heading_rew * 0.0, -1, 1)}
+                     "heading_rew" : np.clip(heading_rew * 1.0, -1, 1)}
 
             r_pos_sum = sum(r_pos.values())
             r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)

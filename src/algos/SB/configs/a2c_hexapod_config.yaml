@@ -15,7 +15,7 @@
 "verbose" : 1
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 512
-"policy_memory_dim" : 512
+"policy_hid_dim" : 256
+"policy_memory_dim" : 256
 "policy_grad_clip_value" : 1.0
 "policy_residual_connection" : False
