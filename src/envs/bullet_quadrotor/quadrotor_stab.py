@@ -115,7 +115,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.robot_params = {"mass": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "motor_inertia_coeff": 0.8 + np.random.rand() * 0.25 * self.config["randomize_env"],
+                             "motor_inertia_coeff": 0.8 + np.random.rand() * 0.2 * self.config["randomize_env"],
                              "motor_force_multiplier": 9 + np.random.rand() * 7 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
@@ -283,6 +283,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = torso_euler
+        print(torso_pos, bounded_act)
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
@@ -293,12 +294,6 @@ class QuadrotorBulletEnv(gym.Env):
 
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
-
-        # p_z_vel = np.clip(np.mean(np.square(torso_vel[2] - velocity_target[0])) * 0.1, -1, 1)
-        # p_lr_vel = np.clip(np.mean(np.square(torso_vel[1] - velocity_target[1])) * 0.1, -1, 1)
-        # p_fb_vel = np.clip(np.mean(np.square(torso_vel[0] - velocity_target[2])) * 0.1, -1, 1)
-        # p_yaw_vel = np.clip(np.mean(np.square(torso_angular_vel[2] - velocity_target[3])) * 0.1, -1, 1)
-        # r = 0.5 - p_z_vel - p_lr_vel - p_fb_vel - p_yaw_vel
 
         done = (self.step_ctr > self.config["max_steps"]) \
                or np.any(np.array([roll, pitch]) > np.pi / 1.5) \
