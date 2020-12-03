@@ -34,6 +34,8 @@ class JoyController():
         button_x = self.joystick.get_button(1)
         pygame.event.clear()
 
+        #print(t_roll, t_pitch, t_yaw, throttle)
+
         # button_x only when upon press
         if self.button_x_state == 0 and button_x == 1:
             self.button_x_state = 1
@@ -93,13 +95,13 @@ class QuadrotorBulletEnv(gym.Env):
         self.setup_stabilization_control()
 
     def setup_stabilization_control(self):
-        self.p_roll = 0.1
-        self.p_pitch = 0.1
-        self.p_yaw = 0.1
+        self.p_roll = 0.2 # 0.1
+        self.p_pitch = 0.2 # 0.1
+        self.p_yaw = 0.1 # 0.1
 
-        self.d_roll = 1.8
-        self.d_pitch = 1.8
-        self.d_yaw = 0.1
+        self.d_roll = 15.0 # 1.8
+        self.d_pitch = 15.0 # 1.8
+        self.d_yaw = 0.1 # 0.1
 
         self.e_roll_prev = 0
         self.e_pitch_prev = 0
@@ -115,7 +117,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.robot_params = {"mass": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
                              "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "motor_inertia_coeff": 0.8 + np.random.rand() * 0.2 * self.config["randomize_env"],
+                             "motor_inertia_coeff": 0.9 + np.random.rand() * 0.2 * self.config["randomize_env"],
                              "motor_force_multiplier": 9 + np.random.rand() * 7 * self.config["randomize_env"]}
 
         if not self.config["randomize_env"]:
@@ -283,7 +285,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = torso_euler
-        print(torso_pos, bounded_act)
+        #print(torso_pos, bounded_act)
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
@@ -311,10 +313,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.current_disturbance = None
         self.motor_power_variance_vector = np.ones(4) - np.random.rand(4) * self.config["motor_power_variance"]
 
-        rnd_starting_pos_delta = np.random.rand(3) * 1 - 0.5
-        rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5)
-        rnd_starting_lin_velocity = np.random.rand(3) * 1 - .5 # 2 - 1
-        rnd_starting_rot_velocity = np.random.rand(3) * .6 - 0.3 # 1.2 - .6
+        rnd_starting_pos_delta = np.zeros(3) # np.random.rand(3) * 1 - 0.5
+        rnd_starting_orientation = [0,0,0,1] # p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5)
+        rnd_starting_lin_velocity = np.zeros(3) # np.random.rand(3) * 1 - .5 # 2 - 1
+        rnd_starting_rot_velocity = np.zeros(3) # np.random.rand(3) * .6 - 0.3 # 1.2 - .6
 
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"] + rnd_starting_pos_delta, rnd_starting_orientation, physicsClientId=self.client_ID)
@@ -348,6 +350,7 @@ class QuadrotorBulletEnv(gym.Env):
         obs = self.reset()
         while True:
             velocity_target = self.get_velocity_target()
+            #print(velocity_target)
 
             if self.config["controller_source"] == "nn":
                 if model == None:
@@ -386,6 +389,7 @@ class QuadrotorBulletEnv(gym.Env):
                 position_rob, rotation_rob, euler_rob, vel_rob, angular_vel_rob = self.get_obs()
 
                 velocity_target = self.get_velocity_target()
+                print(velocity_target)
 
                 if self.config["controller_source"] == "pid":
                     # Read target control inputs

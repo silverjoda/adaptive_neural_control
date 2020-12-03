@@ -1,6 +1,6 @@
 "env_name" : "quadrotor_stab"
-"controller_source" : "nn" # nn/pid
-"target_vel_source" : "still" # still/rnd/joystick
+"controller_source" : "pid" # nn/pid
+"target_vel_source" : "joystick" # still/rnd/joystick
 "max_steps" : 400
 "step_counter" : True
 "latent_input" : False
@@ -17,4 +17,4 @@
 "disturbance_frequency" : 0.000 # 0.005
 "urdf_name" : quadrotor.urdf
 "seed" :
-"joystick_mapping" : [2,3,0,1]
+"joystick_mapping" : [0,1,2,3] # [0,1,2,3] for 3D pro

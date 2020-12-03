@@ -11,7 +11,7 @@ import torch.nn as nn
 from gym import spaces
 from opensimplex import OpenSimplex
 
-# INFO: To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]#
+# INFO: To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]#$#
 
 class HexapodBulletEnv(gym.Env):
     metadata = {
