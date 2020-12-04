@@ -99,8 +99,8 @@ class QuadrotorBulletEnv(gym.Env):
         self.p_pitch = 0.2 # 0.1
         self.p_yaw = 0.1 # 0.1
 
-        self.d_roll = 15.0 # 1.8
-        self.d_pitch = 15.0 # 1.8
+        self.d_roll = 7.0 # 1.8
+        self.d_pitch = 7.0 # 1.8
         self.d_yaw = 0.1 # 0.1
 
         self.e_roll_prev = 0
@@ -116,14 +116,14 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Randomize robot params
         self.robot_params = {"mass": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
-                             "boom": 0.1 + np.random.rand() * 0.5 * self.config["randomize_env"],
+                             "boom": 0.2 + np.random.rand() * 0.5 * self.config["randomize_env"],
                              "motor_inertia_coeff": 0.9 + np.random.rand() * 0.2 * self.config["randomize_env"],
                              "motor_force_multiplier": 9 + np.random.rand() * 7 * self.config["randomize_env"]}
 
-        if not self.config["randomize_env"]:
-            robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
-                               physicsClientId=self.client_ID)
-            return robot
+        # if not self.config["randomize_env"]:
+        #     robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+        #                        physicsClientId=self.client_ID)
+        #     return robot
 
         # Write params to URDF file
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
