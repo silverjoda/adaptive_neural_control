@@ -473,6 +473,8 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
+        r = 0
+
         return env_obs.astype(np.float32), r, done, {}
 
     def reset(self, force_randomize=None):
