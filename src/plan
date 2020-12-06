@@ -1,104 +1,11 @@
-Hexapod training:
-# TODO: Add callback for id and NOTE reporting.
-# TODO: Add callback for symmetry penalty using gradient descent
-# TODO: Keep training straight and stairs policy
-# TODO: Make checkpoint and best model copier from goedel
-# TODO: Make proper input argument parser
-# TODO: Custom callback for symmetry <-
-# TODO: Make additional tensorboard logs to debug action, observation and gradient distributions during training
-
-Hexapod HW:
-# TODO: Make contact sensors
-# TODO: Make contact + dampeners in CAD software
-# TODO: Integrate T265 (both hardware and SW)
-# TODO: Test how much energy each servo consumes in total and compare with simulation
-
 Adaptation research:
-# TODO: Try model learning on hangpole, including using RNN for adaptation
-# TODO: Model based learning from a small amount of examples regularized by simulated examples
-# TODO: Goal: Learn how to meta learn for supervised learning and RL
-# TODO: Try meta learning (MAML and meta learning exploration) for supervised learning of transition probabilities
-
-# TODO: Make evaluation of the trained regressor. Evaluation has to be accept any policy and regressor (add hidden state to rnn, btw).
-# TODO: Evaluation also has to visibly show accuracy at every step.
-# TODO: Make multiple policy and/or dropout training to gauge confidence.
 
 # TODO: Questions to be answered
 # TODO: Q1) Can you learn good model from random policy (how does it generalize to state distribution induced by trained policy)
-# TODO: Q2) Does confidence using droupout or ensembles work
-# TODO: Q3) Does RNN learn model for adapting param
-# TODO: Q4) Using model for learning policy (later)
+# TODO: Q2) Does confidence/uncertainty estimate using dropout or ensembles work
+# TODO: Q3) Does RNN learn model for adapting param (supervised learning)
 
-Research: Steps
-# TODO: Prepare environments for training and testing. All environments must be in the same form as gym, but also sample-able upon reset
-# TODO: Environments are for now the following: Cartpole, Cartpole swing up, Hexapod, Quadcopter stabilize, Quadcopter waypoints, Buggie, Airplane waypoints, Airplane land, Sailboat waypoint
-# TODO: Make robotic platforms: Hexapod, Buggie, Quad and their respective simulations
-# TODO: Test model learning for all envs. Is random exploration enough? How does a randomly trained model performance generalize to
-# TODO: a state distribution induced by a policy learned by RL? Does learning using state visitation stratification help? Also compare to
-# TODO: learning a model and a policy at the same time so that we are sampling from a relevant state distribution
-# TODO: Can a model learning using RNN adapt to various parameter changes?
-# TODO: Make a MAML and/or ANIL implementation which accepts our environments as input
 
-Quad:
-# TODO: Add feedforward reg to compensate yaw effect when pitching or rolling. Test Quad
-
-Car HW:
-# TODO: Start integrating hardware
-
-Room pi:
-# TODO: Install necessary stuff on pi
-# TODO: Add and test night camera
-# TODO: Install PI near bed
-
-MAML:
-# TODO: Make PG into a class and make FULL DEBUG.
-# TODO: Test MAML
-# TODO: Make recurrent MAML
-# TODO: Make CAVIA
-
-# PG logging improvements:
-# Add activations before and after non-lin
-
-# VIR Projects:
-1) Learning model of fast RC buggie using script which gathers data and using it to
-   learn a forward function of the buggie using supervised learning. The state space should then be plotted using TSNE or something similar.
-   Outliers can be ommited from dataset and model retrained to see if it can generalize to them.
-6) Atlas entering and leaving car using RL
-7) Hardware wireless sensor using neural nets (only for hw people)
-8) Voice masking for anonymity
-9) Make racecar in simulation drive fast around track using RL. Compare with human performance.
-
-# TODO: Try PG with various hyperparams to se which such
-# TODO: Check PG again with full tb
-# TODO: Check MAML with full gradients (Also try hyperparams from initial paper)
-# TODO: Try ES MAML
-# TODO: MAML for model training
-# TODO: Continue training hexapod
-
-# Video explaining learning:
-- Using a programmed approach vs learning approach for a general problem
-- Creating a suitable solution space (either directly or through a function approximator)
-- Function approximation, universality and turing completeness
-- Compositionality of tasks, why a multi layer NN is necessary
-- 5 images classification with pixel in the top corner
-- Priors, from LUT to hard-priored function
-- Optimization of solution, brute force & random search
-
-# GOEDEL:
-# Poor policy performance might have been due to parameter changes, etc. Running all envs again
-
-Hexapod: Put to train flat with no heading rew, flat with heading rev, perlin with heading rew,
-
-Buggy:
-
-Quadcopter: Speed training was corrected, but first training stabilization at 2m to try on real robot
-
-# TODO: Install stable baselines on robots so that we can use policy directly
-# TODO: Start writing data processing and learning scripts for all data
-# TODO: Start writing Adaptation learning algorithms
-# TODO: Try out a gradient based evolution algorithm (from scratch)
-# TODO: Perhaps maximally informative trajectories can improve MAML/CAVIA
-# TODO: Test reactive vs RNN policies on randomized buggy or quad env (Try various rnn architectures)
 
 # Paper extract:
 SNAIL:
@@ -108,3 +15,37 @@ SNAIL:
 - Neural network architecture apparently important (skip connections, etc)
 - Use larger batchsize (50k timesteps)
 
+Learning VTOL policies:
+- Integrated error input (similar as in PID) might be useful
+
+RL^2:
+- Apparently inter-episode hidden states matter
+
+What matters in deep RL:
+- Use the PPO policy loss. Start with the clipping threshold set to 0.25 but also try
+lower and higher values if possible
+- Initialize the last policy layer with 100× smaller weights
+- Use tanh both as the activation function (if the networks are not too deep) and to transform the samples from the normal
+distribution to the bounded action space. Use a wide value MLP (no layers shared with the policy)
+but tune the policy width (it might need to be narrower than the value MLP).
+- Recommendation. Use GAE with λ = 0.9 but neither Huber loss nor PPO-style value loss clipping.
+- Discount factor γ is one of the most important hyperparameters and should be tuned per environment (start with γ = 0.99)
+- Adam [8] optimizer with momentum β1 = 0.9 and a tuned learning rate (0.0003 is a safe default).
+Linearly decaying the learning rate may slightly improve performance but is of secondary importance.
+- One of the surprising insights is that the initial action distribution plays an important role in agent performance.
+
+# Planned revision for environments:
+- Add transport delay
+- Check randomized parameter generation for each env. Decide on which to keep (test all envs to find proper range)
+- Add param to dict output and conditionally to agent input (conditioned by boolean in config)
+
+# Planned adaptation algos:
+- Plain training using RNN (supervised model learning and RL policy)
+- Oracle with params as inputs
+- Using parameter predictor
+- SNAIL - like architecture
+-
+
+# TODO:
+# Start implementing adaptation algorithms
+# Put to train quadcopter and buggy envs with randomization
