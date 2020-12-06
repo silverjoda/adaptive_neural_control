@@ -1,5 +1,5 @@
 "env_name" : "quadrotor_stab"
-"controller_source" : "pid" # nn/pid
+"controller_source" : "nn" # nn/pid
 "target_vel_source" : "joystick" # still/rnd/joystick
 "max_steps" : 400
 "step_counter" : True
@@ -9,7 +9,7 @@
 "sim_timestep" : 0.01
 "action_scaler" : .99
 "propeller_parasitic_torque_coeff" : 1.0
-"motor_power_variance" : 0.1
+"motor_power_variance" : 0.5
 "env_change_prob" : 0.1
 "starting_pos" : [0, 0, 2.0]
 "target_pos" : [0, 0, 2.0]
@@ -17,4 +17,4 @@
 "disturbance_frequency" : 0.000 # 0.005
 "urdf_name" : quadrotor.urdf
 "seed" :
-"joystick_mapping" : [0,1,2,3] # [0,1,2,3] for 3D pro
+"joystick_mapping" : [0,1,2,3] # [0,1,2,3] for 3D pro, [2,3,0,1] for xbox

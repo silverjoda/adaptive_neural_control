@@ -92,15 +92,18 @@ class QuadrotorBulletEnv(gym.Env):
         self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
         self.joystick_controller = JoyController(self.config)
 
+        self.prev_obs = self.get_obs()
+        self.prev_act = [0,0,0,0]
+
         self.setup_stabilization_control()
 
     def setup_stabilization_control(self):
-        self.p_roll = 0.2 # 0.1
-        self.p_pitch = 0.2 # 0.1
+        self.p_roll = 0.1 # 0.1
+        self.p_pitch = 0.1 # 0.1
         self.p_yaw = 0.1 # 0.1
 
-        self.d_roll = 7.0 # 1.8
-        self.d_pitch = 7.0 # 1.8
+        self.d_roll = 2.0 # 1.8
+        self.d_pitch = 2.0 # 1.8
         self.d_yaw = 0.1 # 0.1
 
         self.e_roll_prev = 0
@@ -117,7 +120,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.robot_params = {"mass": 0.7 + np.random.rand() * 0.7 * self.config["randomize_env"],
                              "boom": 0.2 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "motor_inertia_coeff": 0.9 + np.random.rand() * 0.2 * self.config["randomize_env"],
+                             "motor_inertia_coeff": 0.8 + np.random.rand() * 0.2 * self.config["randomize_env"],
                              "motor_force_multiplier": 9 + np.random.rand() * 7 * self.config["randomize_env"]}
 
         # if not self.config["randomize_env"]:
@@ -156,7 +159,12 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
         torso_euler = my_utils._quat_to_euler(*torso_quat)
-        return torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
+        if not hasattr(self, 'prev_obs'):
+            self.prev_obs = torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
+            return self.prev_obs
+        obs = self.prev_obs
+        self.prev_obs = torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
+        return self.prev_obs
 
     def update_motor_vel(self, ctrl):
         self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.robot_params["motor_inertia_coeff"] +
@@ -252,8 +260,11 @@ class QuadrotorBulletEnv(gym.Env):
         else:
             bounded_act = ctrl
 
+        act_delayed = bounded_act #self.prev_act
+        self.prev_act = bounded_act
+
         # Take into account motor delay
-        self.update_motor_vel(bounded_act)
+        self.update_motor_vel(act_delayed)
 
         # Make turbulence near ground
         #motor_positions_near_ground = p.getLinkStates(self.robot, linkIndices=[1, 3, 5, 7])
