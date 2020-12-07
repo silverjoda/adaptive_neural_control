@@ -62,7 +62,7 @@
     </visual>
     <collision>
       robot
-      
+
       <origin rpy="0 0 0" xyz="0 0 -0.0225"/>
       <geometry>
         <cylinder length="0.045" radius="0.05"/>
@@ -490,4 +490,3 @@
     <color rgba="0.8 0.0 0.0 1.0"/>
   </material>
 </robot>
-

@@ -116,9 +116,10 @@ class BuggyBulletEnv(gym.Env):
         p.setTimeStep(self.config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.wheels = [2, 3, 5, 7] # [2, 3, 5, 7]
+        self.wheels = [8,15] # [2, 3, 5, 7]
+        self.tires = [1, 3, 12, 14]
         self.inactive_wheels = []
-        self.steering = [4, 6]
+        self.steering = [0,2] # [4, 6]
 
         self.obs_queue = []
         self.act_queue = []
@@ -126,6 +127,44 @@ class BuggyBulletEnv(gym.Env):
 
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+
+        for wheel in range(p.getNumJoints(self.robot)):
+            print("joint[", wheel, "]=", p.getJointInfo(self.robot, wheel))
+            p.setJointMotorControl2(self.robot, wheel, p.VELOCITY_CONTROL, targetVelocity=0, force=0)
+            p.getJointInfo(self.robot, wheel)
+
+        # p.setJointMotorControl2(car,10,p.VELOCITY_CONTROL,targetVelocity=1,force=10)
+        c = p.createConstraint(self.robot, 9, self.robot, 11, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=1, maxForce=10000)
+
+        c = p.createConstraint(self.robot, 10, self.robot, 13, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+
+        c = p.createConstraint(self.robot, 9, self.robot, 13, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+
+        c = p.createConstraint(self.robot, 16, self.robot, 18, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=1, maxForce=10000)
+
+        c = p.createConstraint(self.robot, 16, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+
+        c = p.createConstraint(self.robot, 17, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+
+        c = p.createConstraint(self.robot, 1, self.robot, 18, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+        c = p.createConstraint(self.robot, 3, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+
         # yaw, x_dot, y_dot, yaw_dot, relative_target_A, relative_target_B
         self.observation_space = spaces.Box(low=-2, high=2, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
@@ -181,8 +220,8 @@ class BuggyBulletEnv(gym.Env):
 
         # Change params
         p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"])
-        for w in self.wheels:
-            p.changeDynamics(self.robot, w,
+        for tire in self.tires:
+            p.changeDynamics(self.robot, tire,
                              lateralFriction=self.randomized_params["wheels_friction"],
                              physicsClientId=self.client_ID)
         return self.robot
@@ -234,7 +273,7 @@ class BuggyBulletEnv(gym.Env):
                                     force=self.randomized_params["max_force"])
 
         for steer in self.steering:
-            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.clip(ctrl_raw[1] * self.randomized_params["steering_scalar"], -1, 1))
+            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=0.7 * np.clip(ctrl_raw[1] * self.randomized_params["steering_scalar"], -1, 1))
 
         p.stepSimulation()
         self.step_ctr += 1
