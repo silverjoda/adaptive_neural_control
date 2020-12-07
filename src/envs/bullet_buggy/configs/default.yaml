@@ -1,9 +1,10 @@
 "env_name" : buggy
-"controller_source" : "nn" # nn/joystick
+"controller_source" : "joystick" # nn/joystick
 "max_steps" : 1800
-"step_counter" : True
+"step_counter" : False
 "latent_input" : False
 "action_input" : False
+"rew_input" : False
 "randomize_env" : False
 "sim_timestep" : 0.006
 "env_change_prob" : 0.1

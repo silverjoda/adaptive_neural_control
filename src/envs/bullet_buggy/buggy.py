@@ -97,7 +97,10 @@ class BuggyBulletEnv(gym.Env):
 
         self.config = config
 
-        self.obs_dim = 10
+        self.obs_dim = 10 + self.config["action_input"] * 2 \
+                       + self.config["rew_input"] * 1 \
+                       + self.config["latent_input"] * 5 \
+                       + self.config["step_counter"] * 1
         self.act_dim = 2
 
         # Episode variables
@@ -113,15 +116,18 @@ class BuggyBulletEnv(gym.Env):
         p.setTimeStep(self.config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.wheels = [2,3,5,7] # [2, 3, 5, 7]
+        self.wheels = [2, 3, 5, 7] # [2, 3, 5, 7]
         self.inactive_wheels = []
         self.steering = [4, 6]
+
+        self.obs_queue = []
+        self.act_queue = []
+        self.max_queue_len = 3
 
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         # yaw, x_dot, y_dot, yaw_dot, relative_target_A, relative_target_B
-        self.observation_space = spaces.Box(low=np.array([-np.pi,-2.,-2.,-2., -4., -4., -4., -4.], dtype=np.float32),
-                                            high=np.array([np.pi, 2., 2., 2., 4., 4., 4., 4.], dtype=np.float32))
+        self.observation_space = spaces.Box(low=-2, high=2, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         for wheel in self.wheels:
@@ -151,33 +157,44 @@ class BuggyBulletEnv(gym.Env):
 
     def load_robot(self):
         # Remove old robot
-        if hasattr(self, 'robot'):
-            robot = self.robot
-        else:
-            robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+        if not hasattr(self, 'robot'):
+            self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
                                physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.robot_params = {"mass": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "wheel_base" : 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "wheel_width": 1 + np.random.rand() * 0.5 * self.config["randomize_env"],
-                             "wheels_friction": 1.4 + np.random.rand() * 1.5 * self.config["randomize_env"],
-                             "max_force": 2.0 + np.random.rand() * 0.7 * self.config["randomize_env"], # With 0.7 works great
-                             "velocity_scaler": 80 + np.random.rand() * 80 * self.config["randomize_env"]} # With 50 works great
+        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1 - 0.5) * self.config["randomize_env"],
+                                 "wheels_friction": 1.4 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
+                                 "steering_scalar": 1.0 - np.random.rand() * 0.3 * self.config["randomize_env"],
+                                 "max_force": 1.0 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],  # With 0.7 works great
+                                 "velocity_scaler": 60 + (np.random.rand() * 80 - 40) * self.config["randomize_env"], # With 50 works great
+                                 "input_transport_delay": 0 + 1 * np.random.choice([0, 1, 2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
+                                 "output_transport_delay": 0 + 1 * np.random.choice([0, 1, 2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
+
+        self.randomized_params_list_norm = []
+        self.randomized_params_list_norm.append((self.randomized_params["mass"] - 1.5) * (1. / 0.5))
+        self.randomized_params_list_norm.append((self.randomized_params["wheels_friction"] - 1.4) * (1. / 0.5))
+        self.randomized_params_list_norm.append((self.randomized_params["steering_scalar"] - 0.85) * (1. / 0.15))
+        self.randomized_params_list_norm.append((self.randomized_params["max_force"] - 1.0) * (1. / 0.5))
+        self.randomized_params_list_norm.append((self.randomized_params["velocity_scaler"] - 60) * (1. / 40.))
+        self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
+        self.randomized_params_list_norm.append(self.randomized_params["output_transport_delay"] - 1)
 
         # Change params
-        p.changeDynamics(robot, -1, mass=self.robot_params["mass"])
+        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"])
         for w in self.wheels:
-            p.changeDynamics(robot, w,
-                             lateralFriction=self.robot_params["wheels_friction"],
+            p.changeDynamics(self.robot, w,
+                             lateralFriction=self.randomized_params["wheels_friction"],
                              physicsClientId=self.client_ID)
-        return robot
+        return self.robot
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
         torso_euler = p.getEulerFromQuaternion(torso_quat)
-        return torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel
+        self.obs_queue.append([torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel])
+        if len(self.obs_queue) > self.max_queue_len:
+            self.obs_queue.pop(0)
+        return self.obs_queue[- 1 - np.minimum(self.randomized_params["input_transport_delay"], len(self.obs_queue) - 1)]
 
     def update_targets(self):
         if self.target_A is None:
@@ -201,17 +218,23 @@ class BuggyBulletEnv(gym.Env):
     def render(self, close=False):
         time.sleep(self.config["sim_timestep"])
 
-    def step(self, ctrl):
+    def step(self, ctrl_raw):
+        self.act_queue.append(ctrl_raw)
+        if len(self.act_queue) > self.max_queue_len:
+            self.act_queue.pop(0)
+        ctrl = self.act_queue[
+            - 1 - np.minimum(self.randomized_params["output_transport_delay"], len(self.act_queue) - 1)]
+
         wheel_action = np.clip(ctrl[0], -1, 1)
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
                                     p.VELOCITY_CONTROL,
-                                    targetVelocity= wheel_action * self.robot_params["velocity_scaler"],
-                                    force=self.robot_params["max_force"])
+                                    targetVelocity= wheel_action * self.randomized_params["velocity_scaler"],
+                                    force=self.randomized_params["max_force"])
 
         for steer in self.steering:
-            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.clip(ctrl[1], -1, 1))
+            p.setJointMotorControl2(self.robot, steer, p.POSITION_CONTROL, targetPosition=np.clip(ctrl_raw[1] * self.randomized_params["steering_scalar"], -1, 1))
 
         p.stepSimulation()
         self.step_ctr += 1
@@ -243,7 +266,18 @@ class BuggyBulletEnv(gym.Env):
         relative_target_B = self.target_B[0] - torso_pos[0], self.target_B[1] - torso_pos[1]
 
         done = (self.step_ctr > self.config["max_steps"])
-        obs = np.concatenate((torso_euler[2:3], torso_vel[0:2], torso_angular_vel[2:3], relative_target_A, relative_target_B)).astype(np.float32)
+
+        aux_obs = []
+        if self.config["action_input"]:
+            aux_obs.extend(ctrl_raw)
+        if self.config["rew_input"]:
+            aux_obs.extend([r])
+        if self.config["latent_input"]:
+            aux_obs.extend(self.randomized_params_list_norm)
+        if self.config["step_counter"]:
+            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
+
+        obs = np.concatenate((torso_euler[2:3], torso_vel[0:2], torso_angular_vel[2:3], relative_target_A, relative_target_B, aux_obs)).astype(np.float32)
 
         return obs, r, done, {}
 
@@ -276,6 +310,16 @@ class BuggyBulletEnv(gym.Env):
                 obs, r, done, _ = self.step(act)
                 #print(obs)
                 time.sleep(self.config["sim_timestep"])
+
+    def demo_joystick(self):
+        self.config["policy_type"] = "mlp"
+        self.reset()
+        while True:
+            vel, turn, b_x = self.JOYStick.get_joystick_input()
+
+            obs, r, done, _ = self.step([vel, turn])
+            time.sleep(self.config["sim_timestep"])
+            if done: self.reset()
 
     def test_motors(self):
         # acts = [[1,-0.5], [-1,0], [1,0.5], [0.5,1]]
@@ -359,4 +403,4 @@ if __name__ == "__main__":
     env_config["animate"] = True
     env = BuggyBulletEnv(env_config)
     #env.gather_data()
-    env.demo()
+    env.demo_joystick()

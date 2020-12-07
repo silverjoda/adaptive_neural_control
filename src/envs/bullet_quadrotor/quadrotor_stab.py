@@ -84,7 +84,7 @@ class QuadrotorBulletEnv(gym.Env):
         p.setTimeStep(config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.load_robot()
+        self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         self.observation_space = spaces.Box(low=-1.5, high=1.5, shape=(self.obs_dim,))
@@ -154,6 +154,8 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Change base mass
         p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"])
+
+        return self.robot
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -246,8 +248,8 @@ class QuadrotorBulletEnv(gym.Env):
 
         return m_1, m_2, m_3, m_4
 
-    def step(self, ctrl):
-        self.act_queue.append(ctrl)
+    def step(self, ctrl_raw):
+        self.act_queue.append(ctrl_raw)
         if len(self.act_queue) > self.max_queue_len:
             self.act_queue.pop(0)
         ctrl = self.act_queue[- 1 - np.minimum(self.randomized_params["output_transport_delay"], len(self.act_queue) - 1)]
@@ -300,7 +302,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         aux_obs = []
         if self.config["action_input"]:
-            aux_obs.extend(bounded_act)
+            aux_obs.extend(ctrl_raw)
         if self.config["rew_input"]:
             aux_obs.extend([r])
         if self.config["latent_input"]:
@@ -314,7 +316,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def reset(self, force_randomize=None):
         if self.config["randomize_env"]:
-            self.load_robot()
+            self.robot = self.load_robot()
 
         self.step_ctr = 0
         self.current_disturbance = None
