@@ -65,8 +65,8 @@ class QuadrotorBulletEnv(gym.Env):
         self.config = config
         self.obs_dim = 13 + self.config["action_input"] * 4 \
                        + self.config["rew_input"] * 1 \
-                       + self.config["latent_input"] * 6 \
-                       + self.config["latent_input"] * 1
+                       + self.config["latent_input"] * 9 \
+                       + self.config["step_counter"] * 1
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
@@ -126,7 +126,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
         self.randomized_params_list_norm.append((self.randomized_params["motor_inertia_coeff"] - 0.9) * (1. / 0.05))
         self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 2.5))
-        self.randomized_params_list_norm.append((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
+        self.randomized_params_list_norm.extend((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
         self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
         self.randomized_params_list_norm.append(self.randomized_params["output_transport_delay"] - 1)
 
@@ -443,7 +443,7 @@ class QuadrotorBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/act_latent_input.yaml") as f:
+    with open("configs/latent_input.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
