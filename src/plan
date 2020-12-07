@@ -47,6 +47,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 -
 
 # TODO:
-# Continue environment revision. Drone is almost done, just add conditional inputs (prev act, rew, latent inputs) to obs and info dict
+# Continue environment revision. Do hexapod now
 # Start implementing adaptation algorithms
 # Put to train quadcopter and buggy envs with randomization
