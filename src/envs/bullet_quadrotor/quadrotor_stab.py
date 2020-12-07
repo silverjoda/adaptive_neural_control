@@ -65,7 +65,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.config = config
         self.obs_dim = 13 + self.config["action_input"] * 4 \
                        + self.config["rew_input"] * 1 \
-                       + self.config["latent_input"] * 7 \
+                       + self.config["latent_input"] * 6 \
                        + self.config["latent_input"] * 1
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
@@ -115,12 +115,23 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Randomize robot params
         self.randomized_params = {"mass": 0.7 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
-                                 "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
+                                 #"boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
                                  "motor_inertia_coeff": 0.85 + np.random.rand() * 0.10 * self.config["randomize_env"],
                                  "motor_force_multiplier": 8 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
                                  "output_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
+
+        # TODO: COntinue normalizing parameters
+        # TODO: Continue adding normed parameters input latent input
+
+        self.randomized_params_list_norm = []
+        self.randomized_params_list_norm.append(self.randomized_params["mass"] - 0.7 * (1. / 0.3))
+        self.randomized_params_list_norm.append(self.randomized_params["motor_inertia_coeff"] - 0.9 * (1. / 0.1))
+        self.randomized_params_list_norm.append(self.randomized_params["motor_force_multiplier"] - 10.5 * (1. / 2.5))
+        self.randomized_params_list_norm.append(self.randomized_params["motor_power_variance_vector"] - 0.7 * (1. / 0.3))
+        self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 0.7 * (1. / 0.3))
+        self.randomized_params_list_norm.append(self.randomized_params["output_transport_delay"] - 0.7 * (1. / 0.3))
 
         # # Write params to URDF file
         # with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
@@ -292,13 +303,13 @@ class QuadrotorBulletEnv(gym.Env):
 
         aux_obs = []
         if self.config["action_input"]:
-            aux_obs.append(bounded_act)
+            aux_obs.extend(bounded_act)
         if self.config["rew_input"]:
-            aux_obs.append([r])
+            aux_obs.extend([r])
         if self.config["latent_input"]:
-            aux_obs.append(self.randomized_params)
+            aux_obs.extend(self.randomized_params_list)
         if self.config["step_counter"]:
-            aux_obs.append((float(self.step_ctr) / self.config["max_steps"]) * 2 - 1)
+            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
 
         obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel, aux_obs)).astype(np.float32)
 
@@ -435,7 +446,7 @@ class QuadrotorBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/default.yaml") as f:
+    with open("configs/act_latent_input.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
