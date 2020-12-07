@@ -162,8 +162,8 @@ class BuggyBulletEnv(gym.Env):
                                physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1 - 0.5) * self.config["randomize_env"],
-                                 "wheels_friction": 1.4 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
+        self.randomized_params = {"mass": 1.0 + (np.random.rand() * 1 - 0.5) * self.config["randomize_env"],
+                                 "wheels_friction": 1.4 + (np.random.rand() * 1.4 - 0.7) * self.config["randomize_env"],
                                  "steering_scalar": 1.0 - np.random.rand() * 0.3 * self.config["randomize_env"],
                                  "max_force": 1.0 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],  # With 0.7 works great
                                  "velocity_scaler": 60 + (np.random.rand() * 80 - 40) * self.config["randomize_env"], # With 50 works great
@@ -172,7 +172,7 @@ class BuggyBulletEnv(gym.Env):
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 1.5) * (1. / 0.5))
-        self.randomized_params_list_norm.append((self.randomized_params["wheels_friction"] - 1.4) * (1. / 0.5))
+        self.randomized_params_list_norm.append((self.randomized_params["wheels_friction"] - 1.4) * (1. / 0.7))
         self.randomized_params_list_norm.append((self.randomized_params["steering_scalar"] - 0.85) * (1. / 0.15))
         self.randomized_params_list_norm.append((self.randomized_params["max_force"] - 1.0) * (1. / 0.5))
         self.randomized_params_list_norm.append((self.randomized_params["velocity_scaler"] - 60) * (1. / 40.))
