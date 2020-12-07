@@ -84,7 +84,7 @@ class QuadrotorBulletEnv(gym.Env):
         p.setTimeStep(config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.robot = self.load_robot()
+        self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         self.observation_space = spaces.Box(low=-1.5, high=1.5, shape=(self.obs_dim,))
@@ -100,14 +100,6 @@ class QuadrotorBulletEnv(gym.Env):
         self.setup_stabilization_control()
 
     def setup_stabilization_control(self):
-        self.p_roll = 0.1 # 0.1
-        self.p_pitch = 0.1 # 0.1
-        self.p_yaw = 0.1 # 0.1
-
-        self.d_roll = 2.0 # 1.8
-        self.d_pitch = 2.0 # 1.8
-        self.d_yaw = 0.1 # 0.1
-
         self.e_roll_prev = 0
         self.e_pitch_prev = 0
         self.e_yaw_prev = 0
@@ -116,45 +108,44 @@ class QuadrotorBulletEnv(gym.Env):
         self.config["randomize_env"] = rnd
 
     def load_robot(self):
-        assert not (hasattr(self, 'robot') and not self.config["randomize_env"])
-        if hasattr(self, 'robot'):
-            p.removeBody(self.robot)
+        if not hasattr(self, 'robot'):
+            #p.removeBody(self.robot)
+            self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+                               physicsClientId=self.client_ID)
 
         # Randomize robot params
         self.randomized_params = {"mass": 0.7 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
-                                 "boom": 0.2 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
+                                 "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
                                  "motor_inertia_coeff": 0.85 + np.random.rand() * 0.10 * self.config["randomize_env"],
-                                 "motor_force_multiplier": 9 + (np.random.rand() * 6 - 3) * self.config["randomize_env"],
+                                 "motor_force_multiplier": 8 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
-                                 "input_transport_delay": np.random.choice([0,1,2], p=[0.6, 0.3, 0.1]) * self.config["randomize_env"],
-                                 "output_transport_delay": np.random.choice([0,1,2], p=[0.6, 0.3, 0.1]) * self.config["randomize_env"]}
+                                 "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
+                                 "output_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
-        # Write params to URDF file
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
-            buf = in_file.readlines()
-
-        index = self.config["urdf_name"].find('.urdf')
-        output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
-
-        # Change link lengths in urdf
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), "w") as out_file:
-            for line in buf:
-                if "<cylinder radius" in line:
-                    out_file.write(f'          <cylinder radius="0.015" length="{self.randomized_params["boom"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--boomorigin-->'):
-                    out_file.write(f'        <origin xyz="0 {self.randomized_params["boom"] / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
-                elif line.rstrip('\n').endswith('<!--motorpos-->'):
-                    out_file.write(f'      <origin xyz="0 {self.randomized_params["boom"]} 0" rpy="0 0 0"/><!--motorpos-->\n')
-                else:
-                    out_file.write(line)
-
-        # Load urdf
-        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+        # # Write params to URDF file
+        # with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
+        #     buf = in_file.readlines()
+        #
+        # index = self.config["urdf_name"].find('.urdf')
+        # output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
+        #
+        # # Change link lengths in urdf
+        # with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), "w") as out_file:
+        #     for line in buf:
+        #         if "<cylinder radius" in line:
+        #             out_file.write(f'          <cylinder radius="0.015" length="{self.randomized_params["boom"]}"/>\n')
+        #         elif line.rstrip('\n').endswith('<!--boomorigin-->'):
+        #             out_file.write(f'        <origin xyz="0 {self.randomized_params["boom"] / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
+        #         elif line.rstrip('\n').endswith('<!--motorpos-->'):
+        #             out_file.write(f'      <origin xyz="0 {self.randomized_params["boom"]} 0" rpy="0 0 0"/><!--motorpos-->\n')
+        #         else:
+        #             out_file.write(line)
+        #
+        # # Load urdf
+        # robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
 
         # Change base mass
-        p.changeDynamics(robot, -1, mass=self.randomized_params["mass"])
-
-        return robot
+        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"])
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -163,7 +154,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.obs_queue.append([torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel])
         if len(self.obs_queue) > self.max_queue_len:
             self.obs_queue.pop(0)
-        return self.obs_queue[np.minimum(self.randomized_params["input_transport_delay"], len(self.obs_queue))]
+        return self.obs_queue[- 1 - np.minimum(self.randomized_params["input_transport_delay"], len(self.obs_queue) - 1)]
 
     def update_motor_vel(self, ctrl):
         self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.randomized_params["motor_inertia_coeff"] +
@@ -221,9 +212,9 @@ class QuadrotorBulletEnv(gym.Env):
         e_yaw = t_yaw_vel - yaw_vel
 
         # Desired correction action
-        roll_act = e_roll * self.p_roll + (e_roll - self.e_roll_prev) * self.d_roll
-        pitch_act = e_pitch * self.p_pitch + (e_pitch - self.e_pitch_prev) * self.d_pitch
-        yaw_act = e_yaw * self.p_yaw + (e_yaw - self.e_yaw_prev) * self.d_yaw
+        roll_act = e_roll * self.config["p_roll"]  + (e_roll - self.e_roll_prev) * self.config["d_roll"]
+        pitch_act = e_pitch * self.config["p_pitch"] + (e_pitch - self.e_pitch_prev) * self.config["d_pitch"]
+        yaw_act = e_yaw * self.config["p_yaw"] + (e_yaw - self.e_yaw_prev) * self.config["d_yaw"]
 
         self.e_roll_prev = e_roll
         self.e_pitch_prev = e_pitch
@@ -251,7 +242,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue.append(ctrl)
         if len(self.act_queue) > self.max_queue_len:
             self.act_queue.pop(0)
-        ctrl = self.act_queue[np.minimum(self.randomized_params["input_transport_delay"], len(self.act_queue))]
+        ctrl = self.act_queue[- 1 - np.minimum(self.randomized_params["output_transport_delay"], len(self.act_queue) - 1)]
 
         if self.config["controller_source"] == "nn":
             bounded_act = np.clip(ctrl * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
@@ -315,15 +306,15 @@ class QuadrotorBulletEnv(gym.Env):
 
     def reset(self, force_randomize=None):
         if self.config["randomize_env"]:
-            self.robot = self.load_robot()
+            self.load_robot()
 
         self.step_ctr = 0
         self.current_disturbance = None
 
-        rnd_starting_pos_delta = np.zeros(3) # np.random.rand(3) * 1 - 0.5
-        rnd_starting_orientation = [0,0,0,1] # p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5)
-        rnd_starting_lin_velocity = np.zeros(3) # np.random.rand(3) * 1 - .5 # 2 - 1
-        rnd_starting_rot_velocity = np.zeros(3) # np.random.rand(3) * .6 - 0.3 # 1.2 - .6
+        rnd_starting_pos_delta = np.random.rand(3) * 1 - 0.5 # np.zeros(3) #
+        rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * 1 - 0.5) # [0,0,0,1] #
+        rnd_starting_lin_velocity = np.random.rand(3) * 1 - .5 # 2 - 1 # np.zeros(3) #
+        rnd_starting_rot_velocity = np.random.rand(3) * .6 - 0.3 # 1.2 - .6 # np.zeros(3) #
 
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
         p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"] + rnd_starting_pos_delta, rnd_starting_orientation, physicsClientId=self.client_ID)
@@ -368,7 +359,7 @@ class QuadrotorBulletEnv(gym.Env):
                 act = self.calculate_stabilization_action(obs[3:7], obs[10:13], velocity_target)
             obs, r, done, _ = self.step(act)
             time.sleep(self.config["sim_timestep"])
-            #if done: break
+            if done: obs = self.reset()
 
     def gather_data(self, policy=None, n_iterations=20000):
         # Initialize data lists
