@@ -122,16 +122,13 @@ class QuadrotorBulletEnv(gym.Env):
                                  "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
                                  "output_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
-        # TODO: COntinue normalizing parameters
-        # TODO: Continue adding normed parameters input latent input
-
         self.randomized_params_list_norm = []
-        self.randomized_params_list_norm.append(self.randomized_params["mass"] - 0.7 * (1. / 0.3))
-        self.randomized_params_list_norm.append(self.randomized_params["motor_inertia_coeff"] - 0.9 * (1. / 0.1))
-        self.randomized_params_list_norm.append(self.randomized_params["motor_force_multiplier"] - 10.5 * (1. / 2.5))
-        self.randomized_params_list_norm.append(self.randomized_params["motor_power_variance_vector"] - 0.7 * (1. / 0.3))
-        self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 0.7 * (1. / 0.3))
-        self.randomized_params_list_norm.append(self.randomized_params["output_transport_delay"] - 0.7 * (1. / 0.3))
+        self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_inertia_coeff"] - 0.9) * (1. / 0.05))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 2.5))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
+        self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
+        self.randomized_params_list_norm.append(self.randomized_params["output_transport_delay"] - 1)
 
         # # Write params to URDF file
         # with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
@@ -307,7 +304,7 @@ class QuadrotorBulletEnv(gym.Env):
         if self.config["rew_input"]:
             aux_obs.extend([r])
         if self.config["latent_input"]:
-            aux_obs.extend(self.randomized_params_list)
+            aux_obs.extend(self.randomized_params_list_norm)
         if self.config["step_counter"]:
             aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
 
