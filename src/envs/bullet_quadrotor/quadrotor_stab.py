@@ -50,7 +50,7 @@ class JoyController():
 
         return throttle, -t_roll, t_pitch, t_yaw, button_x
 
-# Variable params: Mass, boom length, motor "inertia", motor max_force
+
 class QuadrotorBulletEnv(gym.Env):
     def __init__(self, config):
         self.seed = config["seed"]
@@ -63,7 +63,10 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 13
+        self.obs_dim = 13 + self.config["action_input"] * 4 \
+                       + self.config["rew_input"] * 1 \
+                       + self.config["latent_input"] * 7 \
+                       + self.config["latent_input"] * 1
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
@@ -288,19 +291,27 @@ class QuadrotorBulletEnv(gym.Env):
 
         p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
         p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -1, 1)
-        p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 0.5 - p_position - p_rp
 
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
-        done = (self.step_ctr > self.config["max_steps"]) \
-               or np.any(np.array([roll, pitch]) > np.pi / 1.5) \
-               or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any() \
+        done = (self.step_ctr > self.config["max_steps"]) or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any()
 
-        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel)).astype(np.float32)
+        aux_obs = []
+        if self.config["action_input"]:
+            aux_obs.append(bounded_act)
+        if self.config["rew_input"]:
+            aux_obs.append([r])
+        if self.config["latent_input"]:
+            aux_obs.append(self.randomized_params)
+        if self.config["step_counter"]:
+            aux_obs.append((float(self.step_ctr) / self.config["max_steps"]) * 2 - 1)
 
-        return obs, r, done, {}
+        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel, aux_obs)).astype(np.float32)
+
+        return obs, r, done, {"aux_obs" : aux_obs, "randomized_params" : self.randomized_params}
 
     def reset(self, force_randomize=None):
         if self.config["randomize_env"]:
@@ -358,12 +369,6 @@ class QuadrotorBulletEnv(gym.Env):
             obs, r, done, _ = self.step(act)
             time.sleep(self.config["sim_timestep"])
             #if done: break
-
-    def kill(self):
-        p.disconnect()
-
-    def close(self):
-        self.kill()
 
     def gather_data(self, policy=None, n_iterations=20000):
         # Initialize data lists
@@ -429,6 +434,13 @@ class QuadrotorBulletEnv(gym.Env):
         np.save(prefix + "_action", data_action)
 
         print("Saved data")
+
+    def kill(self):
+        p.disconnect()
+
+    def close(self):
+        self.kill()
+
 
 if __name__ == "__main__":
     import yaml
