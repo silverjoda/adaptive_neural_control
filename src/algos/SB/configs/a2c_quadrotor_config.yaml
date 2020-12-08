@@ -4,11 +4,11 @@
 "n_envs" : 6
 "iters" : 40000000
 "gamma" : 0.99
-"n_steps" : 200
+"n_steps" : 30
 "vf_coef" : 0.5
 "ent_coef" : 0.0
 "max_grad_norm" : 0.5
-"learning_rate" : 0.0005
+"learning_rate" : 0.0007
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'

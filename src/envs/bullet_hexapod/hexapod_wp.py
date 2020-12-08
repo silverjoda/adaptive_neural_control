@@ -7,7 +7,6 @@ import numpy as np
 import pybullet as p
 import pybullet_data
 import torch as T
-import torch.nn as nn
 from gym import spaces
 from opensimplex import OpenSimplex
 
@@ -37,22 +36,18 @@ class HexapodBulletEnv(gym.Env):
             self.client_ID = p.connect(p.DIRECT)
         assert self.client_ID != -1, "Physics client failed to connect"
 
-        if self.config["terrain_name"].startswith("stairs"):
-            self.config["env_width"] *= 4
-            self.config["max_steps"] *= 4
-            self.config["mesh_scale_lat"] /= 4
-            self.config["target_vel"] = 0.15
-
         # Environment parameters
-        self.obs_dim = 27 + int(self.config["step_counter"]) + int(self.config["velocity_control"])
+        self.obs_dim = 27 + self.config["action_input"] * 18 \
+                       + self.config["rew_input"] * 1 \
+                       + self.config["latent_input"] * 6 \
+                       + self.config["step_counter"] * 1 \
+                       + int(self.config["velocity_control"] * 1)
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
-        # Normal mode
         self.joints_rads_low = np.array(config["joints_rads_low"] * 6)
         self.joints_rads_high = np.array(config["joints_rads_high"] * 6)
-
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
@@ -66,19 +61,12 @@ class HexapodBulletEnv(gym.Env):
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.urdf_name = config["urdf_name"]
-
-        self.robot = None
         self.robot = self.load_robot()
 
         if config["terrain_name"] == "flat":
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         else:
             self.terrain = self.generate_rnd_env()
-
-        # Change contact friction for legs and torso
-        for i in range(6):
-            p.changeDynamics(self.robot, 4 * i + 3, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
-        p.changeDynamics(self.robot, -1, lateralFriction=self.config["lateral_friction"], physicsClientId=self.client_ID)
 
         # Episodal parameters
         self.step_ctr = 0
@@ -102,6 +90,20 @@ class HexapodBulletEnv(gym.Env):
                                                         rgbaColor=[1, 0, 0, 1],
                                                         physicsClientId=self.client_ID)
         self.update_targets()
+
+    def update_targets(self):
+        if self.target is None:
+            self.target = np.array(self.config["target_spawn_mu"]) + np.random.rand(2) * np.array(self.config["target_spawn_sigma"]) - np.array(self.config[
+                "target_spawn_sigma"]) / 2
+
+            self.target_body = p.createMultiBody(baseMass=0,
+                                                   baseVisualShapeIndex=self.target_visualshape,
+                                                   basePosition=[self.target[0], self.target[1], 0],
+                                                   physicsClientId=self.client_ID)
+        else:
+            self.target = np.array(self.config["target_spawn_mu"]) + np.random.rand(2) * np.array(
+                self.config["target_spawn_sigma"]) - np.array(self.config["target_spawn_sigma"]) / 2
+            p.resetBasePositionAndOrientation(self.target_body, [self.target[0], self.target[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
     def set_randomize_env(self, rnd):
         self.config["randomize_env"] = rnd
@@ -288,20 +290,6 @@ class HexapodBulletEnv(gym.Env):
 
         return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso
 
-    def update_targets(self):
-        if self.target is None:
-            self.target = np.array(self.config["target_spawn_mu"]) + np.random.rand(2) * np.array(self.config["target_spawn_sigma"]) - np.array(self.config[
-                "target_spawn_sigma"]) / 2
-
-            self.target_body = p.createMultiBody(baseMass=0,
-                                                   baseVisualShapeIndex=self.target_visualshape,
-                                                   basePosition=[self.target[0], self.target[1], 0],
-                                                   physicsClientId=self.client_ID)
-        else:
-            self.target = np.array(self.config["target_spawn_mu"]) + np.random.rand(2) * np.array(
-                self.config["target_spawn_sigma"]) - np.array(self.config["target_spawn_sigma"]) / 2
-            p.resetBasePositionAndOrientation(self.target_body, [self.target[0], self.target[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
-
     def rads_to_norm(self, joints):
         sjoints = np.array(joints)
         sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
@@ -315,31 +303,49 @@ class HexapodBulletEnv(gym.Env):
 
     def load_robot(self):
         # Remove old robot
-        if self.robot is not None:
-            p.removeBody(self.robot, physicsClientId=self.client_ID)
+        if not hasattr(self, 'robot'):
+            self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_robot_params = {"mass": 1 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],
-                                        "max_actuator_velocity": self.config["max_actuator_velocity"],
-                                        "lateral_friction": self.config["lateral_friction"] + (
-                                                    np.random.rand() * 2.0 - 0.2) * self.config["randomize_env"],
-                                        "max_joint_force": self.config["max_joint_force"] + (
-                                                    np.random.rand() * 1.4 - 0.4) * self.config["randomize_env"]}
+        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
+                                "randomize_env"],
+                                "lateral_friction": 1.2 + (np.random.rand() * 1.2 - 0.6) * self.config[
+                                    "randomize_env"],
+                                "max_joint_force": 1.5 + (np.random.rand() * 1.0 - 0.5) * self.config[
+                                    "randomize_env"],
+                                "actuator_position_gain": 3.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                      "randomize_env"],
+                                "actuator_velocity_gain": 3.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                      "randomize_env"],
+                                "max_actuator_velocity": 4.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                      "randomize_env"],
+                                }
 
-        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
+        self.randomized_params_list_norm = []
+        self.randomized_params_list_norm.append(
+            (self.randomized_params["mass"] - 1.5) * (1. / 0.7))
+        self.randomized_params_list_norm.append(
+            (self.randomized_params["lateral_friction"] - 1.2) * (1. / 0.6))
+        self.randomized_params_list_norm.append(
+            (self.randomized_params["max_joint_force"] - 1.0) * (1. / 0.5))
+        self.randomized_params_list_norm.append(
+            (self.randomized_params["actuator_position_gain"] - 3.0) * (1. / 2.0))
+        self.randomized_params_list_norm.append(
+            (self.randomized_params["actuator_velocity_gain"] - 3.0) * (1. / 2.0))
+        self.randomized_params_list_norm.append(
+            (self.randomized_params["max_actuator_velocity"] - 4.0) * (1. / 2.0))
 
-        if self.config["randomize_env"]:
-            # Change base mass
-            p.changeDynamics(robot, -1, mass=self.randomized_robot_params["mass"], physicsClientId=self.client_ID)
-
+        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"],
+                         physicsClientId=self.client_ID)
+        p.changeDynamics(self.robot, -1, lateralFriction=self.randomized_params["lateral_friction"],
+                         physicsClientId=self.client_ID)
         for i in range(6):
-            p.changeDynamics(robot, 3 * i + 2, lateralFriction=self.randomized_robot_params["lateral_friction"], physicsClientId=self.client_ID)
-        p.changeDynamics(robot, -1, lateralFriction=self.randomized_robot_params["lateral_friction"], physicsClientId=self.client_ID)
+            p.changeDynamics(self.robot, 3 * i + 2, lateralFriction=self.randomized_params["lateral_friction"], physicsClientId=self.client_ID)
 
-        return robot
+        return self.robot
 
-    def step(self, ctrl, render=False):
-        ctrl_clipped = np.tanh(np.array(ctrl) * self.config["action_scaler"])
+    def step(self, ctrl_raw, render=False):
+        ctrl_clipped = np.tanh(np.array(ctrl_raw) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
         for i in range(18):
@@ -347,10 +353,10 @@ class HexapodBulletEnv(gym.Env):
                                     jointIndex=i,
                                     controlMode=p.POSITION_CONTROL,
                                     targetPosition=scaled_action[i],
-                                    force=self.randomized_robot_params["max_joint_force"],
-                                    positionGain=0.3,
-                                    velocityGain=0.3,
-                                    maxVelocity=self.randomized_robot_params["max_actuator_velocity"],
+                                    force=self.randomized_params["max_joint_force"],
+                                    positionGain=self.randomized_params["actuator_position_gain"],
+                                    velocityGain=self.randomized_params["actuator_velocity_gain"],
+                                    maxVelocity=self.randomized_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
         # Read out joint angles sequentially (to simulate servo daisy chain delay)
@@ -363,6 +369,8 @@ class HexapodBulletEnv(gym.Env):
                 leg_ctr += 1
             p.stepSimulation(physicsClientId=self.client_ID)
             if (self.config["animate"] or render) and True: time.sleep(0.00417)
+
+        self.step_ctr += 1
 
         joint_angles_skewed = []
         for o in obs_sequential:
@@ -378,9 +386,6 @@ class HexapodBulletEnv(gym.Env):
         # Calculate work done by each motor
         joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
         total_work_pen = np.mean(np.square(joint_work_done_arr))
-
-        # Unsuitable position penalty
-        unsuitable_position_pen = 0
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
@@ -413,56 +418,34 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
             self.prev_yaw_deviation = yaw_deviation
 
-        if self.config["training_mode"] == "straight":
-            r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                     "yaw_pen": np.square(tar_angle - yaw) * 0.0}
+        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
+                 "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
-            r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
-                     "heading_rew" : np.clip(heading_rew * 1.0, -1, 1)}
+        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
+                 "heading_rew" : np.clip(heading_rew * 1.0, -1, 1)}
 
-            r_pos_sum = sum(r_pos.values())
-            r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
-            r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
+        r_pos_sum = sum(r_pos.values())
+        r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
+        r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
 
-            if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
-                print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
-        elif self.config["training_mode"].startswith("stairs"):
-            r_neg = {"pitch": np.square(pitch) * 0.0 * self.config["training_difficulty"],
-                     "roll": np.square(roll) * 0.0 * self.config["training_difficulty"],
-                     "zd": np.square(zd) * 0.0 * self.config["training_difficulty"],
-                     "yd": np.square(yd) * 0.0 * self.config["training_difficulty"],
-                     "phid": np.square(phid) * 0.00 * self.config["training_difficulty"],
-                     "thd": np.square(thd) * 0.0 * self.config["training_difficulty"],
-                     "total_work_pen": np.minimum(
-                         total_work_pen * 0.0 * self.config["training_difficulty"] * (self.step_ctr > 10), 1),
-                     "unsuitable_position_pen": unsuitable_position_pen * 0.0 * self.config["training_difficulty"]}
-            r_pos = {"velocity_rew": np.clip(velocity_rew * 6, -1, 1),
-                     "yaw_improvement_reward": np.clip(heading_rew * 0.5, -1, 1)}
-            r_pos_sum = sum(r_pos.values())
-            r_neg_sum = sum(r_neg.values()) * (self.step_ctr > 10)
-            r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
-            if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
-                print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos,
-                                                                                                  r_neg))
-        else:
-            print("No mode selected")
-            exit()
+        if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
+            print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
-        # Assemble agent observation
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target))
-
+        aux_obs = []
+        if self.config["action_input"]:
+            aux_obs.extend(ctrl_raw)
+        if self.config["rew_input"]:
+            aux_obs.extend([r])
+        if self.config["latent_input"]:
+            aux_obs.extend(self.randomized_params_list_norm)
         if self.config["step_counter"]:
-            env_obs = np.concatenate((env_obs, [self.step_encoding]))
+            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
 
-        if self.config["velocity_control"]:
-            env_obs = np.concatenate((env_obs, [self.target_vel_nn_input]))
-
-        self.step_ctr += 1
-        self.step_encoding = (float(self.step_ctr) / self.config["max_steps"]) * 2 - 1
-
+        # Assemble agent observation
+        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target, aux_obs))
         done = self.step_ctr > self.config["max_steps"] or reached_target
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
@@ -472,8 +455,6 @@ class HexapodBulletEnv(gym.Env):
         if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 6 or abs(torso_pos[2]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
-
-        r = 0
 
         return env_obs.astype(np.float32), r, done, {}
 
@@ -494,9 +475,6 @@ class HexapodBulletEnv(gym.Env):
             self.config["target_vel"] = self.config["forced_target_velocity"]
             self.target_vel_nn_input = 2 * ((self.config["target_vel"] - min(self.config["target_vel_range"])) / (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"]))) - 1
 
-        # Calculate encoding for current step
-        self.step_encoding = (float(self.step_ctr) / self.config["max_steps"]) * 2 - 1
-
         # Change heightmap with small probability
         if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
             self.terrain = self.generate_rnd_env()
@@ -508,7 +486,7 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
-        rnd_rot = 0
+        rnd_rot = np.random.rand() * 0.3 - 0.15
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
 
         joint_init_pos_list = self.norm_to_rads([0] * 18)
@@ -605,7 +583,7 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/wp.yaml") as f:
+    with open("configs/wp_flat.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)

@@ -237,7 +237,7 @@ def run_baseline(params, LOAD_POLICY, VARIABLE_EVAL):
     return evaluate_model(params, env, policy, regressor)
 
 if __name__ == "__main__":
-    from src.envs.bullet_cartpole_to_be_parsed.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
+    from src.envs.bullet_cartpole_archive.hangpole_goal_cont_variable.hangpole_goal_cont_variable import HangPoleGoalContVariableBulletEnv as env_fun
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"dataset_episodes": 30000,

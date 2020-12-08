@@ -298,7 +298,7 @@ class QuadrotorBulletEnv(gym.Env):
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
-        done = (self.step_ctr > self.config["max_steps"]) or (abs(np.array(torso_pos) - np.array(self.config["target_pos"])) > 5).any()
+        done = (self.step_ctr > self.config["max_steps"]) or (abs(pos_delta) > 2).any() or abs(roll) > 2. or abs(pitch) > 2.
 
         aux_obs = []
         if self.config["action_input"]:
@@ -391,7 +391,7 @@ class QuadrotorBulletEnv(gym.Env):
                 position_rob, rotation_rob, euler_rob, vel_rob, angular_vel_rob = self.get_obs()
 
                 velocity_target = self.get_velocity_target()
-                print(velocity_target)
+                #print(velocity_target)
 
                 if self.config["controller_source"] == "pid":
                     # Read target control inputs

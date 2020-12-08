@@ -17,7 +17,7 @@ import socket
 
 if __name__ == "__main__":
     # from src.envs.bullet_cartpole.cartpole.cartpole import CartPoleBulletEnv as env_fun
-    from src.envs.bullet_cartpole_to_be_parsed.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
+    from src.envs.bullet_cartpole_archive.hangpole_goal.hangpole_goal import HangPoleGoalBulletEnv as env_fun
     # from src.envs.bullet_cartpole.double_cartpole_goal.double_cartpole_goal import DoubleCartPoleBulletEnv as env_fun
     # from src.envs.bullet_cartpole.cartpole_swingup.cartpole_swingup import CartPoleSwingUpBulletEnv as env_fun
     # from src.envs.bullet_cartpole.double_cartpole_swingup_goal_variable.double_cartpole_swingup_goal_variable import DoubleCartpoleSwingupGoalVariable as env_fun
