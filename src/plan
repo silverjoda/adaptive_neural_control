@@ -47,6 +47,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 -
 
 # TODO:
-# Continue environment revision. Do hexapod now
-# Start implementing adaptation algorithms
+# Test if quadcopter done condition on just pos_delta is ok.
+# Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)
 # Put to train quadcopter and buggy envs with randomization
