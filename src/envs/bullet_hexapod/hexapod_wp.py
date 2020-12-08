@@ -313,9 +313,9 @@ class HexapodBulletEnv(gym.Env):
                                     "randomize_env"],
                                 "max_joint_force": 1.5 + (np.random.rand() * 1.0 - 0.5) * self.config[
                                     "randomize_env"],
-                                "actuator_position_gain": 3.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                "actuator_position_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "actuator_velocity_gain": 3.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                "actuator_velocity_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
                                 "max_actuator_velocity": 4.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
                                       "randomize_env"],
@@ -329,9 +329,9 @@ class HexapodBulletEnv(gym.Env):
         self.randomized_params_list_norm.append(
             (self.randomized_params["max_joint_force"] - 1.0) * (1. / 0.5))
         self.randomized_params_list_norm.append(
-            (self.randomized_params["actuator_position_gain"] - 3.0) * (1. / 2.0))
+            (self.randomized_params["actuator_position_gain"] - 0.3) * (1. / 0.2))
         self.randomized_params_list_norm.append(
-            (self.randomized_params["actuator_velocity_gain"] - 3.0) * (1. / 2.0))
+            (self.randomized_params["actuator_velocity_gain"] - 0.3) * (1. / 0.2))
         self.randomized_params_list_norm.append(
             (self.randomized_params["max_actuator_velocity"] - 4.0) * (1. / 2.0))
 
