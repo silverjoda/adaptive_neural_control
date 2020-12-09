@@ -172,12 +172,10 @@ class QuadrupedBulletEnv(gym.GoalEnv):
 
         velocity_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
 
-        r_neg = np.square(yaw) * 0.5 + \
+        r = -(np.square(yaw) * 0.0 + \
                 np.square(roll) * 0.3 + \
                 np.square(pitch) * 0.3 + \
-                np.square(zd) * 1.
-        r_pos = (velocity_rew * 1.0) / self.config["max_steps"] * 100
-        r = np.clip(r_pos - r_neg, -3, 3)
+                np.square(zd) * 0.3)
 
         env_obs = {'observation' : np.concatenate((self.rads_to_norm(joint_angles), torso_quat, torso_pos, contacts)).astype(np.float32),
                    'achieved_goal' : np.array(torso_pos[:2]).astype(np.float32),
@@ -186,8 +184,6 @@ class QuadrupedBulletEnv(gym.GoalEnv):
         self.step_ctr += 1
         overturned = np.abs(roll) > 1.57 or np.abs(pitch) > 1.57
         done = self.step_ctr > self.config["max_steps"] or overturned
-
-        r = r if not overturned else -3
 
         return env_obs, r, done, {}
 
@@ -284,7 +280,7 @@ if __name__ == "__main__":
     model = HER('MlpPolicy', env, model_class, n_sampled_goal=4, goal_selection_strategy=goal_selection_strategy,
                 verbose=1)
     # Train the model
-    model.learn(10000)
+    model.learn(200000)
 
     model.save("./her_quadruped_env")
     env.close()
