@@ -7,7 +7,7 @@ import torch as T
 import gym
 from gym import spaces, error
 from gym.utils import closer
-from stable_baselines import HER, TD3
+from stable_baselines import HER, TD3, SAC
 from stable_baselines.her import GoalSelectionStrategy, HERGoalEnvWrapper
 from stable_baselines.common.bit_flipping_env import BitFlippingEnv
 
@@ -35,7 +35,7 @@ class QuadrupedBulletEnv(gym.GoalEnv):
             self.client_ID = p.connect(p.DIRECT)
         assert self.client_ID != -1, "Physics client failed to connect"
 
-        self.obs_dim = 23
+        self.obs_dim = 38
         self.act_dim = 12
 
         self.observation_space = spaces.Dict({'observation' : spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32),
@@ -158,13 +158,12 @@ class QuadrupedBulletEnv(gym.GoalEnv):
                                     controlMode=p.POSITION_CONTROL,
                                     targetPositions=ctrl_scaled,
                                     forces=[self.config["max_joint_force"]] * 12,
-                                    positionGains=[0.02] * 12,
-                                    velocityGains=[0.01] * 12,
+                                    positionGains=[0.2] * 12,
+                                    velocityGains=[0.2] * 12,
                                     physicsClientId=self.client_ID)
 
-        for _ in range(self.config["sim_steps_per_iter"]):
-            p.stepSimulation(physicsClientId=self.client_ID)
-            if self.config["animate"]: time.sleep(0.004)
+        p.stepSimulation(physicsClientId=self.client_ID)
+        if self.config["animate"]: time.sleep(0.01)
 
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts = self.get_obs()
         xd, yd, zd = torso_vel
@@ -172,12 +171,9 @@ class QuadrupedBulletEnv(gym.GoalEnv):
 
         velocity_rew = np.minimum(xd, self.config["target_vel"]) / self.config["target_vel"]
 
-        r = -(np.square(yaw) * 0.0 + \
-                np.square(roll) * 0.3 + \
-                np.square(pitch) * 0.3 + \
-                np.square(zd) * 0.3)
+        r = 0# -(np.square(yaw) * 0.0 + np.square(roll) * 0.3 + np.square(pitch) * 0.3 + np.square(zd) * 0.3)
 
-        env_obs = {'observation' : np.concatenate((self.rads_to_norm(joint_angles), torso_quat, torso_pos, contacts)).astype(np.float32),
+        env_obs = {'observation' : np.concatenate((self.rads_to_norm(joint_angles), joint_velocities, torso_quat, torso_pos, torso_vel, contacts)).astype(np.float32),
                    'achieved_goal' : np.array(torso_pos[:2]).astype(np.float32),
                    'desired_goal' : np.array([2.0,0]).astype(np.float32)}
 
@@ -193,7 +189,6 @@ class QuadrupedBulletEnv(gym.GoalEnv):
         for key in ['observation', 'achieved_goal', 'desired_goal']:
             if key not in self.observation_space.spaces:
                 raise error.Error('GoalEnv requires the "{}" key to be part of the observation dictionary.'.format(key))
-
 
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
@@ -216,7 +211,7 @@ class QuadrupedBulletEnv(gym.GoalEnv):
         return obs
 
     def compute_reward(self, achieved_goal, desired_goal, info):
-        return np.sqrt(np.square(achieved_goal - desired_goal).sum())
+        return np.sqrt(np.square(np.array(achieved_goal) - np.array(desired_goal)).sum())
 
     def test(self, policy, seed=None):
         if seed is not None:
@@ -269,12 +264,14 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = False
 
-    model_class = TD3  # works also with SAC, DDPG and TD3
+    model_class = SAC  # works also with SAC, DDPG and TD3
 
     env = QuadrupedBulletEnv(env_config)
+    #env.test_leg_coordination()
+    #exit()
 
     # Available strategies (cf paper): future, final, episode, random
-    goal_selection_strategy = 'future'  # equivalent to GoalSelectionStrategy.FUTURE
+    goal_selection_strategy = 'final'  # equivalent to GoalSelectionStrategy.FUTURE
 
     # Wrap the model
     model = HER('MlpPolicy', env, model_class, n_sampled_goal=4, goal_selection_strategy=goal_selection_strategy,
@@ -284,7 +281,7 @@ if __name__ == "__main__":
 
     model.save("./her_quadruped_env")
     env.close()
-    print("FINISHED TRAININIG")
+    print("FINISHED TRAINING")
 
     # WARNING: you must pass an env
     # or wrap your environment with HERGoalEnvWrapper to use the predict method
@@ -303,4 +300,3 @@ if __name__ == "__main__":
                 obs = env.reset()
                 break
 
-    #env.test_leg_coordination()

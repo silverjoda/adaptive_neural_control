@@ -544,7 +544,7 @@ class CYC_HEX(nn.Module):
 
 class NN_ATTENTION(nn.Module):
     def __init__(self, env, config):
-        super(NN_PG, self).__init__()
+        super(NN_ATTENTION, self).__init__()
         self.env = env
         self.config = config
 

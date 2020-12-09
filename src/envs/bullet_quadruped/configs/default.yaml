@@ -1,11 +1,11 @@
 "env_name" : quadruped
-"max_steps" : 70
-"step_counter" : True
+"max_steps" : 700
+"step_counter" : False
 "randomize_env" : False
-"env_change_prob" : 0.1
+"env_change_prob" : 0.0
 "target_vel" : 0.4
 "lateral_friction" : 1.8
-"max_joint_force" : 1.8
+"max_joint_force" : 1.2
 "sim_steps_per_iter" : 24
 "joints_rads_low" : [-0.5, -1.8, 1.4]
 "joints_rads_high" : [0.5, -0.2, 2.6]

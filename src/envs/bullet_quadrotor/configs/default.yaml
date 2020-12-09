@@ -4,7 +4,7 @@
 "max_steps" : 500
 "step_counter" : False
 "latent_input" : False
-"action_input" : False
+"action_input" : True
 "rew_input" : False
 "randomize_env" : False
 "env_change_prob" : 0.5
