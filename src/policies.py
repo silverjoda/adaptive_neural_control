@@ -542,6 +542,243 @@ class CYC_HEX(nn.Module):
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act
 
+class NN_ATTENTION(nn.Module):
+    def __init__(self, env, config):
+        super(NN_PG, self).__init__()
+        self.env = env
+        self.config = config
+
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.hid_dim = config["policy_hid_dim"]
+
+        if self.config["policy_residual_connection"]:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+
+        self.activation_fun = eval(config["activation_fun"])
+        self.log_std = -T.ones(1, self.act_dim) * 0.4
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+        T.nn.init.zeros_(self.fc1.bias)
+        T.nn.init.zeros_(self.fc2.bias)
+        T.nn.init.zeros_(self.fc3.bias)
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
+
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+
+    def forward(self, x):
+        l1 = self.activation_fun(self.fc1(x))
+        l2 = self.activation_fun(self.fc2(l1))
+        if self.config["policy_residual_connection"]:
+            out = self.fc3(l2) + self.fc_res(x)
+        else:
+            out = self.fc3(l2)
+        if self.config["policy_lastlayer_tanh"]:
+            return T.tanh(out)
+        return out
+
+    def sample_action(self, s):
+        act = self.forward(s)
+        rnd_act = T.normal(act, T.exp(self.log_std))
+        rnd_act_center = T.normal(T.zeros_like(act), T.exp(self.log_std)) + act
+        return act, rnd_act
+
+    def sample_action_w_activations(self, l0):
+        l1_activ = self.fc1(l0)
+        l1_normed = self.m1(l1_activ)
+        l1_nonlin = self.activaton_fun(l1_normed)
+
+        l2_activ = self.fc2(l1_nonlin)
+        l2_normed = self.m1(l2_activ)
+        l2_nonlin = self.activaton_fun(l2_normed)
+
+        l3 = self.fc3(l2_nonlin)
+        return l1_activ.squeeze(0).detach().numpy(),\
+               l1_normed.squeeze(0).detach().numpy(),\
+               l1_nonlin.squeeze(0).detach().numpy(), \
+               l2_activ.squeeze(0).detach().numpy(), \
+               l2_normed.squeeze(0).detach().numpy(), \
+               l2_nonlin.squeeze(0).detach().numpy(), \
+               l3.squeeze(0).detach().numpy(), \
+               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+class NN_TEMPCONV(nn.Module):
+    def __init__(self, env, config):
+        super(NN_PG, self).__init__()
+        self.env = env
+        self.config = config
+
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.hid_dim = config["policy_hid_dim"]
+
+        if self.config["policy_residual_connection"]:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+
+        self.activation_fun = eval(config["activation_fun"])
+        self.log_std = -T.ones(1, self.act_dim) * 0.4
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+        T.nn.init.zeros_(self.fc1.bias)
+        T.nn.init.zeros_(self.fc2.bias)
+        T.nn.init.zeros_(self.fc3.bias)
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
+
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+
+    def forward(self, x):
+        l1 = self.activation_fun(self.fc1(x))
+        l2 = self.activation_fun(self.fc2(l1))
+        if self.config["policy_residual_connection"]:
+            out = self.fc3(l2) + self.fc_res(x)
+        else:
+            out = self.fc3(l2)
+        if self.config["policy_lastlayer_tanh"]:
+            return T.tanh(out)
+        return out
+
+    def sample_action(self, s):
+        act = self.forward(s)
+        rnd_act = T.normal(act, T.exp(self.log_std))
+        rnd_act_center = T.normal(T.zeros_like(act), T.exp(self.log_std)) + act
+        return act, rnd_act
+
+    def sample_action_w_activations(self, l0):
+        l1_activ = self.fc1(l0)
+        l1_normed = self.m1(l1_activ)
+        l1_nonlin = self.activaton_fun(l1_normed)
+
+        l2_activ = self.fc2(l1_nonlin)
+        l2_normed = self.m1(l2_activ)
+        l2_nonlin = self.activaton_fun(l2_normed)
+
+        l3 = self.fc3(l2_nonlin)
+        return l1_activ.squeeze(0).detach().numpy(),\
+               l1_normed.squeeze(0).detach().numpy(),\
+               l1_nonlin.squeeze(0).detach().numpy(), \
+               l2_activ.squeeze(0).detach().numpy(), \
+               l2_normed.squeeze(0).detach().numpy(), \
+               l2_nonlin.squeeze(0).detach().numpy(), \
+               l3.squeeze(0).detach().numpy(), \
+               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+class NN_ATTENTION_TEMPCONV(nn.Module):
+    def __init__(self, env, config):
+        super(NN_PG, self).__init__()
+        self.env = env
+        self.config = config
+
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.hid_dim = config["policy_hid_dim"]
+
+        if self.config["policy_residual_connection"]:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+
+        self.activation_fun = eval(config["activation_fun"])
+        self.log_std = -T.ones(1, self.act_dim) * 0.4
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+        T.nn.init.zeros_(self.fc1.bias)
+        T.nn.init.zeros_(self.fc2.bias)
+        T.nn.init.zeros_(self.fc3.bias)
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
+
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+
+    def forward(self, x):
+        l1 = self.activation_fun(self.fc1(x))
+        l2 = self.activation_fun(self.fc2(l1))
+        if self.config["policy_residual_connection"]:
+            out = self.fc3(l2) + self.fc_res(x)
+        else:
+            out = self.fc3(l2)
+        if self.config["policy_lastlayer_tanh"]:
+            return T.tanh(out)
+        return out
+
+    def sample_action(self, s):
+        act = self.forward(s)
+        rnd_act = T.normal(act, T.exp(self.log_std))
+        rnd_act_center = T.normal(T.zeros_like(act), T.exp(self.log_std)) + act
+        return act, rnd_act
+
+    def sample_action_w_activations(self, l0):
+        l1_activ = self.fc1(l0)
+        l1_normed = self.m1(l1_activ)
+        l1_nonlin = self.activaton_fun(l1_normed)
+
+        l2_activ = self.fc2(l1_nonlin)
+        l2_normed = self.m1(l2_activ)
+        l2_nonlin = self.activaton_fun(l2_normed)
+
+        l3 = self.fc3(l2_nonlin)
+        return l1_activ.squeeze(0).detach().numpy(),\
+               l1_normed.squeeze(0).detach().numpy(),\
+               l1_nonlin.squeeze(0).detach().numpy(), \
+               l2_activ.squeeze(0).detach().numpy(), \
+               l2_normed.squeeze(0).detach().numpy(), \
+               l2_nonlin.squeeze(0).detach().numpy(), \
+               l3.squeeze(0).detach().numpy(), \
+               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
