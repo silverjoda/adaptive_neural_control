@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch as T
 import numpy as np
-from copy import deepcopy
+from torch.nn.utils import weight_norm
 
 class SLP_PG(nn.Module):
     def __init__(self, env, config):
@@ -547,67 +547,57 @@ class NN_ATTENTION(nn.Module):
         super(NN_ATTENTION, self).__init__()
         self.env = env
         self.config = config
-
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.hid_dim = config["policy_hid_dim"]
-
-        if self.config["policy_residual_connection"]:
-            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+        self.qk_dim = config["policy_qk_dim"]
+        self.value_dim = config["policy_value_dim"]
+        self.n_heads = config["policy_n_heads"]
 
         self.activation_fun = eval(config["activation_fun"])
-        self.log_std = -T.ones(1, self.act_dim) * 0.4
+        self.log_std = -T.ones(1, self.act_dim) * 0.0
 
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
-
-        T.nn.init.zeros_(self.fc1.bias)
-        T.nn.init.zeros_(self.fc2.bias)
-        T.nn.init.zeros_(self.fc3.bias)
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-        for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+        self.fc_emb = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc_q = nn.Linear(self.hid_dim, self.hid_dim * self.n_heads)
+        self.fc_k = nn.Linear(self.hid_dim, self.hid_dim * self.n_heads)
+        self.fc_k = nn.Linear(self.hid_dim, self.act_dim * self.n_heads)
+        self.fc_out = nn.Linear(self.act_dim * self.n_heads, self.act_dim)
 
     def forward(self, x):
-        l1 = self.activation_fun(self.fc1(x))
-        l2 = self.activation_fun(self.fc2(l1))
-        if self.config["policy_residual_connection"]:
-            out = self.fc3(l2) + self.fc_res(x)
-        else:
-            out = self.fc3(l2)
-        if self.config["policy_lastlayer_tanh"]:
-            return T.tanh(out)
-        return out
+        # x is [len x b x dim]
+        seq_len = x.shape[0]
+        queries = []
+        keys = []
+        values = []
+
+        # Calculate q,k,v for all states
+        q,k,v = self.calc_qkv_single(x.view(x.shape[0] + x.shape[1], x.shape[2]))
+
+        attended_dotprods = T.matmul(q,k)
+        attended_weights = T.softmax(attended_dotprods, dim=1)
+        attended_outputs = T.matmul(attended_weights, v)
+
+        return attended_outputs
+
+    def forward_single(self, qkv, x):
+        q,k,v = qkv
+        q_x,k_x,v_x = self.calc_qkv_single(x)
+        # Attend
+        attended_dotprods = T.matmul(q_x, k)
+        attended_weights = T.softmax(attended_dotprods, dim=1)
+        attended_outputs = T.matmul(attended_weights, v)
+
+    def calc_qkv_single(self, x):
+        q = self.fc_q(x)
+        k = self.fc_k(x)
+        v = self.fc_v(x)
+        return q,k,v
 
     def sample_action(self, s):
         act = self.forward(s)
         rnd_act = T.normal(act, T.exp(self.log_std))
         rnd_act_center = T.normal(T.zeros_like(act), T.exp(self.log_std)) + act
         return act, rnd_act
-
-    def sample_action_w_activations(self, l0):
-        l1_activ = self.fc1(l0)
-        l1_normed = self.m1(l1_activ)
-        l1_nonlin = self.activaton_fun(l1_normed)
-
-        l2_activ = self.fc2(l1_nonlin)
-        l2_normed = self.m1(l2_activ)
-        l2_nonlin = self.activaton_fun(l2_normed)
-
-        l3 = self.fc3(l2_nonlin)
-        return l1_activ.squeeze(0).detach().numpy(),\
-               l1_normed.squeeze(0).detach().numpy(),\
-               l1_nonlin.squeeze(0).detach().numpy(), \
-               l2_activ.squeeze(0).detach().numpy(), \
-               l2_normed.squeeze(0).detach().numpy(), \
-               l2_nonlin.squeeze(0).detach().numpy(), \
-               l3.squeeze(0).detach().numpy(), \
-               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -623,45 +613,17 @@ class NN_ATTENTION(nn.Module):
 
 class NN_TEMPCONV(nn.Module):
     def __init__(self, env, config):
-        super(NN_PG, self).__init__()
+        super(NN_TEMPCONV, self).__init__()
         self.env = env
         self.config = config
 
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.hid_dim = config["policy_hid_dim"]
-
-        if self.config["policy_residual_connection"]:
-            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
-
-        self.activation_fun = eval(config["activation_fun"])
-        self.log_std = -T.ones(1, self.act_dim) * 0.4
-
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
-
-        T.nn.init.zeros_(self.fc1.bias)
-        T.nn.init.zeros_(self.fc2.bias)
-        T.nn.init.zeros_(self.fc3.bias)
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-        for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+        self.tempconvnet = TemporalConvNet(self.obs_dim, self.config["num_channels"])
 
     def forward(self, x):
-        l1 = self.activation_fun(self.fc1(x))
-        l2 = self.activation_fun(self.fc2(l1))
-        if self.config["policy_residual_connection"]:
-            out = self.fc3(l2) + self.fc_res(x)
-        else:
-            out = self.fc3(l2)
-        if self.config["policy_lastlayer_tanh"]:
-            return T.tanh(out)
-        return out
+        return self.tempconvnet(x)
 
     def sample_action(self, s):
         act = self.forward(s)
@@ -700,84 +662,63 @@ class NN_TEMPCONV(nn.Module):
 
         return log_density.sum(1, keepdim=True)
 
-class NN_ATTENTION_TEMPCONV(nn.Module):
-    def __init__(self, env, config):
-        super(NN_PG, self).__init__()
-        self.env = env
-        self.config = config
-
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-
-        self.hid_dim = config["policy_hid_dim"]
-
-        if self.config["policy_residual_connection"]:
-            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
-
-        self.activation_fun = eval(config["activation_fun"])
-        self.log_std = -T.ones(1, self.act_dim) * 0.4
-
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
-
-        T.nn.init.zeros_(self.fc1.bias)
-        T.nn.init.zeros_(self.fc2.bias)
-        T.nn.init.zeros_(self.fc3.bias)
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-        for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+class Chomp1d(nn.Module):
+    def __init__(self, chomp_size):
+        super(Chomp1d, self).__init__()
+        self.chomp_size = chomp_size
 
     def forward(self, x):
-        l1 = self.activation_fun(self.fc1(x))
-        l2 = self.activation_fun(self.fc2(l1))
-        if self.config["policy_residual_connection"]:
-            out = self.fc3(l2) + self.fc_res(x)
-        else:
-            out = self.fc3(l2)
-        if self.config["policy_lastlayer_tanh"]:
-            return T.tanh(out)
-        return out
+        return x[:, :, :-self.chomp_size].contiguous()
 
-    def sample_action(self, s):
-        act = self.forward(s)
-        rnd_act = T.normal(act, T.exp(self.log_std))
-        rnd_act_center = T.normal(T.zeros_like(act), T.exp(self.log_std)) + act
-        return act, rnd_act
+class TemporalBlock(nn.Module):
+    def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2):
+        super(TemporalBlock, self).__init__()
+        self.conv1 = weight_norm(nn.Conv1d(n_inputs, n_outputs, kernel_size,
+                                           stride=stride, padding=padding, dilation=dilation))
+        self.chomp1 = Chomp1d(padding)
+        self.relu1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(dropout)
 
-    def sample_action_w_activations(self, l0):
-        l1_activ = self.fc1(l0)
-        l1_normed = self.m1(l1_activ)
-        l1_nonlin = self.activaton_fun(l1_normed)
+        self.conv2 = weight_norm(nn.Conv1d(n_outputs, n_outputs, kernel_size,
+                                           stride=stride, padding=padding, dilation=dilation))
+        self.chomp2 = Chomp1d(padding)
+        self.relu2 = nn.ReLU()
+        self.dropout2 = nn.Dropout(dropout)
 
-        l2_activ = self.fc2(l1_nonlin)
-        l2_normed = self.m1(l2_activ)
-        l2_nonlin = self.activaton_fun(l2_normed)
+        self.net = nn.Sequential(self.conv1, self.chomp1, self.relu1, self.dropout1,
+                                 self.conv2, self.chomp2, self.relu2, self.dropout2)
+        self.downsample = nn.Conv1d(n_inputs, n_outputs, 1) if n_inputs != n_outputs else None
+        self.relu = nn.ReLU()
+        self.init_weights()
 
-        l3 = self.fc3(l2_nonlin)
-        return l1_activ.squeeze(0).detach().numpy(),\
-               l1_normed.squeeze(0).detach().numpy(),\
-               l1_nonlin.squeeze(0).detach().numpy(), \
-               l2_activ.squeeze(0).detach().numpy(), \
-               l2_normed.squeeze(0).detach().numpy(), \
-               l2_nonlin.squeeze(0).detach().numpy(), \
-               l3.squeeze(0).detach().numpy(), \
-               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
+    def init_weights(self):
+        self.conv1.weight.data.normal_(0, 0.01)
+        self.conv2.weight.data.normal_(0, 0.01)
+        if self.downsample is not None:
+            self.downsample.weight.data.normal_(0, 0.01)
 
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
+    def forward(self, x):
+        out = self.net(x)
+        res = x if self.downsample is None else self.downsample(x)
+        return self.relu(out + res)
 
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
-        return log_density.sum(1, keepdim=True)
+class TemporalConvNet(nn.Module):
+    def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
+        super(TemporalConvNet, self).__init__()
+        layers = []
+        num_levels = len(num_channels)
+        for i in range(num_levels):
+            dilation_size = 2 ** i
+            in_channels = num_inputs if i == 0 else num_channels[i-1]
+            out_channels = num_channels[i]
+            layers += [TemporalBlock(in_channels, out_channels, kernel_size, stride=1, dilation=dilation_size,
+                                     padding=(kernel_size-1) * dilation_size, dropout=dropout)]
+
+        self.network = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.network(x)
 
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
