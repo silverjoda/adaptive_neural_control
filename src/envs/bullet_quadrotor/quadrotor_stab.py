@@ -93,9 +93,9 @@ class QuadrotorBulletEnv(gym.Env):
         self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
         self.joystick_controller = JoyController(self.config)
 
-        self.obs_queue = []
-        self.act_queue = []
-        self.max_queue_len = 3
+        self.obs_queue = [np.zeros(self.obs_dim,dtype=np.float32) for _ in range(self.config["obs_input"] + self.randomized_params["input_transport_delay"])]
+        self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(self.config["act_input"] + self.randomized_params["output_transport_delay"])]
+        self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(self.config["rew_input"])]
 
         self.setup_stabilization_control()
 
@@ -161,10 +161,8 @@ class QuadrotorBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
         torso_euler = my_utils._quat_to_euler(*torso_quat)
-        self.obs_queue.append([torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel])
-        if len(self.obs_queue) > self.max_queue_len:
-            self.obs_queue.pop(0)
-        return self.obs_queue[- 1 - np.minimum(self.randomized_params["input_transport_delay"], len(self.obs_queue) - 1)]
+        obs = [torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel]
+        return obs
 
     def update_motor_vel(self, ctrl):
         self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.randomized_params["motor_inertia_coeff"] +
@@ -250,17 +248,18 @@ class QuadrotorBulletEnv(gym.Env):
 
     def step(self, ctrl_raw):
         self.act_queue.append(ctrl_raw)
-        if len(self.act_queue) > self.max_queue_len:
-            self.act_queue.pop(0)
-        ctrl = self.act_queue[- 1 - np.minimum(self.randomized_params["output_transport_delay"], len(self.act_queue) - 1)]
+        assert len(self.act_queue) > self.config["act_input"] + self.randomized_params["output_transport_delay"]
+        self.act_queue.pop(0)
+        ctrl_raw_unqueued = self.act_queue[-1 - self.randomized_params["output_transport_delay"]:
+                                           -1 - self.randomized_params["output_transport_delay"] - self.config["act_input"]]
 
         if self.config["controller_source"] == "nn":
-            bounded_act = np.clip(ctrl * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
+            ctrl_processed = np.clip(ctrl_raw_unqueued[-1] * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
         else:
-            bounded_act = ctrl
+            ctrl_processed = ctrl_raw_unqueued[-1]
 
         # Take into account motor delay
-        self.update_motor_vel(bounded_act)
+        self.update_motor_vel(ctrl_processed)
 
         # Apply forces
         for i in range(4):
@@ -295,22 +294,36 @@ class QuadrotorBulletEnv(gym.Env):
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 0.5 - p_position - p_rp
 
+        self.rew_queue.append(r)
+        self.rew_queue.pop(0)
+        r_unqueued = self.rew_queue[-1 : -1 - self.config["rew_input"]]
+
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
         done = (self.step_ctr > self.config["max_steps"]) or (abs(pos_delta) > 1.7).any() or abs(roll) > 2. or abs(pitch) > 2.
 
+        compiled_obs = pos_delta, torso_quat, torso_vel, torso_angular_vel
+        compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
+        self.obs_queue.append(compiled_obs_flat)
+        self.obs_queue.pop(0)
+
+        compiled_obs_list = self.obs_queue[-1 - self.randomized_params["input_transport_delay"]:
+                              -1 - self.randomized_params["input_transport_delay"] - self.config["obs_input"]]
+
         aux_obs = []
-        if self.config["action_input"]:
-            aux_obs.extend(ctrl_raw)
-        if self.config["rew_input"]:
-            aux_obs.extend([r])
+        if self.config["obs_input"] > 0:
+            [aux_obs.extend(c) for c in compiled_obs_list]
+        if self.config["action_input"] > 0:
+            [aux_obs.extend(c) for c in ctrl_raw_unqueued]
+        if self.config["rew_input"] > 0:
+            [aux_obs.extend(c) for c in r_unqueued]
         if self.config["latent_input"]:
             aux_obs.extend(self.randomized_params_list_norm)
         if self.config["step_counter"]:
             aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
 
-        obs = np.concatenate((pos_delta, torso_quat, torso_vel, torso_angular_vel, aux_obs)).astype(np.float32)
+        obs = np.array(aux_obs).astype(np.float32)
 
         return obs, r, done, {"aux_obs" : aux_obs, "randomized_params" : self.randomized_params}
 
