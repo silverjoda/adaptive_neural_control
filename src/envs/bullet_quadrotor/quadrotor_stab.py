@@ -63,7 +63,9 @@ class QuadrotorBulletEnv(gym.Env):
             T.manual_seed(rnd_seed + 1)
 
         self.config = config
-        self.obs_dim = 13 + self.config["action_input"] * 4 \
+        self.just_obs_dim = 13
+        self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
+                       + self.config["act_input"] * 4 \
                        + self.config["rew_input"] * 1 \
                        + self.config["latent_input"] * 9 \
                        + self.config["step_counter"] * 1
@@ -93,9 +95,9 @@ class QuadrotorBulletEnv(gym.Env):
         self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
         self.joystick_controller = JoyController(self.config)
 
-        self.obs_queue = [np.zeros(self.obs_dim,dtype=np.float32) for _ in range(self.config["obs_input"] + self.randomized_params["input_transport_delay"])]
-        self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(self.config["act_input"] + self.randomized_params["output_transport_delay"])]
-        self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(self.config["rew_input"])]
+        self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]) + self.randomized_params["input_transport_delay"])]
+        self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
+        self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
 
         self.setup_stabilization_control()
 
@@ -119,7 +121,7 @@ class QuadrotorBulletEnv(gym.Env):
                                  "motor_inertia_coeff": 0.93 + np.random.rand() * 0.10 * self.config["randomize_env"], # Default: 0.85
                                  "motor_force_multiplier": 8 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
-                                 "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
+                                 "input_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
                                  "output_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
@@ -248,10 +250,11 @@ class QuadrotorBulletEnv(gym.Env):
 
     def step(self, ctrl_raw):
         self.act_queue.append(ctrl_raw)
-        assert len(self.act_queue) > self.config["act_input"] + self.randomized_params["output_transport_delay"]
         self.act_queue.pop(0)
-        ctrl_raw_unqueued = self.act_queue[-1 - self.randomized_params["output_transport_delay"]:
-                                           -1 - self.randomized_params["output_transport_delay"] - self.config["act_input"]]
+        if self.randomized_params["output_transport_delay"] > 0:
+            ctrl_raw_unqueued = self.act_queue[:-self.randomized_params["output_transport_delay"]]
+        else:
+            ctrl_raw_unqueued = self.act_queue
 
         if self.config["controller_source"] == "nn":
             ctrl_processed = np.clip(ctrl_raw_unqueued[-1] * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
@@ -294,9 +297,12 @@ class QuadrotorBulletEnv(gym.Env):
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 0.5 - p_position - p_rp
 
-        self.rew_queue.append(r)
+        self.rew_queue.append([r])
         self.rew_queue.pop(0)
-        r_unqueued = self.rew_queue[-1 : -1 - self.config["rew_input"]]
+        if self.randomized_params["input_transport_delay"] > 0:
+            r_unqueued = self.rew_queue[:-self.randomized_params["input_transport_delay"]]
+        else:
+            r_unqueued = self.rew_queue
 
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
@@ -308,13 +314,15 @@ class QuadrotorBulletEnv(gym.Env):
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
 
-        compiled_obs_list = self.obs_queue[-1 - self.randomized_params["input_transport_delay"]:
-                              -1 - self.randomized_params["input_transport_delay"] - self.config["obs_input"]]
+        if self.randomized_params["input_transport_delay"] > 0:
+            obs_raw_unqueued = self.obs_queue[:self.randomized_params["input_transport_delay"]]
+        else:
+            obs_raw_unqueued = self.obs_queue
 
         aux_obs = []
         if self.config["obs_input"] > 0:
-            [aux_obs.extend(c) for c in compiled_obs_list]
-        if self.config["action_input"] > 0:
+            [aux_obs.extend(c) for c in obs_raw_unqueued]
+        if self.config["act_input"] > 0:
             [aux_obs.extend(c) for c in ctrl_raw_unqueued]
         if self.config["rew_input"] > 0:
             [aux_obs.extend(c) for c in r_unqueued]
@@ -458,7 +466,7 @@ class QuadrotorBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/latent_input.yaml") as f:
+    with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)

@@ -4,9 +4,9 @@
 "max_steps" : 500
 "step_counter" : 0
 "latent_input" : 0
-"action_input" : 1
+"act_input" : 1
 "obs_input" : 1
-"rew_input" : 0
+"rew_input" : 1
 "randomize_env" : False
 "env_change_prob" : 0.5
 "sim_timestep" : 0.01
