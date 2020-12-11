@@ -1,5 +1,5 @@
 from stable_baselines import PPO2, A2C, TD3, SAC
-from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
 from stable_baselines.common.callbacks import CheckpointCallback
 import src.my_utils as my_utils
 import time
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     env_fun = my_utils.import_env(env_config["env_name"])
 
     if args["train"] or socket.gethostname() == "goedel":
-        env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+        env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
         model = make_model(config, env, None)
 
         checkpoint_callback = CheckpointCallback(save_freq=300000,

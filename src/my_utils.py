@@ -50,20 +50,14 @@ def import_env(name):
     return env_fun
 
 def make_policy(env, config):
-    if config["policy_type"] == "slp":
-        return policies.SLP_PG(env, config)
-    elif config["policy_type"] == "mlp":
-        return policies.NN_PG(env, config)
-    elif config["policy_type"] == "mlp_old":
-        return policies.NN_PG_OLD(env, config)
-    elif config["policy_type"] == "mlp_def":
-        return policies.NN_PG_DEF(env, config)
-    elif config["policy_type"] == "rnn":
-        return policies.RNN_PG(env, config)
-    if config["policy_type"] == "cyc_quad":
-        return policies.CYC_QUAD(env, config)
-    if config["policy_type"] == "cyc_hex":
-        return policies.CYC_HEX(env, config)
+    if config["policy_type"] == "mlp":
+        return policies.PI_AC(env.obs_dim, env.act_dim, config)
+    else:
+        raise TypeError
+
+def make_vf(env, config):
+    if config["policy_type"] == "mlp":
+        return policies.VF_AC(env.obs_dim, config)
     else:
         raise TypeError
 

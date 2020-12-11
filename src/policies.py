@@ -4,123 +4,54 @@ import torch as T
 import numpy as np
 from torch.nn.utils import weight_norm
 
-class SLP_PG(nn.Module):
-    def __init__(self, env, config):
-        super(SLP_PG, self).__init__()
-        self.env = env
+class VF_AC(nn.Module):
+    def __init__(self, obs_dim, config):
+        super(VF_AC, self).__init__()
         self.config = config
-
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-
-        self.fc1 = nn.Linear(self.obs_dim, self.act_dim)
-        self.log_std = T.zeros(1, self.act_dim)
-
-        self.fc1.weight.data.uniform_(-0.3, 0.3)
-        self.fc1.bias.data.uniform_(-0.3, 0.3)
-        #nn.init.xavier_uniform_(self.fc1.weight.data)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        return x
-
-    def sample_action(self, s):
-        act = self.forward(s)
-        return act, T.normal(act, T.exp(self.log_std))
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-class NN_PG_OLD(nn.Module):
-    def __init__(self, env, config):
-        super(NN_PG_OLD, self).__init__()
-        self.env = env
-        self.config = config
-
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-
+        self.obs_dim = obs_dim
         self.hid_dim = config["policy_hid_dim"]
 
-        self.tanh = config["policy_lastlayer_tanh"]
+        if self.config["policy_residual_connection"]:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+
+        self.activation_fun = eval(config["activation_fun"])
 
         self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.m1 = nn.LayerNorm(self.hid_dim)
         self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.m2 = nn.LayerNorm(self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.zeros_(self.fc1.bias)
+        T.nn.init.zeros_(self.fc2.bias)
+        T.nn.init.zeros_(self.fc3.bias)
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='relu')
         T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
-        self.log_std = T.zeros(1, self.act_dim)
-
-
-    def decay_std(self, decay=0.002):
-        self.log_std -= decay
-
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
-        x = F.leaky_relu(self.m1(self.fc1(x)))
-        x = F.leaky_relu(self.m2(self.fc2(x)))
-        if self.tanh:
-            x = T.tanh(self.fc3(x))
+        l1 = self.activation_fun(self.fc1(x))
+        l2 = self.activation_fun(self.fc2(l1))
+        if self.config["policy_residual_connection"]:
+            out = self.fc3(l2) + self.fc_res(x)
         else:
-            x = self.fc3(x)
-        return x
+            out = self.fc3(l2)
+        if self.config["policy_lastlayer_tanh"]:
+            return T.tanh(out)
+        return out
+
+    def get_value(self, x):
+        return self.forward(T.tensor(x).unsqueeze(0)).squeeze(0).detach().numpy()
 
 
-    def soft_clip_grads(self, bnd=1):
-        # Find maximum
-        maxval = 0
 
-        for p in self.parameters():
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
-
-
-        if maxval > bnd:
-            # print("Soft clipping grads")
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
-
-
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-class NN_PG(nn.Module):
-    def __init__(self, env, config):
-        super(NN_PG, self).__init__()
-        self.env = env
+class PI_AC(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(PI_AC, self).__init__()
         self.config = config
-
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
 
         self.hid_dim = config["policy_hid_dim"]
 
@@ -192,155 +123,29 @@ class NN_PG(nn.Module):
 
         return log_density.sum(1, keepdim=True)
 
-class NN_PG_DEF(nn.Module):
+class SLP_PG(nn.Module):
     def __init__(self, env, config):
-        super(NN_PG_DEF, self).__init__()
+        super(SLP_PG, self).__init__()
+        self.env = env
         self.config = config
+
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = config["policy_hid_dim"]
 
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.m1 = nn.LayerNorm(self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-        self.m2 = nn.LayerNorm(self.hid_dim)
-        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
-
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
-
-        self.activaton_fun = eval(config["activation_fun"])
+        self.fc1 = nn.Linear(self.obs_dim, self.act_dim)
         self.log_std = T.zeros(1, self.act_dim)
 
-    def decay_std(self, decay=0.002):
-        self.log_std -= decay
+        self.fc1.weight.data.uniform_(-0.3, 0.3)
+        self.fc1.bias.data.uniform_(-0.3, 0.3)
+        #nn.init.xavier_uniform_(self.fc1.weight.data)
 
     def forward(self, x):
-        x = self.activaton_fun(self.m1(self.fc1(x)))
-        x = self.activaton_fun(self.m2(self.fc2(x)))
-        x = self.fc3(x)
-        if self.config["policy_lastlayer_tanh"]:
-            x = T.tanh(x)
+        x = self.fc1(x)
         return x
-
-    def soft_clip_grads(self, bnd=1):
-        # Find maximum
-        maxval = 0
-
-        for p in self.parameters():
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
-
-        if maxval > bnd:
-            # print("Soft clipping grads")
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
 
     def sample_action(self, s):
         act = self.forward(s)
         return act, T.normal(act, T.exp(self.log_std))
-
-    def sample_action_w_activations(self, l0):
-        l1_activ =self.fc1(l0)
-        l1_normed = self.m1(l1_activ)
-        l1_nonlin = self.activaton_fun(l1_normed)
-
-        l2_activ = self.fc2(l1_nonlin)
-        l2_normed = self.m1(l2_activ)
-        l2_nonlin = self.activaton_fun(l2_normed)
-
-        l3 = self.fc3(l2_nonlin)
-        return l1_activ.squeeze(0).detach().numpy(),\
-               l1_normed.squeeze(0).detach().numpy(),\
-               l1_nonlin.squeeze(0).detach().numpy(), \
-               l2_activ.squeeze(0).detach().numpy(), \
-               l2_normed.squeeze(0).detach().numpy(), \
-               l2_nonlin.squeeze(0).detach().numpy(), \
-               l3.squeeze(0).detach().numpy(), \
-               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-class MLP_PG_MULTI(nn.Module):
-    def __init__(self, env, config):
-        super(MLP_PG_MULTI, self).__init__()
-        self.config = config
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-        self.hid_dim = config["policy_hid_dim"]
-        self.n_policy_layers = config["n_policy_layers"]
-
-
-        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
-        self.m1 = nn.LayerNorm(self.hid_dim)
-        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
-
-        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='linear')
-
-        self.activaton_fun = eval(config["activation_fun"])
-        self.log_std = T.zeros(1, self.act_dim)
-
-    def decay_std(self, decay=0.002):
-        self.log_std -= decay
-
-    def forward(self, x):
-        x = self.activaton_fun(self.m1(self.fc1(x)))
-        x = self.fc2(x)
-        if self.config["policy_lastlayer_tanh"]:
-            x = T.tanh(x)
-        return x
-
-    def soft_clip_grads(self, bnd=1):
-        # Find maximum
-        maxval = 0
-
-        for p in self.parameters():
-            m = T.abs(p.grad).max()
-            if m > maxval:
-                maxval = m
-
-        if maxval > bnd:
-            # print("Soft clipping grads")
-            for p in self.parameters():
-                if p.grad is None: continue
-                p.grad = (p.grad / maxval) * bnd
-
-    def sample_action(self, s):
-        act = self.forward(s)
-        return act, T.normal(act, T.exp(self.log_std))
-
-    def sample_action_w_activations(self, l0):
-        l1_activ = self.fc1(l0)
-        l1_normed = self.m1(l1_activ)
-        l1_nonlin = self.activaton_fun(l1_normed)
-
-        l2_activ = self.fc2(l1_nonlin)
-        l2_normed = self.m1(l2_activ)
-        l2_nonlin = self.activaton_fun(l2_normed)
-
-        l3 = self.fc3(l2_nonlin)
-        return l1_activ.squeeze(0).detach().numpy(), \
-               l1_normed.squeeze(0).detach().numpy(), \
-               l1_nonlin.squeeze(0).detach().numpy(), \
-               l2_activ.squeeze(0).detach().numpy(), \
-               l2_normed.squeeze(0).detach().numpy(), \
-               l2_nonlin.squeeze(0).detach().numpy(), \
-               l3.squeeze(0).detach().numpy(), \
-               T.normal(l3, T.exp(self.log_std)).squeeze(0).detach().numpy()
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
@@ -702,7 +507,6 @@ class TemporalBlock(nn.Module):
         res = x if self.downsample is None else self.downsample(x)
         return self.relu(out + res)
 
-
 class TemporalConvNet(nn.Module):
     def __init__(self, num_inputs, num_channels, kernel_size=2, dropout=0.2):
         super(TemporalConvNet, self).__init__()
@@ -725,5 +529,5 @@ if __name__ == "__main__":
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
     config_nn = {"policy_lastlayer_tanh": False, "policy_hid_dim": 96, "policy_grad_clip_value": 1.0}
     RNN_PG(env, config_rnn)
-    nn = NN_PG_DEF(env, config_nn)
+    nn = NN_PG(env, config_nn)
     nn(T.randn(env.obs_dim))
