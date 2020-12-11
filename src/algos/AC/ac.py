@@ -94,7 +94,7 @@ def train(env, policy, vf, config):
         if batch_ctr == config["batchsize"]:
             batch_observations = T.from_numpy(np.array(batch_observations))
             batch_actions = T.from_numpy(np.array(batch_actions))
-            batch_rewards = T.from_numpy(np.array(batch_rewards))
+            batch_rewards = T.from_numpy(np.array(batch_rewards)) #
 
             # Calculate episode advantages
             #batch_advantages = calc_advantages_MC(config, batch_rewards, batch_terminals)
