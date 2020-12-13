@@ -14,7 +14,7 @@
 "propeller_parasitic_torque_coeff" : 1.0
 "starting_pos" : [0, 0, 2.0]
 "target_pos" : [0, 0, 2.0]
-"disturbance_intensity" : 7 # 10 for effect
+"disturbance_intensity" : 5 # 10 for effect
 "disturbance_frequency" : 0.01 # 0.005
 "urdf_name" : quadrotor.urdf
 "seed" :

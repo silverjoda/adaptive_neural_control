@@ -116,13 +116,13 @@ class QuadrotorBulletEnv(gym.Env):
                                physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": 0.7 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
-                                 #"boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_inertia_coeff": 0.93 + np.random.rand() * 0.10 * self.config["randomize_env"],
-                                 "motor_force_multiplier": 8 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
+        self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
+                                 "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
+                                 "motor_inertia_coeff": 0.85 + np.random.rand() * 0.10 * self.config["randomize_env"],
+                                 "motor_force_multiplier": 6 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
-                                 "output_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
+                                 "output_transport_delay": 2 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
@@ -342,7 +342,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.step_ctr = 0
         self.current_disturbance = None
 
-        rnd_starting_pos_delta = np.random.rand(3) * 1 - 0.5 # np.zeros(3) #
+        rnd_starting_pos_delta = np.random.rand(3) * 3 - 1.5 # np.zeros(3) #
         rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * .6 - 0.3) # [0,0,0,1] #
         rnd_starting_lin_velocity = np.random.rand(3) * .6 - .3 # 2 - 1 # np.zeros(3) #
         rnd_starting_rot_velocity = np.random.rand(3) * .4 - 0.2 # 1.2 - .6 # np.zeros(3) #

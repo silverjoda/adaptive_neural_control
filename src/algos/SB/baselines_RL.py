@@ -147,7 +147,8 @@ if __name__ == "__main__":
     env_fun = my_utils.import_env(env_config["env_name"])
 
     if args["train"] or socket.gethostname() == "goedel":
-        env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+        #env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+        env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
         model = make_model(config, env, None)
 
         checkpoint_callback = CheckpointCallback(save_freq=300000,
@@ -166,6 +167,7 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
+        #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
