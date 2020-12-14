@@ -292,10 +292,10 @@ class QuadrotorBulletEnv(gym.Env):
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -1, 1)
-        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -1, 1)
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
+        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
-        r = 0.5 - p_position - p_rp
+        r = 1.0 - p_position - p_rp
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
