@@ -46,6 +46,10 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 - SNAIL - like architecture
 
 # TODO:
-# Test if quadcopter done condition on just pos_delta is ok.
+# Do a theoretical detailed gradient computation on paper to clear up some misunderstandings
+# Implement optuna for a2c and ac
+# Try vecnormalize on a2c (later on ac, after initial optimization on single env)
+# Find good hyperparams for both a2c and ac
+# Study stable baselines3 policy modification through custom policy
 # Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)
 # Put to train quadcopter and buggy envs with randomization

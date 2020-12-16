@@ -21,11 +21,11 @@ class VF_AC(nn.Module):
         self.fc3 = nn.Linear(self.hid_dim, 1)
 
         w_i_b = self.config["weight_init_bnd"]
-        nn.init.uniform_(self.fc1.bias, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc2.bias, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc1.bias, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc2.bias, -w_i_b, w_i_b)
         nn.init.uniform_(self.fc3.bias, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc1.weight, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc2.weight, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc1.weight, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc2.weight, -w_i_b, w_i_b)
         nn.init.uniform_(self.fc3.weight, -w_i_b, w_i_b)
 
         for p in self.parameters():
@@ -57,18 +57,18 @@ class PI_AC(nn.Module):
             self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
 
         self.activation_fun = eval(config["activation_fun"])
-        self.log_std = -T.ones(1, self.act_dim) * 0.0
+        self.log_std = T.ones(1, self.act_dim) * config["init_log_std_value"]
 
         self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
         self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
         w_i_b = self.config["weight_init_bnd"]
-        nn.init.uniform_(self.fc1.bias, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc2.bias, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc1.bias, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc2.bias, -w_i_b, w_i_b)
         nn.init.uniform_(self.fc3.bias, -w_i_b * 0.01, w_i_b * 0.01)
-        nn.init.uniform_(self.fc1.weight, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc2.weight, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc1.weight, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc2.weight, -w_i_b, w_i_b)
         nn.init.uniform_(self.fc3.weight, -w_i_b * 0.01, w_i_b * 0.01)
 
         for p in self.parameters():

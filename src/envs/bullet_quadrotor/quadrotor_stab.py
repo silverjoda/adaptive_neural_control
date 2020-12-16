@@ -62,6 +62,7 @@ class QuadrotorBulletEnv(gym.Env):
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
+        self.num_envs = 1
         self.config = config
         self.just_obs_dim = 13
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
@@ -121,11 +122,11 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_inertia_coeff": 0.92 + np.random.rand() * 0.10 * self.config["randomize_env"],
+                                 "motor_inertia_coeff": 0.90 + np.random.rand() * 0.10 * self.config["randomize_env"],
                                  "motor_force_multiplier": 6 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
-                                 "input_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
-                                 "output_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
+                                 "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
+                                 "output_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
@@ -352,10 +353,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.current_disturbance = None
 
         if self.config["rnd_init"]:
-            rnd_starting_pos_delta = np.random.rand(3) * 2 - 1.0 # np.zeros(3) #
+            rnd_starting_pos_delta = np.random.rand(3) * 2 - 1.0
             rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .8 - 0.4, np.random.rand(1) * .8 - 0.4, np.random.rand(1) * 2 - 1.])
-            rnd_starting_lin_velocity = np.random.rand(3) * .6 - .3 # 2 - 1 # np.zeros(3) #
-            rnd_starting_rot_velocity = np.random.rand(3) * .4 - 0.2 # 1.2 - .6 # np.zeros(3) #
+            rnd_starting_lin_velocity = np.random.rand(3) * .6 - .3
+            rnd_starting_rot_velocity = np.random.rand(3) * .4 - 0.2
         else:
             rnd_starting_pos_delta = np.zeros(3)
             rnd_starting_orientation = np.array([0,0,0,1])
@@ -386,7 +387,7 @@ class QuadrotorBulletEnv(gym.Env):
         from stable_baselines import A2C
         src_file = os.path.split(os.path.split(os.path.join(os.path.dirname(os.path.realpath(__file__))))[0])[0]
         try:
-            model = A2C.load(os.path.join(src_file, "algos/SB/agents/KLH_SB_policy.zip"))
+            model = A2C.load(os.path.join(src_file, "algos/SB/agents/xxx_SB_policy.zip"))
         except:
             model = None
             print("Failed to load nn. ")

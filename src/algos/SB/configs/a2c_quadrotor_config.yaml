@@ -2,7 +2,7 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 40000000
+"iters" : 2000000
 "gamma" : 0.99
 "n_steps" : 60
 "vf_coef" : 0.5
