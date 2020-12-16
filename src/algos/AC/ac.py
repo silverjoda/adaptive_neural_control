@@ -147,7 +147,7 @@ def train(env, policy, vf, config):
 
     if config["save_policy"]:
         T.save(policy.state_dict(), sdir)
-    print("Finished training, saved policy at {} with params {}".format(sdir, config))
+        print("Finished training, saved policy at {} with params {}".format(sdir, config))
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
     # Get action log probabilities

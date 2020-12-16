@@ -15,7 +15,7 @@ if __name__ == "__main__":
     env_config = my_utils.read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
-    config["n_total_steps_train"] = 10000
+    config["n_total_steps_train"] = 700000
     config["save_policy"] = False
 
     def objective(trial):
@@ -29,14 +29,14 @@ if __name__ == "__main__":
         env, policy, vf = setup_train(config)
 
         train(env, policy, vf, config)
-        value = test_agent(env, policy, N=30, print_rew=False)
+        value = test_agent(env, policy, N=50, print_rew=False)
         env.close()
         del env
 
         return value
 
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=10)
+    study.optimize(objective, n_trials=150)
     time.sleep(0.1); print(study.best_params, study.best_value)
 
 
