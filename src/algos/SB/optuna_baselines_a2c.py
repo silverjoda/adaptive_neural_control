@@ -14,16 +14,15 @@ if __name__ == "__main__":
     env_config = my_utils.read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
-    config["iters"] = 700000
-    config["save_policy"] = False
+    config["iters"] = 1000000
 
     def objective(trial):
-        config["batchsize"] = trial.suggest_categorical('batchsize', [4,8,16,32,64,128,256])
-        config["init_log_std_value"] = trial.suggest_uniform("init_log_std_value", -1., 0)
-        config["policy_learning_rate"] = trial.suggest_loguniform('policy_learning_rate', 1e-5, 1e-3)
-        config["vf_learning_rate"] = trial.suggest_loguniform('vf_learning_rate', 1e-5, 1e-3)
+        config["n_steps"] = trial.suggest_int('n_steps', 10, 200)
+        config["ent_coef"] = trial.suggest_loguniform("ent_coef", 0.000001, 0.001)
+        config["learning_rate"] = trial.suggest_loguniform('learning_rate', 1e-5, 1e-3)
         config["gamma"] = trial.suggest_loguniform('gamma', 0.93, 0.999)
-        config["policy_grad_clip_value"] = trial.suggest_uniform('policy_grad_clip_value', 0.3, 0.9)
+        config["max_grad_norm"] = trial.suggest_uniform('max_grad_norm', 0.3, 0.8)
+        config["vf_coef"] = trial.suggest_uniform('vf_coef', 0.3, 0.7)
 
         env, model, _ = setup_train(config)
 
@@ -43,7 +42,7 @@ if __name__ == "__main__":
         return value
 
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=10)
+    study.optimize(objective, n_trials=200)
     time.sleep(0.1); print(study.best_params, study.best_value)
 
 

@@ -141,7 +141,7 @@ def setup_train(config):
     pprint(config)
 
     # Import correct env by name
-    env_fun = my_utils.import_env(env_config["env_name"])
+    env_fun = my_utils.import_env(config["env_name"])
 
     # env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
     env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
