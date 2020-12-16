@@ -41,30 +41,31 @@ def train(env, policy, vf, config):
                         f'agents/{config["session_ID"]}_AC_policy.p')
 
     policy_optim = None
+    vf_optim = None
     if config["policy_optim"] == "rmsprop":
         policy_optim = T.optim.RMSprop(policy.parameters(),
-                                       lr=config["learning_rate"],
+                                       lr=config["policy_learning_rate"],
                                        weight_decay=config["weight_decay"],
                                        eps=1e-8, momentum=config["momentum"])
         vf_optim = T.optim.RMSprop(vf.parameters(),
-                                       lr=config["learning_rate"],
+                                       lr=config["vf_learning_rate"],
                                        weight_decay=config["weight_decay"],
                                        eps=1e-8, momentum=config["momentum"])
     if config["policy_optim"] == "sgd":
         policy_optim = T.optim.SGD(policy.parameters(),
-                                   lr=config["learning_rate"],
+                                   lr=config["policy_learning_rate"],
                                    weight_decay=config["weight_decay"],
                                    momentum=config["momentum"])
         vf_optim = T.optim.SGD(vf.parameters(),
-                                   lr=config["learning_rate"],
+                                   lr=config["vf_learning_rate"],
                                    weight_decay=config["weight_decay"],
                                    momentum=config["momentum"])
     if config["policy_optim"] == "adam":
         policy_optim = T.optim.Adam(policy.parameters(),
-                                    lr=config["learning_rate"],
+                                    lr=config["policy_learning_rate"],
                                     weight_decay=config["weight_decay"])
         vf_optim = T.optim.Adam(vf.parameters(),
-                                    lr=config["learning_rate"],
+                                    lr=config["vf_learning_rate"],
                                     weight_decay=config["weight_decay"])
     assert policy_optim is not None
 
@@ -81,10 +82,10 @@ def train(env, policy, vf, config):
     while global_step_ctr < config["n_total_steps_train"]:
         observations, actions, rewards, terminals = make_rollout(env, policy)
 
-        batch_observations.append(observations)
-        batch_actions.append(actions)
-        batch_rewards.append(rewards)
-        batch_terminals.append(terminals)
+        batch_observations.extend(observations)
+        batch_actions.extend(actions)
+        batch_rewards.extend(rewards)
+        batch_terminals.extend(terminals)
 
         # Just completed an episode
         batch_ctr += 1
@@ -94,13 +95,13 @@ def train(env, policy, vf, config):
         if batch_ctr == config["batchsize"]:
             batch_observations = T.from_numpy(np.array(batch_observations))
             batch_actions = T.from_numpy(np.array(batch_actions))
-            batch_rewards = T.from_numpy(np.array(batch_rewards)) #
+            batch_rewards = T.from_numpy(np.array(batch_rewards))
 
             # Calculate episode advantages
             #batch_advantages = calc_advantages_MC(config, batch_rewards, batch_terminals)
-            batch_advantages = calc_advantages(config, vf, batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages(config, vf, batch_observations, batch_rewards, batch_terminals)
             loss_policy = update_policy(policy, policy_optim, batch_observations, batch_actions, batch_advantages)
-            loss_vf = update_vf(vf, policy_optim, batch_observations, batch_actions, batch_advantages)
+            loss_vf = update_vf(vf_optim, batch_advantages)
 
             # Post update log
             if config["tb_writer"] is not None:
@@ -116,8 +117,8 @@ def train(env, policy, vf, config):
                                                global_step=global_step_ctr)
 
             t2 = time.time()
-            print("N_total_steps_train {}/{}, loss_policy: {}, mean ep_rew: {}, time per batch: {}".
-                  format(global_step_ctr, config["n_total_steps_train"], loss_policy, batch_rewards.sum() / config["batchsize"], t2 - t1))
+            print("N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}, time per batch: {}".
+                  format(global_step_ctr, config["n_total_steps_train"], loss_policy, loss_vf, batch_rewards.sum() / config["batchsize"], t2 - t1))
             t1 = t2
 
             # Finally reset all batch lists
@@ -129,7 +130,7 @@ def train(env, policy, vf, config):
             batch_terminals = []
 
             # Decay log_std
-            policy.log_std -= config["log_std_decay"]
+            #policy.log_std -= config["log_std_decay"]
 
         if global_step_ctr % 500000 < config["batchsize"] * config["max_steps"] and global_step_ctr > 0:
             T.save(policy.state_dict(), sdir)
@@ -147,12 +148,16 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     loss.backward()
 
     # Step policy update
-    policy_optim.step()#
+    policy_optim.step()
 
     return loss.data
 
-def update_vf(vf, vf_optim, batch_states, batch_advantages):
-    pass
+def update_vf(vf_optim, batch_advantages):
+    vf_optim.zero_grad()
+    loss = 0.5 * T.pow(batch_advantages, 2)
+    loss.backward()
+    vf_optim.step()
+    return loss.data
 
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     # Monte carlo estimate of targets
@@ -167,14 +172,16 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
         targets = T.cat(list(reversed(targets)))
     return targets
 
-def calc_advantages(gamma, vf, batch_rewards, batch_terminals):
-    # Monte carlo estimate of targets
+def calc_advantages(gamma, vf, batch_observations, batch_rewards, batch_terminals):
+    batch_values = vf(batch_observations)
     targets = []
-    for r, t in zip(reversed(batch_rewards), reversed(batch_terminals)):
+    for i in reversed(range(len(batch_rewards))):
+        r, v, t = batch_rewards[i], batch_values[i], batch_terminals[i]
         if t:
-            R = r
+            R = r - v
         else:
-            R = r + gamma * R
+            v_next = batch_values[i + 1]
+            R = r + gamma * v_next - v
         targets.append(R.view(1, 1))
     targets = T.cat(list(reversed(targets)))
     return targets
@@ -205,8 +212,8 @@ def test_agent(env, policy):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action, noisy_action = policy.sample_action(my_utils.to_tensor(obs, True))
-            obs, reward, done, info = env.step(action.detach().squeeze(0).numpy())
+            action = policy.sample_action(obs)
+            obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()
             if done:

@@ -44,7 +44,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 - Oracle with params as inputs
 - Using parameter predictor
 - SNAIL - like architecture
--
 
 # TODO:
 # Test if quadcopter done condition on just pos_delta is ok.
