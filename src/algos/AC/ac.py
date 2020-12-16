@@ -236,7 +236,6 @@ def test_agent(env, policy, N=100, print_rew=False):
     return total_rew
 
 def setup_train(config):
-
     for s in ["agents", "agents_cp", "tb"]:
         if not os.path.exists(s):
             os.makedirs(s)

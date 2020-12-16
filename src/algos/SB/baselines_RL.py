@@ -109,27 +109,24 @@ def load_model(config):
 def make_action_noise_fun(config):
     return None
 
-def test_agent(env, model, deterministic=True):
-    for _ in range(100):
+def test_agent(env, model, deterministic=True, N=100, print_rew=True):
+    total_rew = 0
+    for _ in range(N):
         obs = env.reset()
-        cum_rew = 0
+        episode_rew = 0
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
-            cum_rew += reward
+            episode_rew += reward
+            total_rew += reward
             env.render()
-            #time.sleep(0.01)
             if done: # .all() for rnn
-                print(cum_rew)
+                if print_rew:
+                    print(episode_rew)
                 break
-    env.close()
+    return total_rew
 
-if __name__ == "__main__":
-    args = parse_args()
-    algo_config = read_config(args["algo_config"])
-    env_config = read_config(args["env_config"])
-    config = {**args, **algo_config, **env_config}
-
+def setup_train(config):
     for s in ["agents", "agents_cp", "tb"]:
         if not os.path.exists(s):
             os.makedirs(s)
@@ -146,14 +143,24 @@ if __name__ == "__main__":
     # Import correct env by name
     env_fun = my_utils.import_env(env_config["env_name"])
 
-    if args["train"] or socket.gethostname() == "goedel":
-        #env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
-        env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
-        model = make_model(config, env, None)
+    # env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+    env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    model = make_model(config, env, None)
 
-        checkpoint_callback = CheckpointCallback(save_freq=300000,
-                                                 save_path='agents_cp/',
-                                                 name_prefix=config["session_ID"], verbose=1)
+    checkpoint_callback = CheckpointCallback(save_freq=300000,
+                                             save_path='agents_cp/',
+                                             name_prefix=config["session_ID"], verbose=1)
+
+    return env, model, checkpoint_callback
+
+if __name__ == "__main__":
+    args = parse_args()
+    algo_config = read_config(args["algo_config"])
+    env_config = read_config(args["env_config"])
+    config = {**args, **algo_config, **env_config}
+
+    if args["train"] or socket.gethostname() == "goedel":
+        env, model, checkpoint_callback = setup_train(config)
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -171,6 +178,7 @@ if __name__ == "__main__":
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
+        env_fun = my_utils.import_env(env_config["env_name"])
         env = env_fun(config)
         #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
 
