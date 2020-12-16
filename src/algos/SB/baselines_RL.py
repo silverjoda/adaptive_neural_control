@@ -159,7 +159,6 @@ if __name__ == "__main__":
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
-
     if args["train"] or socket.gethostname() == "goedel":
         env, model, checkpoint_callback = setup_train(config)
         stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])

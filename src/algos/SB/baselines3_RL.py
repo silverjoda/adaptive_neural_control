@@ -1,5 +1,5 @@
 from stable_baselines3 import A2C
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize
 from stable_baselines3.common.callbacks import CheckpointCallback
 import src.my_utils as my_utils
 import time
@@ -10,6 +10,7 @@ import yaml
 import os
 from pprint import pprint
 from shutil import copyfile
+from custom_policies import CustomActorCriticPolicy
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -21,7 +22,7 @@ def parse_args():
                         help='Flag indicating whether the environment will be rendered. ')
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
-    parser.add_argument('--algo_config', type=str, default="configs/a2c_default_config.yaml", required=False,
+    parser.add_argument('--algo_config', type=str, default="configs/td3_default_config.yaml", required=False,
                         help='Algorithm config file name. ')
     parser.add_argument('--env_config', type=str, required=True,
                         help='Env config file name. ')
@@ -35,7 +36,7 @@ def read_config(path):
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
-def make_model(config, env, action_noise_fun):
+def make_model(config, env):
     model = A2C(policy=config["policy_name"],
         env=env,
         gamma=config["gamma"],
@@ -50,22 +51,6 @@ def make_model(config, env, action_noise_fun):
 
     return model
 
-def load_model(config):
-    model = None
-    if config["algo_name"] == "TD3":
-        model = TD3.load("agents/{}".format(args["test_agent_path"]))
-    if config["algo_name"] == "A2C":
-        model = A2C.load("agents/{}".format(args["test_agent_path"]))
-    if config["algo_name"] == "SAC":
-        model = SAC.load("agents/{}".format(args["test_agent_path"]))
-    if config["algo_name"] == "PPO2":
-        model = PPO2.load("agents/{}".format(args["test_agent_path"]))
-    assert model is not None, "Alg name not found, cannot load model, exiting. "
-    return model
-
-def make_action_noise_fun(config):
-    return None
-
 def test_agent(env, model, deterministic=True, N=100, print_rew=True):
     total_rew = 0
     for _ in range(N):
@@ -77,7 +62,7 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
             episode_rew += reward
             total_rew += reward
             env.render()
-            if done: # .all() for rnn
+            if done:
                 if print_rew:
                     print(episode_rew)
                 break
@@ -89,7 +74,6 @@ def setup_train(config):
             os.makedirs(s)
 
     # Random ID of this session
-
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
     else:
@@ -100,9 +84,9 @@ def setup_train(config):
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
 
-    # env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
-    env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
-    model = make_model(config, env, None)
+    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+    #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    model = make_model(config, env)
 
     checkpoint_callback = CheckpointCallback(save_freq=300000,
                                              save_path='agents_cp/',
@@ -118,6 +102,7 @@ if __name__ == "__main__":
 
     if args["train"] or socket.gethostname() == "goedel":
         env, model, checkpoint_callback = setup_train(config)
+        stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -131,15 +116,19 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
+
+        env.save(stats_path)
         #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
+        stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(env_config["env_name"])
-        env = env_fun(config)
+        env = DummyVecEnv([lambda: env_fun(config)])
+        env = VecNormalize.load(stats_path, env)
         #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
 
-        if not args["train"]:
-            model = load_model(config)
+        #env = env_fun(config) # Default, without normalization
+        model = A2C.load("agents/{}".format(args["test_agent_path"]))
 
         test_agent(env, model, deterministic=True)
