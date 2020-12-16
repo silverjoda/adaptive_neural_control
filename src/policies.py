@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch as T
 import numpy as np
 from torch.nn.utils import weight_norm
+from torch.distributions.beta import Beta
 
 class VF_AC(nn.Module):
     def __init__(self, obs_dim, config):
@@ -21,12 +22,8 @@ class VF_AC(nn.Module):
         self.fc3 = nn.Linear(self.hid_dim, 1)
 
         w_i_b = self.config["weight_init_bnd"]
-        #nn.init.uniform_(self.fc1.bias, -w_i_b, w_i_b)
-        #nn.init.uniform_(self.fc2.bias, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc3.bias, -w_i_b, w_i_b)
-        #nn.init.uniform_(self.fc1.weight, -w_i_b, w_i_b)
-        #nn.init.uniform_(self.fc2.weight, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc3.weight, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc3.bias, -w_i_b, w_i_b)
+        #nn.init.uniform_(self.fc3.weight, -w_i_b, w_i_b)
 
         for p in self.parameters():
             p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
@@ -99,6 +96,61 @@ class PI_AC(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(1, keepdim=True)
+
+class PI_AC_BETA(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(PI_AC_BETA, self).__init__()
+        self.config = config
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+
+        self.hid_dim = config["policy_hid_dim"]
+
+        if self.config["policy_residual_connection"]:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+
+        self.activation_fun = eval(config["activation_fun"])
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim * 2)
+
+        #w_i_b = self.config["weight_init_bnd"]
+        nn.init.uniform_(self.fc3.bias, -0.01, 0.01)
+        nn.init.uniform_(self.fc3.weight, -0.01, 0.01)
+
+        for p in self.parameters():
+                p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+
+    def forward(self, x):
+        l1 = self.activation_fun(self.fc1(x))
+        l2 = self.activation_fun(self.fc2(l1))
+        if self.config["policy_residual_connection"]:
+            out = self.fc3(l2) + self.fc_res(x)
+        else:
+            out = self.fc3(l2)
+        return out
+
+    def sample_action(self, s):
+        s_T = T.tensor(s).unsqueeze(0)
+        act = self.forward(s_T)
+        c1 = F.sigmoid(act[:, :self.act_dim]) * 5
+        c2 = F.sigmoid(act[:, self.act_dim:]) * 5
+        beta_dist = Beta(c1, c2)
+        rnd_act = beta_dist.sample()
+        return rnd_act.detach().squeeze(0).numpy()
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        act = self.forward(batch_states)
+
+        # Calculate probabilities
+        c1 = F.sigmoid(act[:, :, self.act_dim]) * 5
+        c2 = F.sigmoid(act[:, :, self.act_dim:]) * 5
+
+        beta_dist = Beta(c1, c2)
+        log_probs = beta_dist.log_prob(batch_actions)
+        return log_probs.sum(1, keepdim=True)
 
 class SLP_PG(nn.Module):
     def __init__(self, env, config):

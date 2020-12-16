@@ -36,8 +36,7 @@ def read_config(path):
     return data
 
 def make_model(config, env, action_noise_fun):
-    A2C()
-    model = A2C('MlpPolicy',
+    model = A2C(policy=config["policy_name"],
         env=env,
         gamma=config["gamma"],
         n_steps=config["n_steps"],
@@ -45,44 +44,52 @@ def make_model(config, env, action_noise_fun):
         ent_coef = config["ent_coef"],
         max_grad_norm=config["max_grad_norm"],
         learning_rate=config["learning_rate"],
-        alpha=config["alpha"],
-        epsilon=config["epsilon"],
-        lr_schedule=config["lr_schedule"],
         verbose=config["verbose"],
         tensorboard_log="./tb/{}/".format(config["session_ID"]),
-        full_tensorboard_log=config["full_tensorboard_log"],
         policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
 
+    return model
+
+def load_model(config):
+    model = None
+    if config["algo_name"] == "TD3":
+        model = TD3.load("agents/{}".format(args["test_agent_path"]))
+    if config["algo_name"] == "A2C":
+        model = A2C.load("agents/{}".format(args["test_agent_path"]))
+    if config["algo_name"] == "SAC":
+        model = SAC.load("agents/{}".format(args["test_agent_path"]))
+    if config["algo_name"] == "PPO2":
+        model = PPO2.load("agents/{}".format(args["test_agent_path"]))
+    assert model is not None, "Alg name not found, cannot load model, exiting. "
     return model
 
 def make_action_noise_fun(config):
     return None
 
-def test_agent(env, model, deterministic=True):
-    for _ in range(100):
+def test_agent(env, model, deterministic=True, N=100, print_rew=True):
+    total_rew = 0
+    for _ in range(N):
         obs = env.reset()
-        cum_rew = 0
+        episode_rew = 0
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
-            cum_rew += reward
+            episode_rew += reward
+            total_rew += reward
             env.render()
-            if done:
-                print(cum_rew)
+            if done: # .all() for rnn
+                if print_rew:
+                    print(episode_rew)
                 break
-    env.close()
+    return total_rew
 
-if __name__ == "__main__":
-    args = parse_args()
-    algo_config = read_config(args["algo_config"])
-    env_config = read_config(args["env_config"])
-    config = {**args, **algo_config, **env_config}
-
+def setup_train(config):
     for s in ["agents", "agents_cp", "tb"]:
         if not os.path.exists(s):
             os.makedirs(s)
 
     # Random ID of this session
+
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
     else:
@@ -91,15 +98,26 @@ if __name__ == "__main__":
     pprint(config)
 
     # Import correct env by name
-    env_fun = my_utils.import_env(env_config["env_name"])
+    env_fun = my_utils.import_env(config["env_name"])
+
+    # env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+    env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    model = make_model(config, env, None)
+
+    checkpoint_callback = CheckpointCallback(save_freq=300000,
+                                             save_path='agents_cp/',
+                                             name_prefix=config["session_ID"], verbose=1)
+
+    return env, model, checkpoint_callback
+
+if __name__ == "__main__":
+    args = parse_args()
+    algo_config = read_config(args["algo_config"])
+    env_config = read_config(args["env_config"])
+    config = {**args, **algo_config, **env_config}
 
     if args["train"] or socket.gethostname() == "goedel":
-        env = SubprocVecEnv([lambda : env_fun(config) for _ in range(int(config["n_envs"]))], start_method='fork')
-        model = make_model(config, env, None)
-
-        checkpoint_callback = CheckpointCallback(save_freq=300000,
-                                                 save_path='agents_cp/',
-                                                 name_prefix=config["session_ID"], verbose=1)
+        env, model, checkpoint_callback = setup_train(config)
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -113,9 +131,15 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
+        #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
+        env_fun = my_utils.import_env(env_config["env_name"])
         env = env_fun(config)
-        model = A2C.load("agents/{}".format(config["test_agent_path"]))
+        #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+
+        if not args["train"]:
+            model = load_model(config)
+
         test_agent(env, model, deterministic=True)

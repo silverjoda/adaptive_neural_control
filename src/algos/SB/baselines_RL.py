@@ -1,5 +1,5 @@
 from stable_baselines import PPO2, A2C, TD3, SAC
-from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
+from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize, DummyVecEnv
 from stable_baselines.common.callbacks import CheckpointCallback
 import src.my_utils as my_utils
 import time
@@ -143,8 +143,8 @@ def setup_train(config):
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
 
-    # env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
-    env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+    #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
     model = make_model(config, env, None)
 
     checkpoint_callback = CheckpointCallback(save_freq=300000,
@@ -159,8 +159,10 @@ if __name__ == "__main__":
     env_config = read_config(args["env_config"])
     config = {**args, **algo_config, **env_config}
 
+
     if args["train"] or socket.gethostname() == "goedel":
         env, model, checkpoint_callback = setup_train(config)
+        stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -174,15 +176,19 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
+
+        env.save(stats_path)
         #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
+        stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(env_config["env_name"])
-        env = env_fun(config)
+        env = DummyVecEnv([lambda: env_fun(config)])
+        env = VecNormalize.load(stats_path, env)
         #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
 
-        if not args["train"]:
-            model = load_model(config)
+        #env = env_fun(config) # Default, without normalization
+        model = load_model(config)
 
         test_agent(env, model, deterministic=True)
