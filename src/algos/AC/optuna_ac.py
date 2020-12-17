@@ -1,10 +1,5 @@
-#import warnings
-#warnings.filterwarnings("ignore")
-#import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import src.my_utils as my_utils
+
 import optuna
-import time
 from ac import *
 
 if __name__ == "__main__":
@@ -36,8 +31,11 @@ if __name__ == "__main__":
         return value
 
     study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=150)
-    time.sleep(0.1); print(study.best_params, study.best_value)
+    study.optimize(objective, n_trials=5)
+
+    [print("---------------------------------") for _ in range(10)]
+    print("Best params: ", study.best_params, " Best value: ", study.best_value)
+    [print("---------------------------------") for _ in range(10)]
 
 
 

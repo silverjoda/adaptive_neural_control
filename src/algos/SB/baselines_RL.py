@@ -117,6 +117,7 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
+            reward = env.get_original_reward()
             episode_rew += reward
             total_rew += reward
             env.render()
@@ -132,7 +133,6 @@ def setup_train(config):
             os.makedirs(s)
 
     # Random ID of this session
-
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
     else:
@@ -143,7 +143,10 @@ def setup_train(config):
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
 
-    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'))
+    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'),
+                       gamma=config["gamma"],
+                       norm_obs=config["norm_obs"],
+                       norm_reward=config["norm_reward"])
     #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
     model = make_model(config, env, None)
 
@@ -175,9 +178,7 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
-
         env.save(stats_path)
-        #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
@@ -185,7 +186,6 @@ if __name__ == "__main__":
         env_fun = my_utils.import_env(env_config["env_name"])
         env = DummyVecEnv([lambda: env_fun(config)])
         env = VecNormalize.load(stats_path, env)
-        #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
 
         #env = env_fun(config) # Default, without normalization
         model = load_model(config)

@@ -3,7 +3,6 @@
 #import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import optuna
-import time
 from baselines_RL import *
 
 if __name__ == "__main__":
@@ -43,7 +42,10 @@ if __name__ == "__main__":
 
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=200)
-    time.sleep(0.1); print(study.best_params, study.best_value)
+
+    [print("---------------------------------") for _ in range(10)]
+    print("Best params: ", study.best_params, " Best value: ", study.best_value)
+    [print("---------------------------------") for _ in range(10)]
 
 
 
