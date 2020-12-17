@@ -298,8 +298,9 @@ class HexapodBulletEnv(gym.Env):
     def norm_to_rads(self, action):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
-    def render(self, close=False):
-        pass
+    def render(self, close=False, mode=None):
+        if self.config["animate"]:
+            time.sleep(self.config["sim_timestep"])
 
     def load_robot(self):
         # Remove old robot

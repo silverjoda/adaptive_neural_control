@@ -218,7 +218,7 @@ def parse_args():
     args = parser.parse_args()
     return args.__dict__
 
-def test_agent(env, policy, N=100, print_rew=False):
+def test_agent(env, policy, N=100, print_rew=False, render=True):
     total_rew = 0
     for i in range(N):
         obs = env.reset()
@@ -228,7 +228,8 @@ def test_agent(env, policy, N=100, print_rew=False):
             obs, reward, done, info = env.step(action)
             episode_rew += reward
             total_rew += reward
-            env.render()
+            if render:
+                env.render()
             if done:
                 if print_rew:
                     print(episode_rew)

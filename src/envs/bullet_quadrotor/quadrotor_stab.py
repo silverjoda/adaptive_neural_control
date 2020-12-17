@@ -175,7 +175,8 @@ class QuadrotorBulletEnv(gym.Env):
                                                   np.array(ctrl) * (1 - self.randomized_params["motor_inertia_coeff"]), 0, 1)
 
     def render(self, close=False, mode=None):
-        time.sleep(self.config["sim_timestep"])
+        if self.config["animate"]:
+            time.sleep(self.config["sim_timestep"])
 
     def apply_external_disturbances(self):
         #Apply external disturbance force

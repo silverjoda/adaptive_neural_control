@@ -32,7 +32,7 @@ if __name__ == "__main__":
         #env_fun = my_utils.import_env(env_config["env_name"])
         #env = env_fun(config)
         #model.env = env
-        value = test_agent(env, model, deterministic=True, N=50, print_rew=False)
+        value = test_multiple(env, model, deterministic=True, N=50, print_rew=False)
 
         env.close()
         del env

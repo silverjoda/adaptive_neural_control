@@ -11,6 +11,7 @@ import yaml
 import os
 from pprint import pprint
 from shutil import copyfile
+import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -120,12 +121,28 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
             reward = env.get_original_reward()
             episode_rew += reward
             total_rew += reward
-            env.render()
+            #env.render()
             if done: # .all() for rnn
                 if print_rew:
                     print(episode_rew)
                 break
     return total_rew
+
+
+def test_multiple(env, model, deterministic=True, N=100, print_rew=True):
+    total_rew = 0.
+    for _ in range(N):
+        obs = env.reset()
+        while True:
+            action, _states = model.predict(obs, deterministic=deterministic)
+            obs, reward, done, info = env.step(action)
+            reward = env.get_original_reward()
+            total_rew += reward[0]
+            #env.render()
+            if done[0]: #  for rnn
+                break
+    return total_rew
+
 
 def setup_train(config):
     for s in ["agents", "agents_cp", "tb"]:
