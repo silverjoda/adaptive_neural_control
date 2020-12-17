@@ -37,7 +37,12 @@ def read_config(path):
     return data
 
 def make_model(config, env):
-    model = A2C(policy=config["policy_name"],
+    policy = "MlpPolicy"
+    if config["policy_name"] == "CustomPC":
+        policy = CustomActorCriticPolicy(observation_space=env.observation_space.shape,
+                                         action_space=env.action_space.shape)
+
+    model = A2C(policy=policy,
         env=env,
         gamma=config["gamma"],
         n_steps=config["n_steps"],
@@ -116,7 +121,6 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
-
         env.save(stats_path)
         #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()

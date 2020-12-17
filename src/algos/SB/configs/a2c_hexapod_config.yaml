@@ -18,3 +18,5 @@
 "policy_hid_dim" : 256
 "policy_memory_dim" : 256
 "policy_residual_connection" : False
+"norm_obs" : True
+"norm_reward" : True

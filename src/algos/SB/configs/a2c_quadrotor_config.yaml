@@ -1,8 +1,8 @@
 "algo_name" : "A2C"
-"policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
+"policy_name" : "CustomAC" # "MlpLstmPolicy", "MlpPolicy", "CustomAC"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 1000000
+"iters" : 2000000
 "gamma" : 0.99
 "n_steps" : 60
 "vf_coef" : 0.5
@@ -19,5 +19,5 @@
 "policy_memory_dim" : 128
 "policy_grad_clip_value" : 1.0
 "policy_residual_connection" : False
-"norm_obs" : False
-"norm_reward" : False
+"norm_obs" : True
+"norm_reward" : True
