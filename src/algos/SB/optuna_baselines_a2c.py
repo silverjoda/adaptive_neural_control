@@ -23,7 +23,7 @@ if __name__ == "__main__":
         config["max_grad_norm"] = trial.suggest_uniform('max_grad_norm', 0.3, 0.8)
         config["vf_coef"] = trial.suggest_uniform('vf_coef', 0.3, 0.7)
 
-        env, model, _ = setup_train(config)
+        env, model, _ = setup_train(config, setup_dirs=False)
 
         model.learn(total_timesteps=config["iters"])
         #env.close()

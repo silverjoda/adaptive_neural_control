@@ -144,10 +144,11 @@ def test_multiple(env, model, deterministic=True, N=100, print_rew=True):
     return total_rew
 
 
-def setup_train(config):
-    for s in ["agents", "agents_cp", "tb"]:
-        if not os.path.exists(s):
-            os.makedirs(s)
+def setup_train(config, setup_dirs=True):
+    if setup_dirs:
+        for s in ["agents", "agents_cp", "tb"]:
+            if not os.path.exists(s):
+                os.makedirs(s)
 
     # Random ID of this session
     if config["default_session_ID"] is None:
