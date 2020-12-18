@@ -122,11 +122,11 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_inertia_coeff": 0.90 + np.random.rand() * 0.10 * self.config["randomize_env"],
+                                 "motor_inertia_coeff": 0.93 + np.random.rand() * 0.10 * self.config["randomize_env"],
                                  "motor_force_multiplier": 6 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
-                                 "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
-                                 "output_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
+                                 "input_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
+                                 "output_transport_delay": 2 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
@@ -291,6 +291,8 @@ class QuadrotorBulletEnv(gym.Env):
         self.apply_external_disturbances()
 
         p.stepSimulation()
+        if self.config["animate"]:
+            time.sleep(self.config["sim_timestep"])
         self.step_ctr += 1
 
         # Read current velocity target
@@ -328,7 +330,7 @@ class QuadrotorBulletEnv(gym.Env):
         else:
             obs_raw_unqueued = self.obs_queue
 
-        aux_obs = []
+        aux_obs = [] 
         if self.config["obs_input"] > 0:
             [aux_obs.extend(c) for c in obs_raw_unqueued]
         if self.config["act_input"] > 0:

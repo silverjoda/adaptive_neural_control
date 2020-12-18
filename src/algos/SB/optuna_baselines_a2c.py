@@ -40,8 +40,9 @@ if __name__ == "__main__":
 
         return value
 
-    study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=200)
+
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=200, show_progress_bar=True)
 
     [print("---------------------------------") for _ in range(10)]
     print("Best params: ", study.best_params, " Best value: ", study.best_value)

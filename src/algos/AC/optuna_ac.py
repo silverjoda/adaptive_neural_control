@@ -21,7 +21,7 @@ if __name__ == "__main__":
         config["gamma"] = trial.suggest_loguniform('gamma', 0.93, 0.999)
         config["policy_grad_clip_value"] = trial.suggest_uniform('policy_grad_clip_value', 0.3, 0.9)
 
-        env, policy, vf = setup_train(config)
+        env, policy, vf = setup_train(config, setup_dirs=False)
 
         train(env, policy, vf, config)
         value = test_agent(env, policy, N=50, print_rew=False, render=False)
@@ -30,8 +30,8 @@ if __name__ == "__main__":
 
         return value
 
-    study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=150)
+    study = optuna.create_study(direction='maximize')
+    study.optimize(objective, n_trials=150, show_progress_bar=True)
 
     [print("---------------------------------") for _ in range(10)]
     print("Best params: ", study.best_params, " Best value: ", study.best_value)
