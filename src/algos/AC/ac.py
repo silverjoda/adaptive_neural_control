@@ -100,8 +100,12 @@ def train(env, policy, vf, config):
             batch_actions = T.from_numpy(np.array(batch_actions))
             batch_rewards = T.from_numpy(np.array(batch_rewards))
 
+            #batch_rewards_for_advantages = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
+
+            # Run 1: Usual, Run2: Normalized rew
+
             # Calculate episode advantages
-            #batch_advantages = calc_advantages_MC(config, batch_rewards, batch_terminals)
+            #batch_advantages = calc_advantages_MC(config["gamma"], batch_rewards, batch_terminals)
             batch_advantages = calc_advantages(config["gamma"], vf, batch_observations, batch_rewards, batch_terminals)
             loss_policy = update_policy(policy, policy_optim, batch_observations, batch_actions, batch_advantages.detach())
             loss_vf = update_vf(vf_optim, batch_advantages)
@@ -258,7 +262,7 @@ def setup_train(config, setup_dirs=True):
     vf = my_utils.make_vf(env, config)
 
     config["tb_writer"] = None
-    if config["log_tb"]:
+    if config["log_tb"] and setup_dirs:
         tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
         config["tb_writer"] = tb_writer
 

@@ -2,13 +2,13 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy", "CustomAC"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 2000000
-"gamma" : 0.99
-"n_steps" : 60
-"vf_coef" : 0.5
-"ent_coef" : 0.0
-"max_grad_norm" : 0.5
-"learning_rate" : 0.0005
+"iters" : 10000000
+"gamma" : 0.9974
+"n_steps" : 22
+"vf_coef" : 0.57
+"ent_coef" : 0.0000057
+"max_grad_norm" : 0.76
+"learning_rate" : 0.00088
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'

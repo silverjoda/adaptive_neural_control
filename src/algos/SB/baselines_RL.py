@@ -129,7 +129,8 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
     return total_rew
 
 
-def test_multiple(env, model, deterministic=True, N=100, print_rew=True):
+def test_multiple(env, model, deterministic=True, N=100, print_rew=True, seed=1337):
+    env.set_seed(seed, seed)
     total_rew = 0.
     for _ in range(N):
         obs = env.reset()

@@ -22,12 +22,10 @@ class HexapodBulletEnv(gym.Env):
         self.seed = self.config["seed"]
         
         if self.seed is not None:
-            np.random.seed(self.seed)
-            T.manual_seed(self.seed)
+            self.set_seed(self.seed, self.seed)
         else:
             rnd_seed = int((time.time() % 1) * 10000000)
-            np.random.seed(rnd_seed)
-            T.manual_seed(rnd_seed + 1)
+            self.set_seed(rnd_seed, rnd_seed + 1)
 
         if (self.config["animate"]):
             self.client_ID = p.connect(p.GUI)
@@ -82,6 +80,11 @@ class HexapodBulletEnv(gym.Env):
         self.target_vel_nn_input = 0
 
         self.create_targets()
+
+    def set_seed(self, np_seed, T_seed):
+        np.random.seed(np_seed)
+        T.manual_seed(T_seed)
+
 
     def create_targets(self):
         self.target = None
@@ -467,6 +470,9 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
+
+        #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.0001)
+        #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.0001)
 
         if self.config["velocity_control"]:
             self.target_vel_nn_input = np.random.rand() * 2 - 1
