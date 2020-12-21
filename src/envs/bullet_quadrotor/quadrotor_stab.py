@@ -122,7 +122,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_inertia_coeff": 0.95 + np.random.rand() * 0.10 * self.config["randomize_env"],
+                                 "motor_alpha": 0.03 + np.random.rand() * 0.10 * self.config["randomize_env"],
                                  "motor_force_multiplier": 6 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
@@ -130,7 +130,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
-        self.randomized_params_list_norm.append((self.randomized_params["motor_inertia_coeff"] - 0.9) * (1. / 0.05))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_alpha"] - 0.9) * (1. / 0.05))
         self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 2.5))
         self.randomized_params_list_norm.extend((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
         self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
@@ -171,8 +171,14 @@ class QuadrotorBulletEnv(gym.Env):
         return obs
 
     def update_motor_vel(self, ctrl):
-        self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.randomized_params["motor_inertia_coeff"] +
-                                                  np.array(ctrl) * (1 - self.randomized_params["motor_inertia_coeff"]), 0, 1)
+        #self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.randomized_params["motor_inertia_coeff"] +
+         #                                         np.array(ctrl) * (1 - self.randomized_params["motor_inertia_coeff"]), 0, 1)
+        ctrl_clipped = np.clip(ctrl, 0, 1)
+        bot = np.minimum(self.current_motor_velocity_vec, ctrl_clipped)
+        top = np.maximum(self.current_motor_velocity_vec, ctrl_clipped)
+        raw = self.current_motor_velocity_vec + self.randomized_params["motor_alpha"] * np.sign(ctrl - self.current_motor_velocity_vec)
+        self.current_motor_velocity_vec = np.clip(raw, bot, top)
+
 
     def render(self, close=False, mode=None):
         if self.config["animate"]:
