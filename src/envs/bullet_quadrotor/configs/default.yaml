@@ -1,6 +1,6 @@
 "env_name" : "quadrotor_stab"
-"controller_source" : "nn" # nn/pid
-"target_vel_source" : "still" # still/rnd/joystick
+"controller_source" : "pid" # nn/pid
+"target_vel_source" : "joystick" # still/rnd/joystick
 "rnd_init" : True
 "max_steps" : 500
 "step_counter" : 0

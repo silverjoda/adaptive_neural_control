@@ -258,7 +258,6 @@ class QuadrotorBulletEnv(gym.Env):
         return m_1, m_2, m_3, m_4
 
     def step(self, ctrl_raw):
-        #print(ctrl_raw)
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
         if self.randomized_params["output_transport_delay"] > 0:
