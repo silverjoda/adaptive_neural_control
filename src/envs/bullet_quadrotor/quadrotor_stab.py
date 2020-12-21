@@ -258,6 +258,7 @@ class QuadrotorBulletEnv(gym.Env):
         return m_1, m_2, m_3, m_4
 
     def step(self, ctrl_raw):
+        #print(ctrl_raw)
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
         if self.randomized_params["output_transport_delay"] > 0:
@@ -300,7 +301,6 @@ class QuadrotorBulletEnv(gym.Env):
 
         torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel = self.get_obs()
         roll, pitch, yaw = torso_euler
-
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
         p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
@@ -371,6 +371,9 @@ class QuadrotorBulletEnv(gym.Env):
         p.resetBaseVelocity(self.robot,linearVelocity=rnd_starting_lin_velocity, angularVelocity=rnd_starting_rot_velocity, physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim) + 0.1)
         return obs
+
+    def get_original_reward(self):
+        return 0
 
     def demo(self):
         for i in range(100):

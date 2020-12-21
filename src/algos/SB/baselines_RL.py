@@ -128,7 +128,6 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
                 break
     return total_rew
 
-
 def test_multiple(env, model, deterministic=True, N=100, print_rew=True, seed=1337):
     #env.set_seed(seed, seed)
     total_rew = 0.
@@ -203,10 +202,11 @@ if __name__ == "__main__":
     if args["test"] and socket.gethostname() != "goedel":
         stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(env_config["env_name"])
-        env = DummyVecEnv([lambda: env_fun(config)])
-        env = VecNormalize.load(stats_path, env)
+        env = env_fun(config)  # Default, without normalization
+        #env = DummyVecEnv([lambda: env_fun(config)])
+        #env = VecNormalize.load(stats_path, env)
 
-        #env = env_fun(config) # Default, without normalization
+
         model = load_model(config)
 
         test_agent(env, model, deterministic=True)
