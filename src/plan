@@ -46,10 +46,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 - SNAIL - like architecture
 
 # TODO:
-# Quadrotor: Check how long js, processing, output, RS and NN fw pass take.
-# Quadrotor: Check if realsense fails when operating props and shaking
-# Quadrotor: Test after refactoring code to standard env
-# Rewrite quadrotor control loop so that it's identical to simulation, to remove any queue errors.
 # Debug AC. Try print weights and or grads of VF to see if it's being updated. Check loss fcn and maybe tensorboard graph?
 # Do a theoretical detailed gradient computation on paper to clear up some misunderstandings
 # Find good hyperparams for both a2c and ac
