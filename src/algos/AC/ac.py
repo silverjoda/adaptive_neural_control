@@ -102,8 +102,6 @@ def train(env, policy, vf, config):
 
             #batch_rewards_for_advantages = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
-            # Run 1: Usual, Run2: Normalized rew
-
             # Calculate episode advantages
             #batch_advantages = calc_advantages_MC(config["gamma"], batch_rewards, batch_terminals)
             batch_advantages = calc_advantages(config["gamma"], vf, batch_observations, batch_rewards, batch_terminals)

@@ -12,7 +12,7 @@
 "weight_decay" : 0.0001
 "n_total_steps_train" : 2000000
 "gamma" : 0.99
-"batchsize" : 16
+"batchsize" : 2
 "policy_hid_dim" : 64
 "vf_hid_dim" : 256
 "policy_grad_clip_value" : 0.7

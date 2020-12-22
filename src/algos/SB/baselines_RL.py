@@ -202,9 +202,9 @@ if __name__ == "__main__":
     if args["test"] and socket.gethostname() != "goedel":
         stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(env_config["env_name"])
-        env = env_fun(config)  # Default, without normalization
-        #env = DummyVecEnv([lambda: env_fun(config)])
-        #env = VecNormalize.load(stats_path, env)
+        #env = env_fun(config)  # Default, without normalization
+        env = DummyVecEnv([lambda: env_fun(config)])
+        env = VecNormalize.load(stats_path, env)
 
 
         model = load_model(config)

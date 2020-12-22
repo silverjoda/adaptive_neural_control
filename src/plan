@@ -5,8 +5,6 @@ Adaptation research:
 # TODO: Q2) Does confidence/uncertainty estimate using dropout or ensembles work
 # TODO: Q3) Does RNN learn model for adapting param (supervised learning)
 
-
-
 # Paper extract:
 SNAIL:
 - Gated activation functions: Might be usefull to allow or block output through
@@ -34,10 +32,6 @@ but tune the policy width (it might need to be narrower than the value MLP).
 Linearly decaying the learning rate may slightly improve performance but is of secondary importance.
 - One of the surprising insights is that the initial action distribution plays an important role in agent performance.
 
-# Planned revision for environments:
-- Add transport delay
-- Check randomized parameter generation for each env. Decide on which to keep (test all envs to find proper range)
-- Add param to dict output and conditionally to agent input (conditioned by boolean in config)
 
 # Planned adaptation algos:
 - Plain training using RNN (supervised model learning and RL policy)
@@ -46,8 +40,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 - SNAIL - like architecture
 
 # TODO:
-# Debug AC. Try print weights and or grads of VF to see if it's being updated. Check loss fcn and maybe tensorboard graph?
-# Do a theoretical detailed gradient computation on paper to clear up some misunderstandings
 # Find good hyperparams for both a2c and ac
 # Study stable baselines3 policy modification through custom policy
 # Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)

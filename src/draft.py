@@ -1,12 +1,15 @@
 import torch as T
 
-x1 = T.tensor([.9], requires_grad=True)
-x2 = T.tensor([.9], requires_grad=True)
-a1 = T.log(x1)
-a2 = x2
+a = T.tensor([10.], requires_grad=True)
+# b = T.tensor([0.], requires_grad=True)
+# c = T.tensor([1.0], requires_grad=True)
+# l = T.tensor([-1.], requires_grad=True)
+# v = a + b
+# y = c * v
 
-a1.backward()
-a2.backward()
 
-print(x1.grad)
-print((1/x2) * x2.grad)
+
+y = (a * 0.5) * (a * 3)
+y.backward()
+
+print(a.grad)
