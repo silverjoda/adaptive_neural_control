@@ -165,7 +165,6 @@ def setup_train(config, setup_dirs=True):
                        gamma=config["gamma"],
                        norm_obs=config["norm_obs"],
                        norm_reward=config["norm_reward"])
-    #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
     model = make_model(config, env, None)
 
     checkpoint_callback = CheckpointCallback(save_freq=300000,
@@ -205,7 +204,6 @@ if __name__ == "__main__":
         #env = env_fun(config)  # Default, without normalization
         env = DummyVecEnv([lambda: env_fun(config)])
         env = VecNormalize.load(stats_path, env)
-
 
         model = load_model(config)
 
