@@ -40,6 +40,8 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 - SNAIL - like architecture
 
 # TODO:
+# !! top prio ADD prev act and obs to hexapod and train!!
+# !! Try the all joint phase policy !!
 # Find good hyperparams for both a2c and ac
 # Study stable baselines3 policy modification through custom policy
 # Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)

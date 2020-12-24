@@ -35,11 +35,12 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.obs_dim = 27 + self.config["action_input"] * 18 \
+        self.just_obs_dim = 27
+        self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
+                       + self.config["act_input"] * 18 \
                        + self.config["rew_input"] * 1 \
                        + self.config["latent_input"] * 6 \
-                       + self.config["step_counter"] * 1 \
-                       + int(self.config["velocity_control"] * 1)
+                       + self.config["step_counter"] * 1
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -80,6 +81,11 @@ class HexapodBulletEnv(gym.Env):
         self.target_vel_nn_input = 0
 
         self.create_targets()
+
+        self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]))]
+        self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]))]
+        self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]))]
+
 
     def set_seed(self, np_seed, T_seed):
         np.random.seed(np_seed)
@@ -278,7 +284,6 @@ class HexapodBulletEnv(gym.Env):
 
         #contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-
         contacts = np.zeros(6)
 
         # Joints
@@ -349,6 +354,9 @@ class HexapodBulletEnv(gym.Env):
         return self.robot
 
     def step(self, ctrl_raw, render=False):
+        self.act_queue.append(ctrl_raw)
+        self.act_queue.pop(0)
+
         ctrl_clipped = np.tanh(np.array(ctrl_raw) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
@@ -432,24 +440,35 @@ class HexapodBulletEnv(gym.Env):
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
         r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
 
+        self.rew_queue.append([r])
+        self.rew_queue.pop(0)
+
         if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
             print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
+        # Assemble agent observation
+        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, relative_target
+        compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
+        self.obs_queue.append(compiled_obs_flat)
+        self.obs_queue.pop(0)
+
         aux_obs = []
-        if self.config["action_input"]:
-            aux_obs.extend(ctrl_raw)
-        if self.config["rew_input"]:
-            aux_obs.extend([r])
+        if self.config["obs_input"]:
+            [aux_obs.extend(c) for c in self.obs_queue]
+        if self.config["act_input"]:
+            [aux_obs.extend(c) for c in self.act_queue]
+        if self.config["rew_input"] > 0:
+            [aux_obs.extend(c) for c in self.rew_queue]
         if self.config["latent_input"]:
             aux_obs.extend(self.randomized_params_list_norm)
         if self.config["step_counter"]:
             aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
 
-        # Assemble agent observation
-        env_obs = np.concatenate((scaled_joint_angles, torso_quat, torso_vel, relative_target, aux_obs))
+        env_obs = np.array(aux_obs).astype(np.float32)
+
         done = self.step_ctr > self.config["max_steps"] or reached_target
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
@@ -460,7 +479,7 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
-        return env_obs.astype(np.float32), r, done, {}
+        return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
         if self.config["randomize_env"]:

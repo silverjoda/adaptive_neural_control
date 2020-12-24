@@ -276,14 +276,16 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
         if self.randomized_params["output_transport_delay"] > 0:
-            ctrl_raw_unqueued = self.act_queue[:-self.randomized_params["output_transport_delay"]]
+            ctrl_raw_unqueued = self.act_queue[-self.config["act_input"]:]
+            ctrl_delayed = self.act_queue[-1 -self.randomized_params["output_transport_delay"]]
         else:
             ctrl_raw_unqueued = self.act_queue
+            ctrl_delayed = self.act_queue[-1]
 
         if self.config["controller_source"] == "nn":
-            ctrl_processed = np.clip(ctrl_raw_unqueued[-1] * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
+            ctrl_processed = np.clip(ctrl_delayed * self.config["action_scaler"], -1, 1) * 0.5 + 0.5
         else:
-            ctrl_processed = ctrl_raw_unqueued[-1]
+            ctrl_processed = ctrl_delayed
 
         # Take into account motor delay
         self.update_motor_vel(ctrl_processed)
@@ -325,7 +327,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
         if self.randomized_params["input_transport_delay"] > 0:
-            r_unqueued = self.rew_queue[:-self.randomized_params["input_transport_delay"]]
+            r_unqueued = self.rew_queue[-self.config["rew_input"]:]
         else:
             r_unqueued = self.rew_queue
 
@@ -340,7 +342,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.obs_queue.pop(0)
 
         if self.randomized_params["input_transport_delay"] > 0:
-            obs_raw_unqueued = self.obs_queue[:-self.randomized_params["input_transport_delay"]]
+            obs_raw_unqueued = self.obs_queue[-self.config["obs_input"]:]
         else:
             obs_raw_unqueued = self.obs_queue
 

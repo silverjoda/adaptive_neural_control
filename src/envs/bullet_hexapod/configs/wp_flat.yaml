@@ -1,6 +1,7 @@
 "env_name" : "hexapod_wp"
 "controller_source" : "joystick" # joystick
 "max_steps" : 90
+
 "terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
@@ -11,10 +12,11 @@
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 0.2
-"step_counter" : False
-"latent_input" : False
-"action_input" : False
-"rew_input" : False
+"step_counter" : 0
+"latent_input" : 0
+"act_input" : 2
+"obs_input" : 1
+"rew_input" : 0
 "randomize_env" : False
 "max_actuator_velocity" : 4.0
 "lateral_friction" : 1.2
