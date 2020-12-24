@@ -267,6 +267,12 @@ class QuadrotorBulletEnv(gym.Env):
         return m_1, m_2, m_3, m_4
 
     def step(self, ctrl_raw):
+        if self.prev_act is not None:
+            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * 0.2
+        else:
+            raw_act_smoothness_pen = 0
+        self.prev_act = ctrl_raw
+
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
         if self.randomized_params["output_transport_delay"] > 0:
@@ -314,7 +320,7 @@ class QuadrotorBulletEnv(gym.Env):
         p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
         p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
-        r = 1.0 - p_position - p_rp
+        r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
@@ -362,6 +368,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         self.step_ctr = 0
         self.current_disturbance = None
+        self.prev_act = None
 
         if self.config["rnd_init"]:
             rnd_starting_pos_delta = np.random.rand(3) * 2 - 1.5

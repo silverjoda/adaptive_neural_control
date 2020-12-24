@@ -204,7 +204,7 @@ if __name__ == "__main__":
         env_fun = my_utils.import_env(env_config["env_name"])
         #env = env_fun(config)  # Default, without normalization
         env = DummyVecEnv([lambda: env_fun(config)])
-        #env = VecNormalize.load(stats_path, env)
+        env = VecNormalize.load(stats_path, env)
 
         model = load_model(config)
 
