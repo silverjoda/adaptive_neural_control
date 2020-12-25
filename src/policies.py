@@ -40,7 +40,6 @@ class VF_AC(nn.Module):
     def get_value(self, x):
         return self.forward(T.tensor(x).unsqueeze(0)).squeeze(0).detach().numpy()
 
-
 class PI_AC(nn.Module):
     def __init__(self, obs_dim, act_dim, config):
         super(PI_AC, self).__init__()

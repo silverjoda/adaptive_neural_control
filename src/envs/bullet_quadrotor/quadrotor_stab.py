@@ -125,16 +125,16 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_alpha": 0.05 + np.random.rand() * 0.10 * self.config["randomize_env"],
-                                 "motor_force_multiplier": 6 + (np.random.rand() * 5 - 2.5) * self.config["randomize_env"],
+                                 "motor_alpha": 0.05 + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
+                                 "motor_force_multiplier": 6 + (np.random.rand() * 4 - 1.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": 1 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
                                  "output_transport_delay": 2 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
-        self.randomized_params_list_norm.append((self.randomized_params["motor_alpha"] - 0.9) * (1. / 0.05))
-        self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 2.5))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_alpha"] - 0.05) * (1. / 0.02))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 1.5))
         self.randomized_params_list_norm.extend((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
         self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
         self.randomized_params_list_norm.append(self.randomized_params["output_transport_delay"] - 1)

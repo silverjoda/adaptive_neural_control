@@ -2,7 +2,7 @@
 "policy_name" : "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 30000000
+"iters" : 7000000
 "gamma" : 0.99 # Usually set at 0.98
 "n_steps" : 20
 "vf_coef" : 0.6
@@ -18,5 +18,5 @@
 "policy_hid_dim" : 256
 "policy_memory_dim" : 256
 "policy_residual_connection" : False
-"norm_obs" : True
+"norm_obs" : False
 "norm_reward" : True
