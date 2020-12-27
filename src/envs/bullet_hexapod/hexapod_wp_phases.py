@@ -35,14 +35,14 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.just_obs_dim = 39
+        self.act_dim = 24
+        self.just_obs_dim = 57
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
-                       + self.config["act_input"] * 18 \
+                       + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
                        + self.config["latent_input"] * 6 \
                        + self.config["step_counter"] * 1 \
-                       + 18
-        self.act_dim = 24
+
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
@@ -58,6 +58,7 @@ class HexapodBulletEnv(gym.Env):
 
         self.time_vector = np.zeros(self.act_dim-6)
         self.time_tick = 0.35
+        self.bounds_tick = 0.03
         self.time_tick_action_scalar = 0.3
         self.phase_amplitude_mult = .9
 
@@ -368,8 +369,8 @@ class HexapodBulletEnv(gym.Env):
         ctrl_joints = ctrl_clipped[:18]
         ctrl_bounds = ctrl_clipped[18:]
 
-        self.joints_rads_low += np.tile(ctrl_bounds[:3], (6))
-        self.joints_rads_high += np.tile(ctrl_bounds[3:], (6))
+        self.joints_rads_low += np.tile(ctrl_bounds[:3], (6)) * self.bounds_tick
+        self.joints_rads_high += np.tile(ctrl_bounds[3:], (6)) * self.bounds_tick
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.time_vector = self.time_vector + ctrl_joints * self.time_tick_action_scalar + self.time_tick
@@ -467,7 +468,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, relative_target, phases, contacts, self.joints_rads_low, self.joints_rads_high
+        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, relative_target, phases, contacts, list(self.joints_rads_low[:3]), list(self.joints_rads_high[:3])
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
