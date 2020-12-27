@@ -8,7 +8,7 @@
 "act_input" : 3
 "obs_input" : 3
 "rew_input" : 0
-"randomize_env" : True
+"randomize_env" : False
 "env_change_prob" : 0.5
 "sim_timestep" : 0.01
 "action_scaler" : 1.0

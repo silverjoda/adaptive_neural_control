@@ -35,14 +35,14 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.just_obs_dim = 27
+        self.just_obs_dim = 39
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * 18 \
                        + self.config["rew_input"] * 1 \
                        + self.config["latent_input"] * 6 \
                        + self.config["step_counter"] * 1 \
                        + 18
-        self.act_dim = 18
+        self.act_dim = 24
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
@@ -56,8 +56,8 @@ class HexapodBulletEnv(gym.Env):
         self.left_joints_ids = [0, 1, 2, 6, 7, 8, 12, 13, 14]
         self.right_joints_ids = [3, 4, 5, 9, 10, 11, 15, 16, 17]
 
-        self.time_vector = np.zeros(self.act_dim)
-        self.time_tick = 0.3
+        self.time_vector = np.zeros(self.act_dim-6)
+        self.time_tick = 0.35
         self.time_tick_action_scalar = 0.3
         self.phase_amplitude_mult = .9
 
@@ -288,9 +288,9 @@ class HexapodBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
 
-        #contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
+        contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        contacts = np.zeros(6)
+        #contacts = np.zeros(6)
 
         # Joints
         obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
@@ -364,7 +364,15 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.pop(0)
 
         ctrl_clipped = np.tanh(np.array(ctrl_raw) * self.config["action_scaler"])
-        self.time_vector = self.time_vector + ctrl_clipped * self.time_tick_action_scalar + self.time_tick
+
+        ctrl_joints = ctrl_clipped[:18]
+        ctrl_bounds = ctrl_clipped[18:]
+
+        self.joints_rads_low += np.tile(ctrl_bounds[:3], (6))
+        self.joints_rads_high += np.tile(ctrl_bounds[3:], (6))
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.time_vector = self.time_vector + ctrl_joints * self.time_tick_action_scalar + self.time_tick
         phases = self.phase_amplitude_mult * np.sin(self.time_vector)
 
         scaled_action = self.norm_to_rads(phases)
@@ -459,7 +467,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, relative_target, phases
+        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, relative_target, phases, contacts, self.joints_rads_low, self.joints_rads_high
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -494,7 +502,7 @@ class HexapodBulletEnv(gym.Env):
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
-        self.time_vector = np.zeros(self.act_dim)
+        self.time_vector = np.zeros(self.act_dim-6)
 
         # Reset episodal vars
         self.step_ctr = 0
@@ -601,12 +609,12 @@ class HexapodBulletEnv(gym.Env):
             for i, a in enumerate(test_acts):
                 for j in range(n_steps):
                     #a = list(np.random.randn(3))
-                    scaled_obs, _, _, _ = self.step(a * 6)
+                    scaled_obs, _, _, _ = self.step(a * 8)
                 _, _, _, _, joint_angles, _, joint_torques, contacts, ctct_torso = self.get_obs()
                 if VERBOSE:
                     print("Obs rads: ", joint_angles)
                     print("Obs normed: ", self.rads_to_norm(joint_angles))
-                    print("For action rads: ", self.norm_to_rads(a * 6))
+                    print("For action rads: ", self.norm_to_rads(a * 8))
                     print("action normed: ", a)
                     #input()
 

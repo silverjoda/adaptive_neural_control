@@ -8,7 +8,7 @@
 "vf_coef" : 0.5
 "ent_coef" : 0.000000
 "max_grad_norm" : 0.5
-"learning_rate" : 0.0005
+"learning_rate" : 0.0005 # probably 0.0004 would be better
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
