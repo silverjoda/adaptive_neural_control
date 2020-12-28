@@ -57,10 +57,10 @@ class HexapodBulletEnv(gym.Env):
         self.right_joints_ids = [3, 4, 5, 9, 10, 11, 15, 16, 17]
 
         self.time_vector = np.zeros(self.act_dim-6)
-        self.time_tick = 0.35
-        self.bounds_tick = 0.03
-        self.time_tick_action_scalar = 0.3
-        self.phase_amplitude_mult = .9
+        self.time_tick = 0.4
+        self.bounds_tick = 0.04
+        self.time_tick_action_scalar = 0.5
+        self.phase_amplitude_mult = .8
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
@@ -503,7 +503,7 @@ class HexapodBulletEnv(gym.Env):
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
-        self.time_vector = np.zeros(self.act_dim-6)
+        self.time_vector = np.random.rand(self.act_dim - 6)
 
         # Reset episodal vars
         self.step_ctr = 0
