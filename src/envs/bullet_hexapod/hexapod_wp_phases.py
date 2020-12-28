@@ -369,9 +369,9 @@ class HexapodBulletEnv(gym.Env):
         ctrl_joints = ctrl_clipped[:18]
         ctrl_bounds = ctrl_clipped[18:]
 
-        self.joints_rads_low += np.tile(ctrl_bounds[:3], (6)) * self.bounds_tick
-        self.joints_rads_high += np.tile(ctrl_bounds[3:], (6)) * self.bounds_tick
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+        #self.joints_rads_low += np.tile(ctrl_bounds[:3], (6)) * self.bounds_tick
+        #self.joints_rads_high += np.tile(ctrl_bounds[3:], (6)) * self.bounds_tick
+        #self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.time_vector = self.time_vector + ctrl_joints * self.time_tick_action_scalar + self.time_tick
         phases = self.phase_amplitude_mult * np.sin(self.time_vector)
