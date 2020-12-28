@@ -18,3 +18,4 @@
 "vf_hid_dim" : 256
 "policy_grad_clip_value" : 0.5
 "policy_residual_connection" : False
+"advantages_MC" : True

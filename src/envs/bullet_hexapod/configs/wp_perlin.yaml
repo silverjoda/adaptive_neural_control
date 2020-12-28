@@ -1,6 +1,6 @@
 "env_name" : "hexapod_wp_phases"
 "controller_source" : "joystick" # joystick
-"max_steps" : 90
+"max_steps" : 70
 "terrain_name" : "perlin"
 "training_mode" : "straight"
 "velocity_control" : False

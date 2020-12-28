@@ -62,10 +62,10 @@ class PI_AC(nn.Module):
         w_i_b = self.config["weight_init_bnd"]
         #nn.init.uniform_(self.fc1.bias, -w_i_b, w_i_b)
         #nn.init.uniform_(self.fc2.bias, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc3.bias, -w_i_b * 0.01, w_i_b * 0.01)
+        nn.init.uniform_(self.fc3.bias, -w_i_b * 0.1, w_i_b * 0.1)
         #nn.init.uniform_(self.fc1.weight, -w_i_b, w_i_b)
         #nn.init.uniform_(self.fc2.weight, -w_i_b, w_i_b)
-        nn.init.uniform_(self.fc3.weight, -w_i_b * 0.01, w_i_b * 0.01)
+        nn.init.uniform_(self.fc3.weight, -w_i_b * 0.1, w_i_b * 0.1)
 
         for p in self.parameters():
                 p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))

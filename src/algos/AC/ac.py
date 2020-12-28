@@ -103,10 +103,16 @@ def train(env, policy, vf, config):
             #batch_rewards_for_advantages = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
-            #batch_advantages = calc_advantages_MC(config["gamma"], batch_rewards, batch_terminals)
-            batch_advantages = calc_advantages(config["gamma"], vf, batch_observations, batch_rewards, batch_terminals)
+            if config["advantages_MC"]:
+                batch_advantages = calc_advantages_MC(config["gamma"], batch_rewards, batch_terminals)
+            else:
+                batch_advantages = calc_advantages(config["gamma"], vf, batch_observations, batch_rewards, batch_terminals)
             loss_policy = update_policy(policy, policy_optim, batch_observations, batch_actions, batch_advantages.detach())
-            loss_vf = update_vf(vf_optim, batch_advantages)
+
+            if config["advantages_MC"]:
+                loss_vf = 0
+            else:
+                loss_vf = update_vf(vf_optim, batch_advantages)
 
             # Post update log
             if config["tb_writer"] is not None:
@@ -193,7 +199,7 @@ def calc_advantages(gamma, vf, batch_observations, batch_rewards, batch_terminal
     for i in reversed(range(len(batch_rewards))):
         r, v, t = batch_rewards[i], batch_values[i], batch_terminals[i]
         if t:
-            R = r - v
+            R = r
         else:
             v_next = batch_values[i + 1]
             R = r + gamma * v_next - v
