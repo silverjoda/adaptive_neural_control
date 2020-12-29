@@ -59,7 +59,7 @@ class HexapodBulletEnv(gym.Env):
         self.time_vector = np.zeros(18)
         self.time_tick = 0.4
         self.bounds_tick = 0.04
-        self.time_tick_action_scalar = 0.5
+        self.time_tick_action_scalar = 0.3
         self.phase_amplitude_mult = .8
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
