@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 24
+        self.act_dim = 18 * 2
         self.just_obs_dim = 57
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
@@ -367,14 +367,14 @@ class HexapodBulletEnv(gym.Env):
         ctrl_clipped = np.tanh(np.array(ctrl_raw) * self.config["action_scaler"])
 
         ctrl_joints = ctrl_clipped[:18]
-        ctrl_bounds = ctrl_clipped[18:]
+        ctrl_additive = ctrl_clipped[18:]
 
         #self.joints_rads_low += np.tile(ctrl_bounds[:3], (6)) * self.bounds_tick
         #self.joints_rads_high += np.tile(ctrl_bounds[3:], (6)) * self.bounds_tick
         #self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.time_vector = self.time_vector + ctrl_joints * self.time_tick_action_scalar + self.time_tick
-        phases = self.phase_amplitude_mult * np.sin(self.time_vector)
+        phases = self.phase_amplitude_mult * np.sin(self.time_vector) + ctrl_additive * 0.5
 
         scaled_action = self.norm_to_rads(phases)
 
