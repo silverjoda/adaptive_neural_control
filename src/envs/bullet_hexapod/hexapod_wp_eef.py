@@ -46,25 +46,23 @@ class HexapodBulletEnv(gym.Env):
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
-        self.joints_rads_low = np.array(config["joints_rads_low"] * 6)
-        self.joints_rads_high = np.array(config["joints_rads_high"] * 6)
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
-        self.coxa_joint_ids = range(0, 18, 3)
-        self.femur_joint_ids = range(1, 18, 3)
-        self.tibia_joint_ids = range(2, 18, 3)
-        self.left_joints_ids = [0, 1, 2, 6, 7, 8, 12, 13, 14]
-        self.right_joints_ids = [3, 4, 5, 9, 10, 11, 15, 16, 17]
-
-        self.time_vector = np.zeros(18)
-        self.time_tick = 0.4
-        self.bounds_tick = 0.04
-        self.time_tick_action_scalar = 0.5
-        self.phase_amplitude_mult = .8
-
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
+
+        self.boxxyvs = p.createVisualShape(shapeType=p.GEOM_BOX,
+                                                      halfExtents=[0.06, 0.06, 0.2],
+                                                      rgbaColor=[1, 0, 0, 1],
+                                                      physicsClientId=self.client_ID)
+        self.boxxycs = p.createCollisionShape(shapeType=p.GEOM_BOX,
+                                           halfExtents=[0.06, 0.06, 0.2],
+                                           physicsClientId=self.client_ID)
+
+        self.boxxy = p.createMultiBody(baseMass=0,
+                                             baseVisualShapeIndex=self.boxxyvs,
+                                             baseCollisionShapeIndex=self.boxxycs,
+                                             basePosition=[0, 0, 0],
+                                             physicsClientId=self.client_ID)
 
         self.urdf_name = config["urdf_name"]
         self.robot = self.load_robot()
@@ -305,14 +303,6 @@ class HexapodBulletEnv(gym.Env):
 
         return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso
 
-    def rads_to_norm(self, joints):
-        sjoints = np.array(joints)
-        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
-        return sjoints
-
-    def norm_to_rads(self, action):
-        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
-
     def render(self, close=False, mode=None):
         if self.config["animate"]:
             time.sleep(self.config["sim_timestep"])
@@ -504,23 +494,12 @@ class HexapodBulletEnv(gym.Env):
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
-        self.time_vector = np.random.rand(18)
+        self.time_vector = np.random.rand(6)
 
         # Reset episodal vars
         self.step_ctr = 0
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
-
-        #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
-        #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
-
-        if self.config["velocity_control"]:
-            self.target_vel_nn_input = np.random.rand() * 2 - 1
-            self.config["target_vel"] = 0.5 * (self.target_vel_nn_input + 1) * (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"])) + min(self.config["target_vel_range"])
-
-        if self.config["force_target_velocity"]:
-            self.config["target_vel"] = self.config["forced_target_velocity"]
-            self.target_vel_nn_input = 2 * ((self.config["target_vel"] - min(self.config["target_vel_range"])) / (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"]))) - 1
 
         # Change heightmap with small probability
         if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
@@ -533,12 +512,11 @@ class HexapodBulletEnv(gym.Env):
             spawn_height = 0.5 * np.max(self.terrain_hm[self.config["env_length"] // 2 - 3:self.config["env_length"] // 2 + 3, self.config["env_width"] // 2 - 3 : self.config["env_width"] // 2 + 3]) * self.config["mesh_scale_vert"]
 
         # Random initial rotation
-        rnd_rot = np.random.rand() * 0.3 - 0.15
+        rnd_rot = 0#np.random.rand() * 0.3 - 0.15
         rnd_quat = p.getQuaternionFromAxisAngle([0, 0, 1], rnd_rot)
 
-        joint_init_pos_list = self.norm_to_rads([0] * 18)
-        [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(18)]
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, spawn_height + 0.15], rnd_quat, physicsClientId=self.client_ID)
+        [p.resetJointState(self.robot, i, 0, 0, physicsClientId=self.client_ID) for i in range(18)]
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, spawn_height + 0.3], rnd_quat, physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,
@@ -554,8 +532,8 @@ class HexapodBulletEnv(gym.Env):
         for i in range(10):
             p.stepSimulation(physicsClientId=self.client_ID)
 
-        obs, _, _, _ = self.step(np.zeros(self.act_dim))
-
+        #obs, _, _, _ = self.step(np.zeros(self.act_dim))
+        obs = [0] * self.just_obs_dim
         return obs
 
     def test_agent(self, policy):
@@ -625,6 +603,33 @@ class HexapodBulletEnv(gym.Env):
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))
 
+
+    def test_ikt(self):
+        np.set_printoptions(precision=3)
+        self.reset()
+        eef_idx = 3
+        while True:
+            obs = p.getJointStates(self.robot, [0,1,2], physicsClientId=self.client_ID)
+            joint_angles = []
+            for o in obs:
+                joint_angles.append(o[0])
+            targets = p.calculateInverseKinematics(self.robot, eef_idx, targetPosition=[1,0,1]) #, currentPosition=joint_angles
+
+            for i in range(18):
+                p.setJointMotorControl2(bodyUniqueId=self.robot,
+                                        jointIndex=i,
+                                        controlMode=p.POSITION_CONTROL,
+                                        targetPosition=targets[i],
+                                        force=5,
+                                        positionGain=2,
+                                        velocityGain=2,
+                                        maxVelocity=5,
+                                        physicsClientId=self.client_ID)
+
+            p.stepSimulation()
+            time.sleep(self.config["sim_step"])
+
+
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
@@ -634,4 +639,4 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    env.test_leg_coordination()
+    env.test_ikt()
