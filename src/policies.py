@@ -11,6 +11,7 @@ class FF_HEX_EEF(nn.Module):
         self.config = config
         self.obs_dim = obs_dim
         self.act_dim = act_dim
+        # [tensor(0.7135), tensor(-0.6724), tensor(-0.8629), tensor(-1.0894), tensor(0.0725), tensor(3.4730), tensor(0.3511), tensor(0.4637), tensor(-3.4840), tensor(-2.8000), tensor(-0.4658)]
         # x_mult, y_offset, z_mult, z_offset, phase_offset, *phases
         self.learned_params = \
             nn.ParameterList([nn.Parameter(T.tensor(0.2)), # x_mult

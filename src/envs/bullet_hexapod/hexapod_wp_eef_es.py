@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 6 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
+        self.act_dim = 11 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
         self.just_obs_dim = 9
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
@@ -61,12 +61,6 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.angle = 0
         self.eef_list = [i * 3 + 2 for i in range(6)]
-        self.phases_op = np.array([3.4730, 0.3511, 0.4637, -3.4840, -2.8000, -0.4658])
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset = [np.tanh(0.7135) * 0.075 * 0.5 + 0.075,
-                                                                                     np.tanh(-0.6724) * 0.085 * 0.5 + 0.085,
-                                                                                     np.tanh(-0.8629) * 0.075 * 0.5 + 0.075,
-                                                                                     np.tanh(-1.0894) * 0.1 * 0.5 + 0.1,
-                                                                                     0.0725]
         self.create_targets()
 
         self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]))]
@@ -334,14 +328,14 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        phases = self.phases_op + ctrl_raw
+        x_mult, y_offset, z_mult, z_offset, phase_offset, *phases = ctrl_raw
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
                                                 endEffectorLinkIndices=self.eef_list,
                                                 targetPositions=[
-                                                    [np.cos(-self.angle * 2 * np.pi + phases[i]) * self.x_mult, self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + self.phase_offset) * self.z_mult - self.z_offset]
+                                                    [np.cos(-self.angle * 2 * np.pi + phases[i]) * x_mult, y_offset * dir_vec[i],
+                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * z_mult - z_offset]
                                                     for i in range(6)],
                                                 # targetPositions=[
                                                 #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.1, 0.5 * dir_vec[i],
@@ -362,15 +356,36 @@ class HexapodBulletEnv(gym.Env):
                                     maxVelocity=self.randomized_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
+        # Read out joint angles sequentially (to simulate servo daisy chain delay)
+        # leg_ctr = 0
+        # obs_sequential = []
+        # for i in range(self.config["sim_steps_per_iter"]):
+        #     if leg_ctr < 6:
+        #         obs_sequential.extend(
+        #             p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+        #         leg_ctr += 1
+        #     p.stepSimulation(physicsClientId=self.client_ID)
+        #     if (self.config["animate"] or render) and True: time.sleep(0.00417)
+
         p.stepSimulation(physicsClientId=self.client_ID)
         if self.config["animate"]: time.sleep(self.config["sim_step"])
 
         self.step_ctr += 1
 
+        # joint_angles_skewed = []
+        # for o in obs_sequential:
+        #     joint_angles_skewed.append(o[0])
+
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
+
+        #scaled_joint_angles = self.rads_to_norm(joint_angles_skewed)
+
+        # Calculate work done by each motor
+        #joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
+        #total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
