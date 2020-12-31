@@ -43,7 +43,7 @@ def train(env, policy, config):
     f = f_wrapper(env, policy)
 
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        f'agents/{config["session_ID"]}_es_policy.p')
+                        f'agents/{config["session_ID"]}_ES_policy.p')
 
     print(f'N_params: {len(w)}')
 
@@ -95,7 +95,7 @@ def test_agent(env, policy):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action = policy(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
+            action = policy(my_utils.to_tensor(obs, True))
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             if done:
@@ -132,10 +132,13 @@ if __name__=="__main__":
         train(env, policy, config)
         t2 = time.time()
 
+        print([par.data for par in policy.learned_params])
+
         print("Training time: {}".format(t2 - t1))
         print(config)
 
     if config["test"] and socket.gethostname() != "goedel":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
+        print([par.data for par in policy.learned_params])
         test_agent(env, policy)
