@@ -1,10 +1,10 @@
 "algo_name" : "ES"
-"policy_type" : "slp"
+"policy_type" : "ff_hex_eef"
 "default_session_ID" : "TST"
 "activation_fun" : "F.leaky_relu"
 "log_tb_all" : True
 "cma_std" : 0.2
-"iters" : 500
+"iters" : 10
 "batchsize" : 20
 "weight_decay" : 0.0000
 "normalize_rewards" : False

@@ -31,7 +31,7 @@ def f_wrapper(env, policy):
         while not done:
             with torch.no_grad():
                 act = policy(my_utils.to_tensor(obs, True))
-            obs, rew, done, _ = env.step(act.squeeze(0).numpy())
+            obs, rew, done, _ = env.step(act)
             reward += rew
 
         return -reward
@@ -50,11 +50,6 @@ def train(env, policy, config):
     it = 0
     try:
         while not es.stop():
-            if config["tb_writer"] is not None:
-                for p in policy.named_parameters():
-                    config["tb_writer"].add_histogram(f"Network/{p[0]}_param", p[1],
-                                                      global_step=it)
-
             it += 1
             if it > config["iters"]:
                 break
@@ -81,9 +76,9 @@ def parse_args():
                         help='Flag indicating whether the environment will be rendered. ')
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
-    parser.add_argument('--algo_config', type=str, default="configs/pg_default_config.yaml", required=False,
+    parser.add_argument('--algo_config', type=str, default="configs/es_default_config.yaml", required=False,
                         help='Algorithm config file name. ')
-    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
+    parser.add_argument('--env_config', type=str, default="default.yaml", required=False,
                         help='Env config file name. ')
     parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
@@ -103,7 +98,6 @@ def test_agent(env, policy):
             action = policy(my_utils.to_tensor(obs, True)).detach().squeeze(0).numpy()
             obs, reward, done, info = env.step(action)
             cum_rew += reward
-
             if done:
                 print(cum_rew)
                 break
@@ -121,23 +115,17 @@ if __name__=="__main__":
         if not os.path.exists(s):
             os.makedirs(s)
 
-    # Random ID of this session
-    if config["default_session_ID"] is None:
-        config["session_ID"] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    else:
-        config["session_ID"] = "TST"
+        # Random ID of this session
+        if config["default_session_ID"] is None:
+            config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
+        else:
+            config["session_ID"] = "TST"
 
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
     env = env_fun(config)
 
     policy = my_utils.make_policy(env, config)
-
-    if config["log_tb_all"]:
-        tb_writer = SummaryWriter(f'tb/{config["session_ID"]}')
-        config["tb_writer"] = tb_writer
-    else:
-        config["tb_writer"] = None
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()

@@ -5,6 +5,30 @@ import numpy as np
 from torch.nn.utils import weight_norm
 from torch.distributions.beta import Beta
 
+class FF_HEX_EEF(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(FF_HEX_EEF, self).__init__()
+        self.config = config
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+        # x_mult, y_offset, z_mult, z_offset, phase_offset, *phases
+        self.learned_params = \
+            nn.ParameterList([nn.Parameter(T.tensor(0.2)),
+                              nn.Parameter(T.tensor(0.1)),
+                              nn.Parameter(T.tensor(0.2)),
+                              nn.Parameter(T.tensor(-0.1)),
+                              nn.Parameter(T.tensor(0.)),
+                              nn.Parameter(T.tensor(0.)),
+                              nn.Parameter(T.tensor(0.)),
+                              nn.Parameter(T.tensor(0.)),
+                              nn.Parameter(T.tensor(0.)),
+                              nn.Parameter(T.tensor(0.)),
+                              nn.Parameter(T.tensor(0.))])
+
+    def forward(self, x):
+        act = [param.data for param in self.learned_params]
+        return act
+
 class VF_AC(nn.Module):
     def __init__(self, obs_dim, config):
         super(VF_AC, self).__init__()

@@ -33,6 +33,8 @@ def to_tensor(x, add_batchdim=False):
 def import_env(name):
     if name == "hexapod_wp":
         from src.envs.bullet_hexapod.hexapod_wp import HexapodBulletEnv as env_fun
+    elif name == "hexapod_wp_eef":
+        from src.envs.bullet_hexapod.hexapod_wp_eef import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_phases":
         from src.envs.bullet_hexapod.hexapod_wp_phases import HexapodBulletEnv as env_fun
     elif name == "hexapod_straight":
@@ -54,6 +56,8 @@ def import_env(name):
 def make_policy(env, config):
     if config["policy_type"] == "mlp":
         return policies.PI_AC(env.obs_dim, env.act_dim, config)
+    elif config["policy_type"] == "ff_hex_eef":
+        return policies.FF_HEX_EEF(env.obs_dim, env.act_dim, config)
     else:
         raise TypeError
 
