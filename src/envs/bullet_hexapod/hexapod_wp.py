@@ -282,9 +282,9 @@ class HexapodBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
 
-        #contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
+        contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 3 + 2, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
-        contacts = np.zeros(6)
+        #contacts = np.zeros(6)
 
         # Joints
         obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque

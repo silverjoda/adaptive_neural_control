@@ -2,7 +2,7 @@ import fnmatch
 NO_LIMITS = True
 joint_limits = {"coxa" : [-0.5, 0.5],"femur" : [-0.9, 0.7],"tibia" : [0.2, 1.4]}
 if NO_LIMITS:
-    joint_limits = {"coxa": [-3., 3.], "femur": [-3., 3.], "tibia": [-3., 3.]}
+    joint_limits = {"coxa": [-6., 6.], "femur": [-6., 6.], "tibia": [-6., 6.]}
 input_filename = "hexapod_template.urdf"
 output_filename = "hexapod_normal.urdf"
 

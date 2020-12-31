@@ -287,7 +287,7 @@ class HexapodBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
 
-        contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 4 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
+        contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 3 + 3, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
         #contacts = np.zeros(6)
 
@@ -607,13 +607,21 @@ class HexapodBulletEnv(gym.Env):
     def test_ikt(self):
         np.set_printoptions(precision=3)
         self.reset()
-        eef_idx = 3
+        eef_idx = 2
+        eef_list = [i * 3 + 2 for i in range(6)]
         while True:
             obs = p.getJointStates(self.robot, [0,1,2], physicsClientId=self.client_ID)
+            link_state = p.getLinkState(self.robot, eef_idx)
+
             joint_angles = []
             for o in obs:
                 joint_angles.append(o[0])
-            targets = p.calculateInverseKinematics(self.robot, eef_idx, targetPosition=[1,0,1]) #, currentPosition=joint_angles
+
+            #targets = p.calculateInverseKinematics(self.robot, eef_idx, targetPosition=[0.2, 0.0, 0])
+            targets = p.calculateInverseKinematics2(self.robot,
+                                                    endEffectorLinkIndices=eef_list,
+                                                    targetPositions=[[0.0, 1.0, 0.0] for _ in range(6)],
+                                                    currentPositions=[0] * 18)
 
             for i in range(18):
                 p.setJointMotorControl2(bodyUniqueId=self.robot,
