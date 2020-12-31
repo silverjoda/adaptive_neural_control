@@ -334,7 +334,7 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        phases = self.phases_op + ctrl_raw
+        phases = self.phases_op + ctrl_raw * 0.5
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -349,7 +349,7 @@ class HexapodBulletEnv(gym.Env):
                                                 #     for i in range(6)],
                                                 currentPositions=[0] * 18)
 
-        self.angle += 0.004
+        self.angle += 0.005
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
@@ -405,8 +405,8 @@ class HexapodBulletEnv(gym.Env):
                  "bobbing": np.sqrt(np.square(zd)) * 0.2,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
-        #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}
-        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
+        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
+        #r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
