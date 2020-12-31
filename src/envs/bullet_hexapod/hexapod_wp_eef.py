@@ -335,11 +335,11 @@ class HexapodBulletEnv(gym.Env):
                                                 endEffectorLinkIndices=self.eef_list,
                                                 targetPositions=[
                                                     [np.cos(-self.angle * 2 * np.pi + phases[i]) * x_mult, y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * z_mult + z_offset]
+                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * z_mult - z_offset]
                                                     for i in range(6)],
                                                 # targetPositions=[
-                                                #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.15, 0.1 * dir_vec[i],
-                                                #      np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * 0.3 - 0.1]
+                                                #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.1, 0.5 * dir_vec[i],
+                                                #      np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * 0.2 - 0.1]
                                                 #     for i in range(6)],
                                                 currentPositions=[0] * 18)
 

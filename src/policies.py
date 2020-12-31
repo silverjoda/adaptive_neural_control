@@ -13,20 +13,31 @@ class FF_HEX_EEF(nn.Module):
         self.act_dim = act_dim
         # x_mult, y_offset, z_mult, z_offset, phase_offset, *phases
         self.learned_params = \
-            nn.ParameterList([nn.Parameter(T.tensor(0.2)),
-                              nn.Parameter(T.tensor(0.1)),
-                              nn.Parameter(T.tensor(0.2)),
-                              nn.Parameter(T.tensor(-0.1)),
-                              nn.Parameter(T.tensor(0.)),
-                              nn.Parameter(T.tensor(0.)),
-                              nn.Parameter(T.tensor(0.)),
-                              nn.Parameter(T.tensor(0.)),
-                              nn.Parameter(T.tensor(0.)),
-                              nn.Parameter(T.tensor(0.)),
-                              nn.Parameter(T.tensor(0.))])
+            nn.ParameterList([nn.Parameter(T.tensor(0.2)), # x_mult
+                              nn.Parameter(T.tensor(0.1)), # y_offset
+                              nn.Parameter(T.tensor(0.2)), # z_mult
+                              nn.Parameter(T.tensor(-0.1)), # z_offset
+                              nn.Parameter(T.tensor(0.)), # phase_offset
+                              nn.Parameter(T.tensor(0.)), # p0
+                              nn.Parameter(T.tensor(0.)), # p1
+                              nn.Parameter(T.tensor(0.)), # p2
+                              nn.Parameter(T.tensor(0.)), # p3
+                              nn.Parameter(T.tensor(0.)), # p4
+                              nn.Parameter(T.tensor(0.))]) # p5
 
     def forward(self, x):
-        act = [param.data for param in self.learned_params]
+        clipped_params = [np.clip(np.tanh(self.learned_params[0].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # x_mult
+                          np.clip(np.tanh(self.learned_params[1].data) * 0.085 * 0.5 + 0.085, 0.05, 0.12), # y_offset
+                          np.clip(np.tanh(self.learned_params[2].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # z_mult
+                          np.clip(np.tanh(self.learned_params[3].data) * 0.1 * 0.5 + 0.1, 0.05, 0.15), # z_offset
+                          self.learned_params[4].data, # phase_offset
+                          self.learned_params[5].data,
+                          self.learned_params[6].data,
+                          self.learned_params[7].data,
+                          self.learned_params[8].data,
+                          self.learned_params[9].data,
+                          self.learned_params[10].data]
+        act = [param.data for param in clipped_params]
         return act
 
 class VF_AC(nn.Module):
