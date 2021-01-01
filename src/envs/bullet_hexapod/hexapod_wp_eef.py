@@ -36,7 +36,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 6 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 9
+        self.just_obs_dim = 15
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -62,6 +62,7 @@ class HexapodBulletEnv(gym.Env):
         self.angle = 0
         self.eef_list = [i * 3 + 2 for i in range(6)]
         self.phases_op = np.array([3.4730, 0.3511, 0.4637, -3.4840, -2.8000, -0.4658])
+        self.current_phases = np.zeros(6) #self.phases_op
         self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset = [np.tanh(0.7135) * 0.075 * 0.5 + 0.075,
                                                                                      np.tanh(-0.6724) * 0.085 * 0.5 + 0.085,
                                                                                      np.tanh(-0.8629) * 0.075 * 0.5 + 0.075,
@@ -72,7 +73,6 @@ class HexapodBulletEnv(gym.Env):
         self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]))]
         self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]))]
         self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]))]
-
 
     def set_seed(self, np_seed, T_seed):
         np.random.seed(np_seed)
@@ -334,14 +334,16 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        phases = self.phases_op + ctrl_raw * 0.5
+        mix_ratio = 0.9
+        #self.current_phases = (self.current_phases + ctrl_raw * 1.0) * mix_ratio + self.phases_op * (1 - mix_ratio)
+        self.current_phases = self.current_phases + ctrl_raw * 1.0
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
                                                 endEffectorLinkIndices=self.eef_list,
                                                 targetPositions=[
-                                                    [np.cos(-self.angle * 2 * np.pi + phases[i]) * self.x_mult, self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + self.phase_offset) * self.z_mult - self.z_offset]
+                                                    [np.cos(-self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult, self.y_offset * dir_vec[i],
+                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.phase_offset) * self.z_mult - self.z_offset]
                                                     for i in range(6)],
                                                 # targetPositions=[
                                                 #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.1, 0.5 * dir_vec[i],
@@ -422,7 +424,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, relative_target
+        compiled_obs = torso_quat, torso_vel, relative_target, self.current_phases
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -457,9 +459,14 @@ class HexapodBulletEnv(gym.Env):
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
+        self.current_phases = np.zeros(6)
+
         # Reset episodal vars
         self.step_ctr = 0
         self.angle = 0
+
+        self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
+        self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
 
         # Change heightmap with small probability
         if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":

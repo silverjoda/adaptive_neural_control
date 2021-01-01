@@ -188,13 +188,12 @@ class PI_AC_BETA(nn.Module):
         return log_probs.sum(1, keepdim=True)
 
 class SLP_PG(nn.Module):
-    def __init__(self, env, config):
+    def __init__(self, obs_dim, act_dim, config):
         super(SLP_PG, self).__init__()
-        self.env = env
         self.config = config
 
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
 
         self.fc1 = nn.Linear(self.obs_dim, self.act_dim)
         self.log_std = T.zeros(1, self.act_dim)
@@ -204,8 +203,10 @@ class SLP_PG(nn.Module):
         #nn.init.xavier_uniform_(self.fc1.weight.data)
 
     def forward(self, x):
-        x = self.fc1(x)
-        return x
+        x_T = T.tensor(x).unsqueeze(0)
+        x = self.fc1(x_T)
+        x_np = x.squeeze(0).detach().numpy()
+        return x_np
 
     def sample_action(self, s):
         act = self.forward(s)
@@ -593,5 +594,3 @@ if __name__ == "__main__":
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}
     config_nn = {"policy_lastlayer_tanh": False, "policy_hid_dim": 96, "policy_grad_clip_value": 1.0}
     RNN_PG(env, config_rnn)
-    nn = NN_PG(env, config_nn)
-    nn(T.randn(env.obs_dim))

@@ -56,7 +56,9 @@ def import_env(name):
     return env_fun
 
 def make_policy(env, config):
-    if config["policy_type"] == "mlp":
+    if config["policy_type"] == "slp":
+        return policies.SLP_PG(env.obs_dim, env.act_dim, config)
+    elif config["policy_type"] == "mlp":
         return policies.PI_AC(env.obs_dim, env.act_dim, config)
     elif config["policy_type"] == "ff_hex_eef":
         return policies.FF_HEX_EEF(env.obs_dim, env.act_dim, config)

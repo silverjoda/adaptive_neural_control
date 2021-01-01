@@ -2,8 +2,8 @@
 "policy_name" : "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 1500000
-"gamma" : 0.99 # Usually set at 0.98
+"iters" : 5000000
+"gamma" : 0.999 # Usually set at 0.98
 "n_steps" : 20
 "vf_coef" : 0.6
 "ent_coef" : 0.000001 # Should be very low

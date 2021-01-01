@@ -20,7 +20,7 @@
 "max_actuator_velocity" : 4.0
 "lateral_friction" : 1.2
 "max_joint_force" : 1.5
-"target_vel" : 0.4
+"target_vel" : 0.2
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1
@@ -31,7 +31,7 @@
 "joints_rads_low" : [-0.5, -1.0, 0.4]
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.3
-"target_spawn_mu" : [2., 0.] # [1.5, 0]
+"target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [1., 4.] #[1.0, 4.0]
 "inclination_pen" : 1.0
 "urdf_name" : "hexapod_normal.urdf"
