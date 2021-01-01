@@ -330,6 +330,8 @@ class HexapodBulletEnv(gym.Env):
 
         x_mult, y_offset, z_mult, z_offset, phase_offset, *phases = ctrl_raw
 
+        #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
+
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
                                                 endEffectorLinkIndices=self.eef_list,
@@ -343,7 +345,7 @@ class HexapodBulletEnv(gym.Env):
                                                 #     for i in range(6)],
                                                 currentPositions=[0] * 18)
 
-        self.angle += 0.004
+        self.angle += 0.005
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
@@ -416,8 +418,8 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1,
-                 "bobbing": np.sqrt(np.square(zd)) * 0.2,
+        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1, # 0.1
+                 "bobbing": np.sqrt(np.square(zd)) * 0.2, # 0.2
                  "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
         #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}

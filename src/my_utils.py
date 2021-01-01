@@ -65,9 +65,25 @@ def make_policy(env, config):
     else:
         raise TypeError
 
+def make_par_policy(sub_proc_env, config):
+    if config["policy_type"] == "slp":
+        return policies.SLP_PG(sub_proc_env.observation_space.shape[0], sub_proc_env.action_space.shape[0], config)
+    elif config["policy_type"] == "mlp":
+        return policies.PI_AC(sub_proc_env.observation_space.shape[0], sub_proc_env.action_space.shape[0], config)
+    elif config["policy_type"] == "ff_hex_eef":
+        return policies.FF_HEX_EEF(sub_proc_env.observation_space.shape[0], sub_proc_env.action_space.shape[0], config)
+    else:
+        raise TypeError
+
 def make_vf(env, config):
     if config["policy_type"] == "mlp":
         return policies.VF_AC(env.obs_dim, config)
+    else:
+        raise TypeError
+
+def make_par_vf(sub_proc_env, config):
+    if config["policy_type"] == "mlp":
+        return policies.VF_AC(sub_proc_env.observation_space.shape[0], config)
     else:
         raise TypeError
 

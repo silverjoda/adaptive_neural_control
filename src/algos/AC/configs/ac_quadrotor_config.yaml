@@ -5,6 +5,7 @@
 "policy_optim" : "adam"
 "log_tb" : False
 "save_policy" : True
+"n_envs" : 6
 "weight_init_bnd" : 1.0
 "momentum" : 0.0
 "policy_learning_rate" : 0.0001
@@ -13,9 +14,11 @@
 "weight_decay" : 0.0001
 "n_total_steps_train" : 100000000
 "gamma" : 0.99
-"batchsize" : 64
+"batchsize" : 54
 "policy_hid_dim" : 128
 "vf_hid_dim" : 256
 "policy_grad_clip_value" : 0.5
 "policy_residual_connection" : False
 "advantages_MC" : True
+"norm_obs" : False
+"norm_reward" : True

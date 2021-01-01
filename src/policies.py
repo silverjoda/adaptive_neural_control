@@ -14,17 +14,17 @@ class FF_HEX_EEF(nn.Module):
         # [tensor(0.7135), tensor(-0.6724), tensor(-0.8629), tensor(-1.0894), tensor(0.0725), tensor(3.4730), tensor(0.3511), tensor(0.4637), tensor(-3.4840), tensor(-2.8000), tensor(-0.4658)]
         # x_mult, y_offset, z_mult, z_offset, phase_offset, *phases
         self.learned_params = \
-            nn.ParameterList([nn.Parameter(T.tensor(0.2)), # x_mult
-                              nn.Parameter(T.tensor(0.1)), # y_offset
-                              nn.Parameter(T.tensor(0.2)), # z_mult
-                              nn.Parameter(T.tensor(-0.1)), # z_offset
-                              nn.Parameter(T.tensor(0.)), # phase_offset
-                              nn.Parameter(T.tensor(0.)), # p0
-                              nn.Parameter(T.tensor(0.)), # p1
-                              nn.Parameter(T.tensor(0.)), # p2
-                              nn.Parameter(T.tensor(0.)), # p3
-                              nn.Parameter(T.tensor(0.)), # p4
-                              nn.Parameter(T.tensor(0.))]) # p5
+            nn.ParameterList([nn.Parameter(T.tensor(0.7135)), # x_mult
+                              nn.Parameter(T.tensor(-0.6724)), # y_offset
+                              nn.Parameter(T.tensor(-0.8629)), # z_mult
+                              nn.Parameter(T.tensor(-1.0894)), # z_offset
+                              nn.Parameter(T.tensor(0.0725)), # phase_offset
+                              nn.Parameter(T.tensor(3.4730)), # p0
+                              nn.Parameter(T.tensor(0.3511)), # p1
+                              nn.Parameter(T.tensor(0.4637)), # p2
+                              nn.Parameter(T.tensor(-3.4840)), # p3
+                              nn.Parameter(T.tensor(-2.8000)), # p4
+                              nn.Parameter(T.tensor(-0.4658))]) # p5
 
     def forward(self, x):
         clipped_params = [np.clip(np.tanh(self.learned_params[0].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # x_mult
@@ -120,6 +120,12 @@ class PI_AC(nn.Module):
         act = self.forward(s_T)
         rnd_act = T.normal(act, T.exp(self.log_std))
         return rnd_act.detach().squeeze(0).numpy()
+
+    def sample_par_action(self, s):
+        s_T = T.tensor(s)
+        act = self.forward(s_T)
+        rnd_act = T.normal(act, T.exp(self.log_std.expand_as(act)))
+        return rnd_act.detach().numpy()
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
