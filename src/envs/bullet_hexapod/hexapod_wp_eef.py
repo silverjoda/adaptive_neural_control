@@ -334,9 +334,15 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        mix_ratio = 0.9
+        #mix_ratio = 0.9
         #self.current_phases = (self.current_phases + ctrl_raw * 1.0) * mix_ratio + self.phases_op * (1 - mix_ratio)
         self.current_phases = np.clip(self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi, np.pi) # 0.03
+        #self.current_phases = np.clip(np.tanh(ctrl_raw) * np.pi, -np.pi, np.pi) + self.phases_op
+
+        # TODO: Try 0.07, 0.10, 0.15 increments.
+        # TODO: Try with 2*np.pi clipping
+        # TODO: Try with decay towards the phases_op
+        # TODO: Try with phases_op as middle point
 
         #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
 
