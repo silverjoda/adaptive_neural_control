@@ -336,9 +336,9 @@ class HexapodBulletEnv(gym.Env):
 
         mix_ratio = 0.9
         #self.current_phases = (self.current_phases + ctrl_raw * 1.0) * mix_ratio + self.phases_op * (1 - mix_ratio)
-        self.current_phases = self.current_phases + ctrl_raw * 0.05 # 0.03
+        self.current_phases = np.clip(self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi, np.pi) # 0.03
 
-        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
+        #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -353,7 +353,7 @@ class HexapodBulletEnv(gym.Env):
                                                 #     for i in range(6)],
                                                 currentPositions=[0]*18)
 
-        self.angle += 0.005
+        self.angle += 0.006
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
