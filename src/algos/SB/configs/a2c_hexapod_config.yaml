@@ -3,12 +3,12 @@
 "default_session_ID" :
 "n_envs" : 6
 "iters" : 10000000
-"gamma" : 0.999 # Usually set at 0.98
+"gamma" : 0.999
 "n_steps" : 20
 "vf_coef" : 0.6
 "ent_coef" : 0.000001 # Should be very low
 "max_grad_norm" : 0.45
-"learning_rate" : 0.0003
+"learning_rate" : 0.0001
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'

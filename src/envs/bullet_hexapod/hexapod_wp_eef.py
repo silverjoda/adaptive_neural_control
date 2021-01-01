@@ -336,7 +336,8 @@ class HexapodBulletEnv(gym.Env):
 
         #mix_ratio = 0.9
         #self.current_phases = (self.current_phases + ctrl_raw * 1.0) * mix_ratio + self.phases_op * (1 - mix_ratio)
-        self.current_phases = np.clip(self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi, np.pi) # 0.03
+        self.current_phases = np.clip(self.phases_op + self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi * 2, np.pi * 2)
+
         #self.current_phases = np.clip(np.tanh(ctrl_raw) * np.pi, -np.pi, np.pi) + self.phases_op
 
         # TODO: Try 0.07, 0.10, 0.15 increments.

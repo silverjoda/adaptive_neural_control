@@ -34,6 +34,6 @@
 "target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [1.0, 4.0] #[1.0, 4.0]
 "inclination_pen" : 1.0
-"phase_increment" : 0.07
+"phase_increment" : 0.1
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
