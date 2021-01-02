@@ -171,6 +171,9 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     # Step policy update
     policy_optim.step()
 
+    print(policy.log_std)
+    # TODO:, find out why it crashes when log_std has gradients True
+
     return loss.data
 
 def update_vf(vf_optim, batch_advantages):

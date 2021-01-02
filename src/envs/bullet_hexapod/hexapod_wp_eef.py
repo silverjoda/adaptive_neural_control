@@ -36,7 +36,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 6 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 15
+        self.just_obs_dim = 8
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -284,8 +284,9 @@ class HexapodBulletEnv(gym.Env):
         return torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso
 
     def render(self, close=False, mode=None):
-        if self.config["animate"]:
-            time.sleep(self.config["sim_timestep"])
+        pass
+        #if self.config["animate"]:
+        #    time.sleep(self.config["sim_step"])
 
     def load_robot(self):
         # Remove old robot
@@ -336,9 +337,10 @@ class HexapodBulletEnv(gym.Env):
 
         #mix_ratio = 0.9
         #self.current_phases = (self.current_phases + ctrl_raw * 1.0) * mix_ratio + self.phases_op * (1 - mix_ratio)
-        self.current_phases = np.clip(self.phases_op + self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi * 2, np.pi * 2)
+        #self.current_phases = np.clip(self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi * 2, np.pi * 2)
+        #print(self.current_phases)
 
-        #self.current_phases = np.clip(np.tanh(ctrl_raw) * np.pi, -np.pi, np.pi) + self.phases_op
+        self.current_phases = np.tanh(ctrl_raw) * np.pi + self.phases_op
 
         # TODO: Try 0.07, 0.10, 0.15 increments.
         # TODO: Try with 2*np.pi clipping
@@ -400,7 +402,7 @@ class HexapodBulletEnv(gym.Env):
         velocity_rew = np.minimum((self.prev_target_dist - target_dist) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]),
                                   self.config["target_vel"]) / self.config["target_vel"]
 
-        if target_dist < self.config["target_proximity_threshold"]:
+        if target_dist < self.config["target_proximity_threshold"] or (np.abs(torso_pos[0]) > self.target[0]):
             reached_target = True
             self.update_targets()
             self.prev_target_dist = np.sqrt(
@@ -433,7 +435,7 @@ class HexapodBulletEnv(gym.Env):
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, relative_target, self.current_phases
+        compiled_obs = torso_quat, torso_vel, [yaw_deviation]
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -474,8 +476,8 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.angle = 0
 
-        self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
-        self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
+        #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
+        #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
 
         # Change heightmap with small probability
         if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
