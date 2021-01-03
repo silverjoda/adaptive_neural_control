@@ -1,5 +1,5 @@
 "algo_name" : "ES"
-"policy_type" : "mlp"
+"policy_type" : "slp"
 "default_session_ID" : "TST"
 "activation_fun" : "F.leaky_relu"
 "log_tb_all" : True
