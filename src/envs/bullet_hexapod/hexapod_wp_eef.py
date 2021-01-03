@@ -340,12 +340,8 @@ class HexapodBulletEnv(gym.Env):
         #self.current_phases = np.clip(self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi * 2, np.pi * 2)
         #print(self.current_phases)
 
-        self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * 2
-
-        # TODO: Try 0.07, 0.10, 0.15 increments.
-        # TODO: Try with 2*np.pi clipping
-        # TODO: Try with decay towards the phases_op
-        # TODO: Try with phases_op as middle point
+        self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * 0 + self.phases_op
+        #self.current_phases = self.phases_op
 
         #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
 
@@ -353,9 +349,9 @@ class HexapodBulletEnv(gym.Env):
         targets = p.calculateInverseKinematics2(self.robot,
                                                 endEffectorLinkIndices=self.eef_list,
                                                 targetPositions=[
-                                                    [np.cos(-self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult + np.tanh(ctrl_raw[6:12]) * 0.1,
+                                                    [np.cos(-self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult + np.tanh(ctrl_raw[6 + i]) * 0.00,
                                                      self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.phase_offset) * self.z_mult - self.z_offset + np.tanh(ctrl_raw[12:]) * 0.8]
+                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.phase_offset) * self.z_mult - self.z_offset + np.tanh(ctrl_raw[12 + i]) * 0.00]
                                                      for i in range(6)],
                                                 # targetPositions=[
                                                 #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.1, 0.5 * dir_vec[i],
@@ -415,6 +411,8 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
+        # TODO: Change the reward function
+
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
                  "bobbing": np.sqrt(np.square(zd)) * 0.1,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.2}
@@ -425,6 +423,8 @@ class HexapodBulletEnv(gym.Env):
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
         r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
+
+        print(r)
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
