@@ -11,23 +11,28 @@ import argparse
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 from torch.utils.tensorboard import SummaryWriter
-from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecNormalize, DummyVecEnv
 
 class ReplayBuffer:
     def __init__(self):
-        self.buffer = {}
+        self.buffer = self._init_buffer()
+
+    def _init_buffer(self):
+        return {"observations": [],
+                "actions": [],
+                "rewards": [],
+                "terminals": []}
+
     def add(self, k, v):
         self.buffer[k].append(v)
-    def get_contents(self):
-        obs_dict = {"observations": [],
-                    "actions": [],
-                    "rewards": [],
-                    "terminals": []}
+
+    def get_contents_and_clear(self):
+        obs_dict = self._init_buffer()
         for k in self.buffer.keys():
             obs_dict[k] = T.tensor(self.buffer[k])
-        self.buffer = {}
-
+        self.buffer = self._init_buffer()
         return obs_dict
+
     def __len__(self):
         return len(self.buffer["observations"])
 
@@ -51,7 +56,7 @@ class ACTrainer:
             self.replay_buffer.add("actions", act_np)
             self.replay_buffer.add("rewards", r)
 
-            if done:
+            if np.any(done):
                 self.replay_buffer.add("terminals", True)
                 break
             self.replay_buffer.add("terminals", False)
@@ -63,7 +68,7 @@ class ACTrainer:
             self.global_step_ctr += 1
 
     def update(self):
-        data = replay_buffer.get_contents()
+        data = replay_buffer.get_contents_and_clear()
 
         if self.config["advantages_MC"]:
             batch_advantages = self.calc_advantages_MC(data["rewards"], data["terminals"])
@@ -86,18 +91,19 @@ class ACTrainer:
                                               global_step=self.global_step_ctr)
             config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
                                               global_step=self.global_step_ctr)
-            config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / config["batchsize"],
+            config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
                                            global_step=self.global_step_ctr)
 
         print(
             "N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
             format(self.global_step_ctr,
-                   config["n_total_steps_train"],
+                   self.config["n_total_steps_train"],
                    loss_policy,
                    loss_vf,
                    data["rewards"].sum() / config["batchsize"]))
 
     def train(self):
+        t1 = time.time()
         while self.global_step_ctr < self.config["n_total_steps_train"]:
             self.make_rollout()
 
@@ -105,13 +111,15 @@ class ACTrainer:
             # policy.log_std -= config["log_std_decay"]
             # print(policy.log_std)
 
-            if self.global_step_ctr % 1000000 == 0 and self.config["save_policy"]:
+            if self.global_step_ctr % self.config["n_steps_per_checkpoint"] == 0 and self.config["save_policy"]:
                 T.save(policy.state_dict(), self.config["sdir"])
                 print("Saved checkpoint at {} with params {}".format(self.config["sdir"], self.config))
 
         if self.config["save_policy"]:
             T.save(self.policy.state_dict(), self.config["sdir"])
             print("Finished training, saved policy at {} with params {}".format(self.config["sdir"], self.config))
+        t2 = time.time()
+        print("Training time: {}".format(t2 - t1))
 
     def update_policy(self, batch_states, batch_actions, batch_advantages):
         # Get action log probabilities
@@ -150,7 +158,7 @@ class ACTrainer:
         return targets
 
     def calc_advantages(self, batch_observations, batch_rewards, batch_terminals):
-        batch_values = vf(batch_observations)
+        batch_values = self.vf(batch_observations)
         targets = []
         for i in reversed(range(len(batch_rewards))):
             r, v, t = batch_rewards[i], batch_values[i], batch_terminals[i]
@@ -181,7 +189,7 @@ class ACTrainer:
                     break
         return total_rew
 
-    def setup(self, setup_dirs=True):
+    def setup_train(self, setup_dirs=True):
         if setup_dirs:
             for s in ["agents", "agents_cp", "tb"]:
                 if not os.path.exists(s):
@@ -195,7 +203,6 @@ class ACTrainer:
 
         # Import correct env by name
         self.env_fun = my_utils.import_env(self.config["env_name"])
-        #env = env_fun(config)
         self.env = VecNormalize(SubprocVecEnv([lambda: self.env_fun(self.config) for _ in range(self.config["n_envs"])], start_method='fork'),
                            gamma=self.config["gamma"],
                            norm_obs=self.config["norm_obs"],
@@ -247,6 +254,13 @@ class ACTrainer:
 
         return self.env, self.policy, self.vf, self.policy_optim, self.vf_optim, self.replay_buffer
 
+    def setup_test(self):
+        env_fun = my_utils.import_env(env_config["env_name"])
+        env = DummyVecEnv([lambda: env_fun(config)])
+        policy = my_utils.make_par_policy(env, config)
+        policy.load_state_dict(T.load(config["test_agent_path"]))
+        return env, policy
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
     parser.add_argument('--train',  action='store_true', required=False,
@@ -259,7 +273,7 @@ def parse_args():
                         help='Path of test agent. ')
     parser.add_argument('--algo_config', type=str, default="configs/ac_default_config.yaml", required=False,
                         help='Algorithm config file name. ')
-    parser.add_argument('--env_config', type=str, default="hexapod_config.yaml", required=False,
+    parser.add_argument('--env_config', type=str, default="default.yaml", required=False,
                         help='Env config file name. ')
     parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
 
@@ -274,20 +288,18 @@ if __name__=="__main__":
 
     print(config)
 
+    # TODO: find out how to overwrite arbitrary argument from argparse
+
     ac_trainer = ACTrainer(config)
-    env, policy, vf, policy_optim, vf_optim, replay_buffer = ac_trainer.setup()
 
     if config["train"] or socket.gethostname() == "goedel":
-        t1 = time.time()
+        env, policy, vf, policy_optim, vf_optim, replay_buffer = ac_trainer.setup_train()
         ac_trainer.train()
-        t2 = time.time()
 
-        print("Training time: {}".format(t2 - t1))
         print(config)
 
     if config["test"] and socket.gethostname() != "goedel":
-        if not args["train"]:
-            policy.load_state_dict(T.load(config["test_agent_path"]))
+        env, policy = ac_trainer.setup_test()
         ac_trainer.test_agent(print_rew=True)
 
 

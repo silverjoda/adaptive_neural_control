@@ -13,6 +13,7 @@
 "init_log_std_value" : -0.9
 "weight_decay" : 0.0001
 "n_total_steps_train" : 100000000
+"n_steps_per_checkpoint" : 1000000
 "gamma" : 0.99
 "batchsize" : 54
 "policy_hid_dim" : 128
