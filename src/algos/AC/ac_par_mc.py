@@ -70,20 +70,19 @@ class ACTrainer:
         loss_policy = self.update_policy(data["observations"].detach(), data["actions"].detach(), batch_advantages.detach())
 
         # Post update log
-        if config["tb_writer"] is not None:
-            config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=self.global_step_ctr)
-            config["tb_writer"].add_scalar("Batch/Loss_policy", loss_policy, global_step=self.global_step_ctr)
+        if self.config["tb_writer"] is not None:
+            self.config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=self.global_step_ctr)
+            self.config["tb_writer"].add_scalar("Batch/Loss_policy", loss_policy, global_step=self.global_step_ctr)
 
-            config["tb_writer"].add_histogram("Batch/Rewards", data["rewards"], global_step=self.global_step_ctr)
+            self.config["tb_writer"].add_histogram("Batch/Rewards", data["rewards"], global_step=self.global_step_ctr)
             config["tb_writer"].add_histogram("Batch/Observations", data["observations"],
                                               global_step=self.global_step_ctr)
-            config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
+            self.config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
                                               global_step=self.global_step_ctr)
-            config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
+            self.config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
                                            global_step=self.global_step_ctr)
 
-        print(
-            "N_total_steps_train {}/{}, loss_policy: {}, mean ep_rew: {}".
+        print("N_total_steps_train {}/{}, loss_policy: {}, mean ep_rew: {}".
             format(self.global_step_ctr,
                    self.config["n_total_steps_train"],
                    loss_policy,
@@ -186,7 +185,7 @@ class ACTrainer:
         self.config["tb_writer"] = None
         if self.config["log_tb"] and setup_dirs:
             tb_writer = SummaryWriter(f'tb/{self.config["session_ID"]}')
-            config["tb_writer"] = tb_writer
+            self.config["tb_writer"] = tb_writer
 
         self.config["sdir"] = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                             f'agents/{self.config["session_ID"]}_AC_policy.p')
