@@ -15,7 +15,7 @@
 "n_total_steps_train" : 100000000
 "n_steps_per_checkpoint" : 1000000
 "gamma" : 0.99
-"batchsize" : 54
+"batchsize" : 6
 "policy_hid_dim" : 128
 "vf_hid_dim" : 256
 "policy_grad_clip_value" : 0.5

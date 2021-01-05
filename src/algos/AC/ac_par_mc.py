@@ -24,12 +24,12 @@ class ReplayBuffer:
                 "terminals": []}
 
     def add(self, k, v):
-        self.buffer[k].append(v)
+        self.buffer[k].append(T.tensor(v))
 
     def get_contents_and_clear(self):
         obs_dict = self._init_buffer()
         for k in self.buffer.keys():
-            obs_dict[k] = T.tensor(self.buffer[k])
+            obs_dict[k] = T.stack(self.buffer[k])
         self.buffer = self._init_buffer()
         return obs_dict
 
@@ -43,6 +43,7 @@ class ACTrainer:
 
     def make_rollout(self):
         obs = self.env.reset()
+        done_arr = np.array([False] * self.config["n_envs"])
 
         while True:
             self.replay_buffer.add("observations", obs)
@@ -50,36 +51,23 @@ class ACTrainer:
             act_np = self.policy.sample_par_action(obs)
             obs, r, done, _ = self.env.step(act_np)
 
-            if config["animate"]:
-                self.env.render()
+            self.replay_buffer.add("rewards", r * np.logical_not(done_arr))
+
+            done_arr = np.logical_or(done_arr, done)
 
             self.replay_buffer.add("actions", act_np)
-            self.replay_buffer.add("rewards", r)
+            self.replay_buffer.add("terminals", done_arr)
 
-            if np.any(done):
-                self.replay_buffer.add("terminals", True)
+            self.global_step_ctr += self.config["n_envs"]
+
+            if done_arr.all():
                 break
-            self.replay_buffer.add("terminals", False)
-
-            # Update
-            if len(self.replay_buffer) >= self.config["n_steps"]:
-                self.update()
-
-            self.global_step_ctr += 1
 
     def update(self):
         data = replay_buffer.get_contents_and_clear()
 
-        if self.config["advantages_MC"]:
-            batch_advantages = self.calc_advantages_MC(data["rewards"], data["terminals"])
-        else:
-            batch_advantages = self.calc_advantages(data["observations"], data["rewards"], data["terminals"])
-        loss_policy = self.update_policy(data["observations"], data["actions"], batch_advantages.detach())
-
-        if config["advantages_MC"]:
-            loss_vf = 0
-        else:
-            loss_vf = self.update_vf(batch_advantages)
+        batch_advantages = self.calc_advantages_MC(data["rewards"], data["terminals"])
+        loss_policy = self.update_policy(data["observations"].detach(), data["actions"].detach(), batch_advantages.detach())
 
         # Post update log
         if config["tb_writer"] is not None:
@@ -95,21 +83,25 @@ class ACTrainer:
                                            global_step=self.global_step_ctr)
 
         print(
-            "N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
+            "N_total_steps_train {}/{}, loss_policy: {}, mean ep_rew: {}".
             format(self.global_step_ctr,
                    self.config["n_total_steps_train"],
                    loss_policy,
-                   loss_vf,
                    data["rewards"].sum() / config["batchsize"]))
 
     def train(self):
         t1 = time.time()
+        episode_ctr = 0
         while self.global_step_ctr < self.config["n_total_steps_train"]:
             self.make_rollout()
+            episode_ctr += 1
 
             # Decay log_std
             # policy.log_std -= config["log_std_decay"]
             # print(policy.log_std)
+
+            if episode_ctr % self.config["batchsize"] == 0:
+                self.update()
 
             if self.global_step_ctr % self.config["n_steps_per_checkpoint"] == 0 and self.config["save_policy"]:
                 T.save(policy.state_dict(), self.config["sdir"])
@@ -122,11 +114,15 @@ class ACTrainer:
         print("Training time: {}".format(t2 - t1))
 
     def update_policy(self, batch_states, batch_actions, batch_advantages):
+        batch_states_flat = batch_states.view(-1, batch_states.shape[-1])
+        batch_actions_flat = batch_actions.view(-1, batch_actions.shape[-1])
+        batch_advantages_flat = batch_advantages.view(-1)
+
         # Get action log probabilities
-        log_probs = self.policy.log_probs(batch_states, batch_actions)
+        log_probs = self.policy.log_probs(batch_states_flat, batch_actions_flat)
 
         # Calculate loss function
-        loss = -T.mean(log_probs * batch_advantages)
+        loss = -T.mean(log_probs * batch_advantages_flat)
 
         # Backward pass on policy
         self.policy_optim.zero_grad()
@@ -137,23 +133,16 @@ class ACTrainer:
 
         return loss.data
 
-    def update_vf(self, batch_advantages):
-        self.vf_optim.zero_grad()
-        loss = T.mean(0.5 * T.pow(batch_advantages, 2))
-        loss.backward()
-        self.vf_optim.step()
-        return loss.data.detach()
 
     def calc_advantages_MC(self, batch_rewards, batch_terminals):
+        # TODO: Here. Probably can do in single thread, just keep parallel computation of all envs
         # Monte carlo estimate of targets
         targets = []
         with T.no_grad():
+            R = T.zeros(6)
             for r, t in zip(reversed(batch_rewards), reversed(batch_terminals)):
-                if t:
-                    R = r
-                else:
-                    R = r + self.config["gamma"] * R
-                targets.append(R.view(1, 1))
+                R = r + self.config["gamma"] * R * T.logical_not(t)
+                targets.append(R.view(1, 6))
             targets = T.cat(list(reversed(targets)))
         return targets
 
@@ -208,8 +197,7 @@ class ACTrainer:
                            norm_obs=self.config["norm_obs"],
                            norm_reward=self.config["norm_reward"])
 
-        self.policy = my_utils.make_par_policy(env, self.config)
-        self.vf = my_utils.make_par_vf(env, self.config)
+        self.policy = my_utils.make_par_policy(self.env, self.config)
 
         self.config["tb_writer"] = None
         if self.config["log_tb"] and setup_dirs:
@@ -220,39 +208,29 @@ class ACTrainer:
                             f'agents/{self.config["session_ID"]}_AC_policy.p')
 
         self.policy_optim = None
-        self.vf_optim = None
+
         if self.config["policy_optim"] == "rmsprop":
             self.policy_optim = T.optim.RMSprop(policy.parameters(),
                                            lr=self.config["policy_learning_rate"],
                                            weight_decay=self.config["weight_decay"],
                                            eps=1e-8, momentum=self.config["momentum"])
-            self.vf_optim = T.optim.RMSprop(vf.parameters(),
-                                       lr=self.config["vf_learning_rate"],
-                                       weight_decay=self.config["weight_decay"],
-                                       eps=1e-8, momentum=self.config["momentum"])
+
         if self.config["policy_optim"] == "sgd":
             self.policy_optim = T.optim.SGD(policy.parameters(),
                                        lr=self.config["policy_learning_rate"],
                                        weight_decay=self.config["weight_decay"],
                                        momentum=self.config["momentum"])
-            self.vf_optim = T.optim.SGD(vf.parameters(),
-                                   lr=self.config["vf_learning_rate"],
-                                   weight_decay=self.config["weight_decay"],
-                                   momentum=self.config["momentum"])
         if self.config["policy_optim"] == "adam":
-            self.policy_optim = T.optim.Adam(policy.parameters(),
+            self.policy_optim = T.optim.Adam(self.policy.parameters(),
                                         lr=self.config["policy_learning_rate"],
                                         weight_decay=self.config["weight_decay"])
-            self.vf_optim = T.optim.Adam(vf.parameters(),
-                                    lr=self.config["vf_learning_rate"],
-                                    weight_decay=self.config["weight_decay"])
         assert self.policy_optim is not None
 
         self.replay_buffer = ReplayBuffer()
 
         self.global_step_ctr = 0
 
-        return self.env, self.policy, self.vf, self.policy_optim, self.vf_optim, self.replay_buffer
+        return self.env, self.policy, self.policy_optim, self.replay_buffer
 
     def setup_test(self):
         env_fun = my_utils.import_env(env_config["env_name"])
@@ -293,7 +271,7 @@ if __name__=="__main__":
     ac_trainer = ACTrainer(config)
 
     if config["train"] or socket.gethostname() == "goedel":
-        env, policy, vf, policy_optim, vf_optim, replay_buffer = ac_trainer.setup_train()
+        env, policy, policy_optim, replay_buffer = ac_trainer.setup_train()
         ac_trainer.train()
 
         print(config)
