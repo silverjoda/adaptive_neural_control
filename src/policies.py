@@ -122,9 +122,10 @@ class PI_AC(nn.Module):
         return rnd_act.detach().squeeze(0).numpy()
 
     def sample_par_action(self, s):
-        s_T = T.tensor(s)
-        act = self.forward(s_T)
-        rnd_act = T.normal(act, T.exp(self.log_std.expand_as(act)))
+        with T.no_grad():
+            s_T = T.tensor(s)
+            act = self.forward(s_T)
+            rnd_act = T.normal(act, T.exp(self.log_std.expand_as(act)))
         return rnd_act.detach().numpy()
 
     def log_probs(self, batch_states, batch_actions):

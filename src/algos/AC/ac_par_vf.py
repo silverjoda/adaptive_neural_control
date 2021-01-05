@@ -24,12 +24,12 @@ class ReplayBuffer:
                 "terminals": []}
 
     def add(self, k, v):
-        self.buffer[k].append(v)
+        self.buffer[k].append(T.tensor(v))
 
     def get_contents_and_clear(self):
         obs_dict = self._init_buffer()
         for k in self.buffer.keys():
-            obs_dict[k] = T.tensor(self.buffer[k])
+            obs_dict[k] = T.stack(self.buffer[k])
         self.buffer = self._init_buffer()
         return obs_dict
 
@@ -41,10 +41,34 @@ class ACTrainer:
     def __init__(self, config):
         self.config = config
 
-    def make_rollout(self):
-        obs = self.env.reset()
+    def update(self):
+        data = replay_buffer.get_contents_and_clear()
 
-        while True:
+        batch_advantages = self.calc_advantages(data["observations"], data["rewards"], data["terminals"])
+        self.loss_policy = self.update_policy(data["observations"], data["actions"], batch_advantages.detach())
+
+        self.loss_vf = self.update_vf(batch_advantages)
+        self.n_updates += 1
+
+        # Post update log
+        if config["tb_writer"] is not None:
+            config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=self.global_step_ctr)
+            config["tb_writer"].add_scalar("Batch/Loss_policy", self.loss_policy, global_step=self.global_step_ctr)
+
+            config["tb_writer"].add_histogram("Batch/Rewards", data["rewards"], global_step=self.global_step_ctr)
+            config["tb_writer"].add_histogram("Batch/Observations", data["observations"],
+                                              global_step=self.global_step_ctr)
+            config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
+                                              global_step=self.global_step_ctr)
+            config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
+                                           global_step=self.global_step_ctr)
+
+
+    def train(self):
+        t1 = time.time()
+
+        obs = self.env.reset()
+        while self.global_step_ctr < self.config["n_total_steps_train"]:
             self.replay_buffer.add("observations", obs)
 
             act_np = self.policy.sample_par_action(obs)
@@ -55,57 +79,22 @@ class ACTrainer:
 
             self.replay_buffer.add("actions", act_np)
             self.replay_buffer.add("rewards", r)
-
-            if np.any(done):
-                self.replay_buffer.add("terminals", True)
-                break
-            self.replay_buffer.add("terminals", False)
+            self.replay_buffer.add("terminals", done)
 
             # Update
-            if len(self.replay_buffer) >= self.config["n_steps"]:
+            if len(self.replay_buffer) >= self.config["n_steps_per_update"]:
                 self.update()
 
-            self.global_step_ctr += 1
+            self.global_step_ctr += self.config["n_envs"]
 
-    def update(self):
-        data = replay_buffer.get_contents_and_clear()
-
-        if self.config["advantages_MC"]:
-            batch_advantages = self.calc_advantages_MC(data["rewards"], data["terminals"])
-        else:
-            batch_advantages = self.calc_advantages(data["observations"], data["rewards"], data["terminals"])
-        loss_policy = self.update_policy(data["observations"], data["actions"], batch_advantages.detach())
-
-        if config["advantages_MC"]:
-            loss_vf = 0
-        else:
-            loss_vf = self.update_vf(batch_advantages)
-
-        # Post update log
-        if config["tb_writer"] is not None:
-            config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=self.global_step_ctr)
-            config["tb_writer"].add_scalar("Batch/Loss_policy", loss_policy, global_step=self.global_step_ctr)
-
-            config["tb_writer"].add_histogram("Batch/Rewards", data["rewards"], global_step=self.global_step_ctr)
-            config["tb_writer"].add_histogram("Batch/Observations", data["observations"],
-                                              global_step=self.global_step_ctr)
-            config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
-                                              global_step=self.global_step_ctr)
-            config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
-                                           global_step=self.global_step_ctr)
-
-        print(
-            "N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
-            format(self.global_step_ctr,
-                   self.config["n_total_steps_train"],
-                   loss_policy,
-                   loss_vf,
-                   data["rewards"].sum() / config["batchsize"]))
-
-    def train(self):
-        t1 = time.time()
-        while self.global_step_ctr < self.config["n_total_steps_train"]:
-            self.make_rollout()
+            if self.n_updates % 500 == 0:
+                mean_eval_rews = self.eval_agent_par(N=3)
+                print("N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
+                        format(self.global_step_ctr,
+                               self.config["n_total_steps_train"],
+                               self.loss_policy,
+                               self.loss_vf,
+                               mean_eval_rews))
 
             # Decay log_std
             # policy.log_std -= config["log_std_decay"]
@@ -122,11 +111,15 @@ class ACTrainer:
         print("Training time: {}".format(t2 - t1))
 
     def update_policy(self, batch_states, batch_actions, batch_advantages):
+        batch_states_flat = batch_states.view(-1, batch_states.shape[-1])
+        batch_actions_flat = batch_actions.view(-1, batch_actions.shape[-1])
+        batch_advantages_flat = batch_advantages.view(-1)
+
         # Get action log probabilities
-        log_probs = self.policy.log_probs(batch_states, batch_actions)
+        log_probs = self.policy.log_probs(batch_states_flat, batch_actions_flat)
 
         # Calculate loss function
-        loss = -T.mean(log_probs * batch_advantages)
+        loss = -T.mean(log_probs * batch_advantages_flat)
 
         # Backward pass on policy
         self.policy_optim.zero_grad()
@@ -144,32 +137,32 @@ class ACTrainer:
         self.vf_optim.step()
         return loss.data.detach()
 
-    def calc_advantages_MC(self, batch_rewards, batch_terminals):
-        # Monte carlo estimate of targets
-        targets = []
-        with T.no_grad():
-            for r, t in zip(reversed(batch_rewards), reversed(batch_terminals)):
-                if t:
-                    R = r
-                else:
-                    R = r + self.config["gamma"] * R
-                targets.append(R.view(1, 1))
-            targets = T.cat(list(reversed(targets)))
-        return targets
-
     def calc_advantages(self, batch_observations, batch_rewards, batch_terminals):
-        batch_values = self.vf(batch_observations)
+        batch_values = self.vf(batch_observations).squeeze(2)
         targets = []
         for i in reversed(range(len(batch_rewards))):
             r, v, t = batch_rewards[i], batch_values[i], batch_terminals[i]
-            if t:
-                R = r
+            if i == len(batch_rewards) - 1:
+                R = r - v
             else:
-                v_next = batch_values[i + 1]
-                R = r + self.config["gamma"] * v_next - v
-            targets.append(R.view(1, 1))
+                R = r - v + self.config["gamma"] * batch_values[i + 1] * T.logical_not(t)
+            targets.append(R.view(1, 6))
         targets = T.cat(list(reversed(targets)))
         return targets
+
+    def eval_agent_par(self, N=10):
+        total_rew = 0
+        for i in range(N):
+            obs = self.env.reset()
+            done_arr = np.array([False] * self.config["n_envs"])
+            while True:
+                action = self.policy.sample_action(obs)
+                obs, reward, done, info = self.env.step(action)
+                total_rew += np.mean(reward * np.logical_not(done_arr))
+                done_arr = np.logical_or(done_arr, done)
+                if done_arr.all():
+                    break
+        return total_rew / N
 
     def test_agent(self, N=100, print_rew=False, render=True):
         total_rew = 0
@@ -181,8 +174,7 @@ class ACTrainer:
                 obs, reward, done, info = self.env.step(action)
                 episode_rew += reward
                 total_rew += reward
-                if render:
-                    self.env.render()
+
                 if done:
                     if print_rew:
                         print(episode_rew)
@@ -208,8 +200,8 @@ class ACTrainer:
                            norm_obs=self.config["norm_obs"],
                            norm_reward=self.config["norm_reward"])
 
-        self.policy = my_utils.make_par_policy(env, self.config)
-        self.vf = my_utils.make_par_vf(env, self.config)
+        self.policy = my_utils.make_par_policy(self.env, self.config)
+        self.vf = my_utils.make_par_vf(self.env, self.config)
 
         self.config["tb_writer"] = None
         if self.config["log_tb"] and setup_dirs:
@@ -240,10 +232,10 @@ class ACTrainer:
                                    weight_decay=self.config["weight_decay"],
                                    momentum=self.config["momentum"])
         if self.config["policy_optim"] == "adam":
-            self.policy_optim = T.optim.Adam(policy.parameters(),
+            self.policy_optim = T.optim.Adam(self.policy.parameters(),
                                         lr=self.config["policy_learning_rate"],
                                         weight_decay=self.config["weight_decay"])
-            self.vf_optim = T.optim.Adam(vf.parameters(),
+            self.vf_optim = T.optim.Adam(self.vf.parameters(),
                                     lr=self.config["vf_learning_rate"],
                                     weight_decay=self.config["weight_decay"])
         assert self.policy_optim is not None
@@ -251,6 +243,9 @@ class ACTrainer:
         self.replay_buffer = ReplayBuffer()
 
         self.global_step_ctr = 0
+        self.n_updates = 0
+        self.loss_policy = 0
+        self.loss_vf = 0
 
         return self.env, self.policy, self.vf, self.policy_optim, self.vf_optim, self.replay_buffer
 
@@ -289,7 +284,6 @@ if __name__=="__main__":
     print(config)
 
     # TODO: find out how to overwrite arbitrary argument from argparse
-
     ac_trainer = ACTrainer(config)
 
     if config["train"] or socket.gethostname() == "goedel":

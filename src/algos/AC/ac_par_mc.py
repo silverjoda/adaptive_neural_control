@@ -133,9 +133,7 @@ class ACTrainer:
 
         return loss.data
 
-
     def calc_advantages_MC(self, batch_rewards, batch_terminals):
-        # TODO: Here. Probably can do in single thread, just keep parallel computation of all envs
         # Monte carlo estimate of targets
         targets = []
         with T.no_grad():
@@ -144,20 +142,6 @@ class ACTrainer:
                 R = r + self.config["gamma"] * R * T.logical_not(t)
                 targets.append(R.view(1, 6))
             targets = T.cat(list(reversed(targets)))
-        return targets
-
-    def calc_advantages(self, batch_observations, batch_rewards, batch_terminals):
-        batch_values = self.vf(batch_observations)
-        targets = []
-        for i in reversed(range(len(batch_rewards))):
-            r, v, t = batch_rewards[i], batch_values[i], batch_terminals[i]
-            if t:
-                R = r
-            else:
-                v_next = batch_values[i + 1]
-                R = r + self.config["gamma"] * v_next - v
-            targets.append(R.view(1, 1))
-        targets = T.cat(list(reversed(targets)))
         return targets
 
     def test_agent(self, N=100, print_rew=False, render=True):
