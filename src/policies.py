@@ -89,7 +89,7 @@ class PI_AC(nn.Module):
             self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
 
         self.activation_fun = eval(config["activation_fun"])
-        self.log_std = T.ones(1, self.act_dim) * config["init_log_std_value"]
+        self.log_std = nn.Parameter(T.ones(1, self.act_dim, requires_grad=False) * config["init_log_std_value"])
 
         self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
         self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
@@ -104,7 +104,7 @@ class PI_AC(nn.Module):
         nn.init.uniform_(self.fc3.weight, -w_i_b * 0.1, w_i_b * 0.1)
 
         for p in self.parameters():
-                p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
         l1 = self.activation_fun(self.fc1(x))
@@ -116,9 +116,10 @@ class PI_AC(nn.Module):
         return out
 
     def sample_action(self, s):
-        s_T = T.tensor(s).unsqueeze(0)
-        act = self.forward(s_T)
-        rnd_act = T.normal(act, T.exp(self.log_std))
+        with T.no_grad():
+            s_T = T.tensor(s).unsqueeze(0)
+            act = self.forward(s_T)
+            rnd_act = T.normal(act, T.exp(self.log_std))
         return rnd_act.detach().squeeze(0).numpy()
 
     def sample_par_action(self, s):

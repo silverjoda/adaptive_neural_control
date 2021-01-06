@@ -97,7 +97,7 @@ class ACTrainer:
 
             # Decay log_std
             # policy.log_std -= config["log_std_decay"]
-            # print(policy.log_std)
+            #print(policy.log_std)
 
             if episode_ctr % self.config["batchsize"] == 0:
                 self.update()
@@ -130,7 +130,7 @@ class ACTrainer:
         # Step policy update
         self.policy_optim.step()
 
-        return loss.data
+        return loss.data.detach()
 
     def calc_advantages_MC(self, batch_rewards, batch_terminals):
         # Monte carlo estimate of targets
@@ -193,13 +193,13 @@ class ACTrainer:
         self.policy_optim = None
 
         if self.config["policy_optim"] == "rmsprop":
-            self.policy_optim = T.optim.RMSprop(policy.parameters(),
+            self.policy_optim = T.optim.RMSprop(self.policy.parameters(),
                                            lr=self.config["policy_learning_rate"],
                                            weight_decay=self.config["weight_decay"],
                                            eps=1e-8, momentum=self.config["momentum"])
 
         if self.config["policy_optim"] == "sgd":
-            self.policy_optim = T.optim.SGD(policy.parameters(),
+            self.policy_optim = T.optim.SGD(self.policy.parameters(),
                                        lr=self.config["policy_learning_rate"],
                                        weight_decay=self.config["weight_decay"],
                                        momentum=self.config["momentum"])
