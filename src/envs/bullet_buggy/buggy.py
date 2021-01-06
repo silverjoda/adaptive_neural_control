@@ -28,7 +28,7 @@ class JoyController:
 
     def get_joystick_input(self):
         pygame.event.pump()
-        turn, vel = [self.joystick.get_axis(2), self.joystick.get_axis(1)]
+        turn, vel = [self.joystick.get_axis(0), self.joystick.get_axis(1)]
         button_x = self.joystick.get_button(1)
         pygame.event.clear()
 
