@@ -30,7 +30,7 @@ def f_wrapper(env, policy):
 
         while not done:
             with torch.no_grad():
-                act = policy(obs)
+                act = policy.sample_action(obs, deterministic=True)
             obs, rew, done, _ = env.step(act)
             reward += rew
 
@@ -95,7 +95,7 @@ def test_agent(env, policy):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action = policy(obs)
+            action = policy.sample_action(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
             env.render()

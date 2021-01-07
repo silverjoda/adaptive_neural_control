@@ -63,7 +63,7 @@ class ACTrainer:
             config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
                                            global_step=self.global_step_ctr)
 
-        if self.n_updates % 50 == 0:
+        if self.n_updates % 30 == 0:
             mean_eval_rews = self.eval_agent_par(N=3)
             print("N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
                   format(self.global_step_ctr,

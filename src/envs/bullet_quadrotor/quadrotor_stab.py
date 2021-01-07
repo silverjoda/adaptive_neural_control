@@ -308,8 +308,6 @@ class QuadrotorBulletEnv(gym.Env):
         self.apply_external_disturbances()
 
         p.stepSimulation()
-        if self.config["animate"]:
-            time.sleep(self.config["sim_timestep"])
         self.step_ctr += 1
 
         # Read current velocity target
@@ -319,8 +317,8 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
-        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 1.0, -0.7, 0.7)
+        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.7, 0.7)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
 

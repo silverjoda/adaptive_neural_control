@@ -115,10 +115,12 @@ class PI_AC(nn.Module):
             out = self.fc3(l2)
         return out
 
-    def sample_action(self, s):
+    def sample_action(self, s, deterministic=False):
         with T.no_grad():
             s_T = T.tensor(s).unsqueeze(0)
             act = self.forward(s_T)
+            if deterministic:
+                return act.detach().squeeze(0).numpy()
             rnd_act = T.normal(act, T.exp(self.log_std))
         return rnd_act.detach().squeeze(0).numpy()
 

@@ -14,11 +14,11 @@
 "weight_decay" : 0.0000
 "n_total_steps_train" : 1000000
 "n_steps_per_checkpoint" : 1000000
-"n_steps_per_update" : 100
+"n_steps_per_update" : 200
 "gamma" : 0.99
 "batchsize" : 1
 "policy_hid_dim" : 64
-"vf_hid_dim" : 256
+"vf_hid_dim" : 128
 "policy_grad_clip_value" : 0.5
 "policy_residual_connection" : False
 "advantages_MC" : True
