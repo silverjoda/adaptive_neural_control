@@ -46,7 +46,7 @@ class VF_AC(nn.Module):
         super(VF_AC, self).__init__()
         self.config = config
         self.obs_dim = obs_dim
-        self.hid_dim = config["policy_hid_dim"]
+        self.hid_dim = config["vf_hid_dim"]
 
         if self.config["policy_residual_connection"]:
             self.fc_res = nn.Linear(self.obs_dim, self.act_dim)

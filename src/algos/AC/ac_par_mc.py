@@ -67,25 +67,42 @@ class ACTrainer:
         data = replay_buffer.get_contents_and_clear()
 
         batch_advantages = self.calc_advantages_MC(data["rewards"], data["terminals"])
-        loss_policy = self.update_policy(data["observations"].detach(), data["actions"].detach(), batch_advantages.detach())
+
+        batch_states_flat = data["observations"].view(-1, data["observations"].shape[-1])
+        batch_actions_flat = data["actions"].view(-1, data["actions"].shape[-1])
+        batch_advantages_flat = batch_advantages.view(-1)
+
+        # Get action log probabilities
+        log_probs = self.policy.log_probs(batch_states_flat, batch_actions_flat)
+
+        # Calculate loss function
+        loss = -T.mean(log_probs * batch_advantages_flat)
+
+        # Backward pass on policy
+        self.policy_optim.zero_grad()
+        loss.backward()
+
+        # Step policy update
+        self.policy_optim.step()
 
         # Post update log
-        if self.config["tb_writer"] is not None:
-            self.config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=self.global_step_ctr)
-            self.config["tb_writer"].add_scalar("Batch/Loss_policy", loss_policy, global_step=self.global_step_ctr)
+        if config["tb_writer"] is not None:
+            config["tb_writer"].add_histogram("Batch/Advantages", batch_advantages, global_step=self.global_step_ctr)
+            config["tb_writer"].add_histogram("Batch/Logprobs", log_probs, global_step=self.global_step_ctr)
+            config["tb_writer"].add_scalar("Batch/Loss_policy", loss, global_step=self.global_step_ctr)
 
-            self.config["tb_writer"].add_histogram("Batch/Rewards", data["rewards"], global_step=self.global_step_ctr)
+            config["tb_writer"].add_histogram("Batch/Rewards", data["rewards"], global_step=self.global_step_ctr)
             config["tb_writer"].add_histogram("Batch/Observations", data["observations"],
                                               global_step=self.global_step_ctr)
-            self.config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
+            config["tb_writer"].add_histogram("Batch/Sampled actions", data["actions"],
                                               global_step=self.global_step_ctr)
-            self.config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
+            config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
                                            global_step=self.global_step_ctr)
 
         print("N_total_steps_train {}/{}, loss_policy: {}, mean ep_rew: {}".
             format(self.global_step_ctr,
                    self.config["n_total_steps_train"],
-                   loss_policy,
+                   loss,
                    data["rewards"].sum() / config["batchsize"]))
 
     def train(self):
@@ -111,26 +128,6 @@ class ACTrainer:
             print("Finished training, saved policy at {} with params {}".format(self.config["sdir"], self.config))
         t2 = time.time()
         print("Training time: {}".format(t2 - t1))
-
-    def update_policy(self, batch_states, batch_actions, batch_advantages):
-        batch_states_flat = batch_states.view(-1, batch_states.shape[-1])
-        batch_actions_flat = batch_actions.view(-1, batch_actions.shape[-1])
-        batch_advantages_flat = batch_advantages.view(-1)
-
-        # Get action log probabilities
-        log_probs = self.policy.log_probs(batch_states_flat, batch_actions_flat)
-
-        # Calculate loss function
-        loss = -T.mean(log_probs * batch_advantages_flat)
-
-        # Backward pass on policy
-        self.policy_optim.zero_grad()
-        loss.backward()
-
-        # Step policy update
-        self.policy_optim.step()
-
-        return loss.data.detach()
 
     def calc_advantages_MC(self, batch_rewards, batch_terminals):
         # Monte carlo estimate of targets

@@ -8,9 +8,9 @@
 "n_envs" : 6
 "weight_init_bnd" : 1.0
 "momentum" : 0.0
-"policy_learning_rate" : 0.0003
+"policy_learning_rate" : 0.00003
 "vf_learning_rate" : 0.0005
-"init_log_std_value" : -0
+"init_log_std_value" : 0
 "weight_decay" : 0.0000
 "n_total_steps_train" : 3000000
 "n_steps_per_checkpoint" : 1000000
