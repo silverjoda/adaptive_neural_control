@@ -45,9 +45,9 @@ class ACTrainer:
         data = replay_buffer.get_contents_and_clear()
 
         batch_advantages = self.calc_advantages(data["observations"], data["rewards"], data["terminals"])
-        self.loss_policy = self.update_policy(data["observations"], data["actions"], batch_advantages.detach())
-
-        self.loss_vf = self.update_vf(batch_advantages)
+        self.loss_policy, self.loss_vf = self.update_policy_and_vf(data["observations"], data["actions"], batch_advantages)
+        #self.loss_policy = self.update_policy(data["observations"], data["actions"], batch_advantages.detach())
+        #self.loss_vf = self.update_vf()
         self.n_updates += 1
 
         # Post update log
@@ -62,6 +62,15 @@ class ACTrainer:
                                               global_step=self.global_step_ctr)
             config["tb_writer"].add_scalar("Batch/Terminal step", len(data["terminals"]) / self.config["batchsize"],
                                            global_step=self.global_step_ctr)
+
+        if self.n_updates % 50 == 0:
+            mean_eval_rews = self.eval_agent_par(N=3)
+            print("N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
+                  format(self.global_step_ctr,
+                         self.config["n_total_steps_train"],
+                         self.loss_policy,
+                         self.loss_vf,
+                         mean_eval_rews))
 
 
     def train(self):
@@ -87,15 +96,6 @@ class ACTrainer:
 
             self.global_step_ctr += self.config["n_envs"]
 
-            if self.n_updates % 500 == 0:
-                mean_eval_rews = self.eval_agent_par(N=3)
-                print("N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
-                        format(self.global_step_ctr,
-                               self.config["n_total_steps_train"],
-                               self.loss_policy,
-                               self.loss_vf,
-                               mean_eval_rews))
-
             # Decay log_std
             # policy.log_std -= config["log_std_decay"]
             # print(policy.log_std)
@@ -110,7 +110,7 @@ class ACTrainer:
         t2 = time.time()
         print("Training time: {}".format(t2 - t1))
 
-    def update_policy(self, batch_states, batch_actions, batch_advantages):
+    def update_policy_and_vf(self, batch_states, batch_actions, batch_advantages):
         batch_states_flat = batch_states.view(-1, batch_states.shape[-1])
         batch_actions_flat = batch_actions.view(-1, batch_actions.shape[-1])
         batch_advantages_flat = batch_advantages.view(-1)
@@ -119,23 +119,18 @@ class ACTrainer:
         log_probs = self.policy.log_probs(batch_states_flat, batch_actions_flat)
 
         # Calculate loss function
-        loss = -T.mean(log_probs * batch_advantages_flat)
+        loss_policy = -T.mean(log_probs * batch_advantages_flat.detach())
+        loss_vf = T.mean(0.5 * T.pow(batch_advantages, 2))
 
-        # Backward pass on policy
+        loss = loss_policy + loss_vf
+
         self.policy_optim.zero_grad()
-        loss.backward()
-
-        # Step policy update
-        self.policy_optim.step()
-
-        return loss.data
-
-    def update_vf(self, batch_advantages):
         self.vf_optim.zero_grad()
-        loss = T.mean(0.5 * T.pow(batch_advantages, 2))
         loss.backward()
+
         self.vf_optim.step()
-        return loss.data.detach()
+        self.policy_optim.step()
+        return loss_policy.data.detach(), loss_vf.data.detach()
 
     def calc_advantages(self, batch_observations, batch_rewards, batch_terminals):
         batch_values = self.vf(batch_observations).squeeze(2)
@@ -146,7 +141,7 @@ class ACTrainer:
                 R = r - v
             else:
                 R = r - v + self.config["gamma"] * batch_values[i + 1] * T.logical_not(t)
-            targets.append(R.view(1, 6))
+            targets.append(R.view(1, self.config["n_envs"]))
         targets = T.cat(list(reversed(targets)))
         return targets
 

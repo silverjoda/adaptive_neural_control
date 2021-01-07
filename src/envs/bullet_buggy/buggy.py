@@ -59,7 +59,7 @@ class RandomSeq:
         self.config = config
 
     def __getitem__(self, item):
-        return np.array(self.config["target_mu"]) + np.random.rand(2) * (np.array(self.config["target_sig"]) - np.array(self.config["target_sig"]) / 2)
+        return np.array(self.config["target_mu"]) + np.random.rand(2) * np.array(self.config["target_sig"]) - np.array(self.config["target_sig"]) / 2
 
     def __len__(self):
         return 2
@@ -293,7 +293,7 @@ class BuggyBulletEnv(gym.Env):
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
         #heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -2, 2)
-        yaw_pen = np.clip(np.square(tar_angle - yaw_deviation) * 0.2, -1, 1)
+        yaw_pen = np.clip(np.square(tar_angle-torso_euler[2]) * 0.4, -1, 1)
         r = vel_rew - yaw_pen
 
         self.rew_queue.append([r])

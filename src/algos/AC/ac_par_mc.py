@@ -136,10 +136,10 @@ class ACTrainer:
         # Monte carlo estimate of targets
         targets = []
         with T.no_grad():
-            R = T.zeros(6)
+            R = T.zeros(self.config["n_envs"])
             for r, t in zip(reversed(batch_rewards), reversed(batch_terminals)):
                 R = r + self.config["gamma"] * R * T.logical_not(t)
-                targets.append(R.view(1, 6))
+                targets.append(R.view(1, self.config["n_envs"]))
             targets = T.cat(list(reversed(targets)))
         return targets
 
