@@ -32,7 +32,6 @@ but tune the policy width (it might need to be narrower than the value MLP).
 Linearly decaying the learning rate may slightly improve performance but is of secondary importance.
 - One of the surprising insights is that the initial action distribution plays an important role in agent performance.
 
-
 # Planned adaptation algos:
 - Plain training using RNN (supervised model learning and RL policy)
 - Oracle with params as inputs

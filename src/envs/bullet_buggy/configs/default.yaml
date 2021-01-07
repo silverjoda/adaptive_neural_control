@@ -1,15 +1,17 @@
 "env_name" : buggy
-"controller_source" : "joystick" # nn/joystick
+"controller_source" : "nn" # nn/joystick
 "max_steps" : 500
-"step_counter" : False
-"latent_input" : False
-"action_input" : False
-"rew_input" : False
+"step_counter" : 0
+"latent_input" : 0
+"act_input" : 0
+"obs_input" : 1
+"rew_input" : 0
 "randomize_env" : False
 "sim_timestep" : 0.00417
 "env_change_prob" : 0.1
 "target_proximity_threshold" : 0.6
-"target_dispersal_distance" : 4
+"target_mu" : [4,0]
+"target_sig" : [2,4]
 "urdf_name" : buggy_diff.urdf
 "seed" :
 "wp_sequence" : "rnd" # two_pole, four_pole, rnd

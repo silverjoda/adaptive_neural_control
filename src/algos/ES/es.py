@@ -98,6 +98,7 @@ def test_agent(env, policy):
             action = policy(obs)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
+            env.render()
             if done:
                 print(cum_rew)
                 break

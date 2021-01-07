@@ -122,7 +122,7 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
                 reward = env.get_original_reward()
             episode_rew += reward
             total_rew += reward
-            #env.render()
+            env.render()
             if done: # .all() for rnn
                 if print_rew:
                     print(episode_rew)
@@ -139,7 +139,7 @@ def test_multiple(env, model, deterministic=True, N=100, print_rew=True, seed=13
             obs, reward, done, info = env.step(action)
             reward = env.get_original_reward()
             total_rew += reward[0]
-            #env.render()
+            env.render()
             if done[0]: #  for rnn
                 break
     return total_rew

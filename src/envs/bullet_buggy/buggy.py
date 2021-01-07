@@ -28,7 +28,7 @@ class JoyController:
 
     def get_joystick_input(self):
         pygame.event.pump()
-        turn, vel = [self.joystick.get_axis(0), self.joystick.get_axis(1)]
+        turn, vel = [self.joystick.get_axis(3), self.joystick.get_axis(1)]
         button_x = self.joystick.get_button(1)
         pygame.event.clear()
 
@@ -59,7 +59,7 @@ class RandomSeq:
         self.config = config
 
     def __getitem__(self, item):
-        return np.random.rand(2) * self.config["target_dispersal_distance"] - self.config["target_dispersal_distance"] / 2
+        return np.array(self.config["target_mu"]) + np.random.rand(2) * (np.array(self.config["target_sig"]) - np.array(self.config["target_sig"]) / 2)
 
     def __len__(self):
         return 2
@@ -97,11 +97,13 @@ class BuggyBulletEnv(gym.Env):
 
         self.config = config
 
-        self.obs_dim = 10 + self.config["action_input"] * 2 \
-                       + self.config["rew_input"] * 1 \
-                       + self.config["latent_input"] * 5 \
-                       + self.config["step_counter"] * 1
-        self.act_dim = 2
+        self.just_obs_dim = 8
+        self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
+                       + self.config["act_input"] * 0 \
+                       + self.config["rew_input"] * 0 \
+                       + self.config["latent_input"] * 0 \
+                       + self.config["step_counter"] * 0
+        self.act_dim = 4
 
         # Episode variables
         self.step_ctr = 0
@@ -116,17 +118,20 @@ class BuggyBulletEnv(gym.Env):
         p.setTimeStep(self.config["sim_timestep"])
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
-        self.wheels = [8,15] # [2, 3, 5, 7]
+        self.wheels = [8] # 15
         self.tires = [1, 3, 12, 14]
         self.inactive_wheels = []
         self.steering = [0,2] # [4, 6]
 
-        self.obs_queue = []
-        self.act_queue = []
-        self.max_queue_len = 3
-
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+
+        self.obs_queue = [np.zeros(self.just_obs_dim, dtype=np.float32) for _ in range(
+            np.maximum(1, self.config["obs_input"]) + self.randomized_params["input_transport_delay"])]
+        self.act_queue = [np.zeros(self.act_dim, dtype=np.float32) for _ in range(
+            np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
+        self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(
+            np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
 
         for wheel in range(p.getNumJoints(self.robot)):
             print("joint[", wheel, "]=", p.getJointInfo(self.robot, wheel))
@@ -146,24 +151,24 @@ class BuggyBulletEnv(gym.Env):
                                parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
         p.changeConstraint(c, gearRatio=-1, maxForce=10000)
 
-        c = p.createConstraint(self.robot, 16, self.robot, 18, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
-                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
-        p.changeConstraint(c, gearRatio=1, maxForce=10000)
-
-        c = p.createConstraint(self.robot, 16, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
-                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
-        p.changeConstraint(c, gearRatio=-1, maxForce=10000)
-
-        c = p.createConstraint(self.robot, 17, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
-                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
-        p.changeConstraint(c, gearRatio=-1, maxForce=10000)
-
-        c = p.createConstraint(self.robot, 1, self.robot, 18, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
-                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
-        p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
-        c = p.createConstraint(self.robot, 3, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
-                               parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
-        p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+        # c = p.createConstraint(self.robot, 16, self.robot, 18, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+        #                        parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        # p.changeConstraint(c, gearRatio=1, maxForce=10000)
+        #
+        # c = p.createConstraint(self.robot, 16, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+        #                        parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        # p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+        #
+        # c = p.createConstraint(self.robot, 17, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+        #                        parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        # p.changeConstraint(c, gearRatio=-1, maxForce=10000)
+        #
+        # c = p.createConstraint(self.robot, 1, self.robot, 18, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+        #                        parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        # p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
+        # c = p.createConstraint(self.robot, 3, self.robot, 19, jointType=p.JOINT_GEAR, jointAxis=[0, 1, 0],
+        #                        parentFramePosition=[0, 0, 0], childFramePosition=[0, 0, 0])
+        # p.changeConstraint(c, gearRatio=-1, gearAuxLink=15, maxForce=10000)
 
         # yaw, x_dot, y_dot, yaw_dot, relative_target_A, relative_target_B
         self.observation_space = spaces.Box(low=-2, high=2, shape=(self.obs_dim,))
@@ -202,10 +207,10 @@ class BuggyBulletEnv(gym.Env):
 
         # Randomize robot params
         self.randomized_params = {"mass": 1.0 + (np.random.rand() * 1 - 0.5) * self.config["randomize_env"],
-                                 "wheels_friction": 1.4 + (np.random.rand() * 1.4 - 0.7) * self.config["randomize_env"],
+                                 "wheels_friction": 2.0 + (np.random.rand() * 1.4 - 0.7) * self.config["randomize_env"],
                                  "steering_scalar": 1.0 - np.random.rand() * 0.3 * self.config["randomize_env"],
-                                 "max_force": 1.0 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],  # With 0.7 works great
-                                 "velocity_scaler": 60 + (np.random.rand() * 80 - 40) * self.config["randomize_env"], # With 50 works great
+                                 "max_force": 2.0 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],  # With 0.7 works great
+                                 "velocity_scaler": 100 + (np.random.rand() * 80 - 40) * self.config["randomize_env"], # With 50 works great
                                  "input_transport_delay": 0 + 1 * np.random.choice([0, 1, 2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
                                  "output_transport_delay": 0 + 1 * np.random.choice([0, 1, 2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
@@ -230,10 +235,7 @@ class BuggyBulletEnv(gym.Env):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
         torso_vel, torso_angular_vel = p.getBaseVelocity(self.robot, physicsClientId=self.client_ID)
         torso_euler = p.getEulerFromQuaternion(torso_quat)
-        self.obs_queue.append([torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel])
-        if len(self.obs_queue) > self.max_queue_len:
-            self.obs_queue.pop(0)
-        return self.obs_queue[- 1 - np.minimum(self.randomized_params["input_transport_delay"], len(self.obs_queue) - 1)]
+        return [torso_pos, torso_quat, torso_euler, torso_vel, torso_angular_vel]
 
     def update_targets(self):
         if self.target_A is None:
@@ -254,17 +256,20 @@ class BuggyBulletEnv(gym.Env):
             p.resetBasePositionAndOrientation(self.target_A_body, [self.target_A[0], self.target_A[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
             p.resetBasePositionAndOrientation(self.target_B_body, [self.target_B[0], self.target_B[1], 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
-    def render(self, close=False):
+    def render(self, close=False, mode=None):
         time.sleep(self.config["sim_timestep"])
 
     def step(self, ctrl_raw):
         self.act_queue.append(ctrl_raw)
-        if len(self.act_queue) > self.max_queue_len:
-            self.act_queue.pop(0)
-        ctrl = self.act_queue[
-            - 1 - np.minimum(self.randomized_params["output_transport_delay"], len(self.act_queue) - 1)]
+        self.act_queue.pop(0)
+        if self.randomized_params["output_transport_delay"] > 0:
+            ctrl_raw_unqueued = self.act_queue[-self.config["act_input"]:]
+            ctrl_delayed = self.act_queue[-1 - self.randomized_params["output_transport_delay"]]
+        else:
+            ctrl_raw_unqueued = self.act_queue
+            ctrl_delayed = self.act_queue[-1]
 
-        wheel_action = np.clip(ctrl[0], -1, 1)
+        wheel_action = np.clip(ctrl_delayed[0], -1, 1)
         for wheel in self.wheels:
             p.setJointMotorControl2(self.robot,
                                     wheel,
@@ -288,7 +293,15 @@ class BuggyBulletEnv(gym.Env):
         target_dist = np.sqrt((torso_pos[0] - self.target_A[0]) ** 2 + (torso_pos[1] - self.target_A[1]) ** 2)
         vel_rew = np.clip((self.prev_target_dist - target_dist) * 10, -3, 3)
         #heading_rew = np.clip((self.prev_yaw_deviation - yaw_deviation) * 3, -2, 2)
-        r = vel_rew
+        yaw_pen = np.clip(np.square(tar_angle - yaw_deviation) * 0.2, -1, 1)
+        r = vel_rew - yaw_pen
+
+        self.rew_queue.append([r])
+        self.rew_queue.pop(0)
+        if self.randomized_params["input_transport_delay"] > 0:
+            r_unqueued = self.rew_queue[-self.config["rew_input"]:]
+        else:
+            r_unqueued = self.rew_queue
 
         if target_dist < self.config["target_proximity_threshold"]:
             self.update_targets()
@@ -296,27 +309,41 @@ class BuggyBulletEnv(gym.Env):
             tar_angle = np.arctan2(self.target_A[1] - torso_pos[1], self.target_A[0] - - torso_pos[0])
             yaw_deviation = np.min((abs((torso_euler[2] % np.pi * 2) - (tar_angle % np.pi * 2)), abs(torso_euler[2] - tar_angle)))
             self.prev_yaw_deviation = yaw_deviation
+            reached_target = True
         else:
             self.prev_target_dist = target_dist
             self.prev_yaw_deviation = yaw_deviation
+            reached_target = False
 
         # Calculate relative positions of targets
         relative_target_A = self.target_A[0] - torso_pos[0], self.target_A[1] - torso_pos[1]
         relative_target_B = self.target_B[0] - torso_pos[0], self.target_B[1] - torso_pos[1]
 
-        done = (self.step_ctr > self.config["max_steps"])
+        done = (self.step_ctr > self.config["max_steps"] or reached_target or torso_pos[0] > self.target_A[0])
+
+        compiled_obs = torso_euler[2:3], torso_vel[0:2], torso_angular_vel[2:3], relative_target_A, relative_target_B
+        compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
+        self.obs_queue.append(compiled_obs_flat)
+        self.obs_queue.pop(0)
+
+        if self.randomized_params["input_transport_delay"] > 0:
+            obs_raw_unqueued = self.obs_queue[-self.config["obs_input"]:]
+        else:
+            obs_raw_unqueued = self.obs_queue
 
         aux_obs = []
-        if self.config["action_input"]:
-            aux_obs.extend(ctrl_raw)
-        if self.config["rew_input"]:
-            aux_obs.extend([r])
+        if self.config["obs_input"] > 0:
+            [aux_obs.extend(c) for c in obs_raw_unqueued]
+        if self.config["act_input"] > 0:
+            [aux_obs.extend(c) for c in ctrl_raw_unqueued]
+        if self.config["rew_input"] > 0:
+            [aux_obs.extend(c) for c in r_unqueued]
         if self.config["latent_input"]:
             aux_obs.extend(self.randomized_params_list_norm)
         if self.config["step_counter"]:
             aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
 
-        obs = np.concatenate((torso_euler[2:3], torso_vel[0:2], torso_angular_vel[2:3], relative_target_A, relative_target_B, aux_obs)).astype(np.float32)
+        obs = np.array(aux_obs).astype(np.float32)
 
         return obs, r, done, {}
 
@@ -326,7 +353,9 @@ class BuggyBulletEnv(gym.Env):
         self.step_ctr = 0
 
         p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
+
+        rnd_starting_orientation = p.getQuaternionFromEuler([0, 0, np.random.rand(1) * 1 - 0.5])
+        p.resetBasePositionAndOrientation(self.robot, [0, 0, 0.1], rnd_starting_orientation, physicsClientId=self.client_ID)
 
         torso_pos, _, torso_euler, _, _ = self.get_obs()
         self.update_targets()
@@ -354,7 +383,10 @@ class BuggyBulletEnv(gym.Env):
         self.config["policy_type"] = "mlp"
         self.reset()
         while True:
-            vel, turn, b_x = self.JOYStick.get_joystick_input()
+            if self.config["controller_source"] == "joystick":
+                vel, turn, b_x = self.JOYStick.get_joystick_input()
+            else:
+                vel, turn, b_x = [0,0,0]
 
             obs, r, done, _ = self.step([vel, turn])
             time.sleep(self.config["sim_timestep"])
