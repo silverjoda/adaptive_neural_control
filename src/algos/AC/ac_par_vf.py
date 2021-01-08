@@ -42,7 +42,7 @@ class ACTrainer:
         self.config = config
 
     def update(self):
-        data = replay_buffer.get_contents_and_clear()
+        data = self.replay_buffer.get_contents_and_clear()
 
         batch_values, batch_advantages = self.calc_advantages(data["observations"], data["rewards"], data["terminals"])
 
@@ -89,8 +89,8 @@ class ACTrainer:
             print("N_total_steps_train {}/{}, loss_policy: {}, loss_vf: {}, mean ep_rew: {}".
                   format(self.global_step_ctr,
                          self.config["n_total_steps_train"],
-                         self.loss_policy,
-                         self.loss_vf,
+                         loss_policy,
+                         loss_vf,
                          mean_eval_rews))
 
 
@@ -122,7 +122,7 @@ class ACTrainer:
             # print(policy.log_std)
 
             if self.global_step_ctr % self.config["n_steps_per_checkpoint"] == 0 and self.config["save_policy"]:
-                T.save(policy.state_dict(), self.config["sdir"])
+                T.save(self.policy.state_dict(), self.config["sdir"])
                 print("Saved checkpoint at {} with params {}".format(self.config["sdir"], self.config))
 
         if self.config["save_policy"]:
@@ -170,6 +170,8 @@ class ACTrainer:
                 episode_rew += reward
                 total_rew += reward
 
+                self.env.render()
+
                 if done:
                     if print_rew:
                         print(episode_rew)
@@ -209,20 +211,20 @@ class ACTrainer:
         self.policy_optim = None
         self.vf_optim = None
         if self.config["policy_optim"] == "rmsprop":
-            self.policy_optim = T.optim.RMSprop(policy.parameters(),
+            self.policy_optim = T.optim.RMSprop(self.policy.parameters(),
                                            lr=self.config["policy_learning_rate"],
                                            weight_decay=self.config["weight_decay"],
                                            eps=1e-8, momentum=self.config["momentum"])
-            self.vf_optim = T.optim.RMSprop(vf.parameters(),
+            self.vf_optim = T.optim.RMSprop(self.vf.parameters(),
                                        lr=self.config["vf_learning_rate"],
                                        weight_decay=self.config["weight_decay"],
                                        eps=1e-8, momentum=self.config["momentum"])
         if self.config["policy_optim"] == "sgd":
-            self.policy_optim = T.optim.SGD(policy.parameters(),
+            self.policy_optim = T.optim.SGD(self.policy.parameters(),
                                        lr=self.config["policy_learning_rate"],
                                        weight_decay=self.config["weight_decay"],
                                        momentum=self.config["momentum"])
-            self.vf_optim = T.optim.SGD(vf.parameters(),
+            self.vf_optim = T.optim.SGD(self.vf.parameters(),
                                    lr=self.config["vf_learning_rate"],
                                    weight_decay=self.config["weight_decay"],
                                    momentum=self.config["momentum"])
@@ -246,10 +248,10 @@ class ACTrainer:
 
     def setup_test(self):
         env_fun = my_utils.import_env(env_config["env_name"])
-        env = DummyVecEnv([lambda: env_fun(config)])
-        policy = my_utils.make_par_policy(env, config)
-        policy.load_state_dict(T.load(config["test_agent_path"]))
-        return env, policy
+        self.env = DummyVecEnv([lambda: env_fun(config)])
+        self.policy = my_utils.make_par_policy(self.env, config)
+        self.policy.load_state_dict(T.load(config["test_agent_path"]))
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -281,13 +283,13 @@ if __name__=="__main__":
     ac_trainer = ACTrainer(config)
 
     if config["train"] or socket.gethostname() == "goedel":
-        env, policy, vf, policy_optim, vf_optim, replay_buffer = ac_trainer.setup_train()
+        ac_trainer.setup_train()
         ac_trainer.train()
 
         print(config)
 
     if config["test"] and socket.gethostname() != "goedel":
-        env, policy = ac_trainer.setup_test()
+        ac_trainer.setup_test()
         ac_trainer.test_agent(print_rew=True)
 
 

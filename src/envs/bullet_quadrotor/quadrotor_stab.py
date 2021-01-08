@@ -66,10 +66,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.config = config
         self.just_obs_dim = 13
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
-                       + self.config["act_input"] * 0 \
-                       + self.config["rew_input"] * 0 \
-                       + self.config["latent_input"] * 0 \
-                       + self.config["step_counter"] * 0
+                       + self.config["act_input"] * 4 \
+                       + self.config["rew_input"] * 1 \
+                       + self.config["latent_input"] * 7 \
+                       + self.config["step_counter"] * 1
         self.act_dim = 4
         self.reactive_torque_dir_vec = [1, -1, -1, 1]
 
