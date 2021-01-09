@@ -2,21 +2,21 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy", "CustomAC"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 2000000
+"iters" : 40000000
 "n_steps_per_checkpoint" : 1000000
 "gamma" : 0.99
-"n_steps" : 60
+"n_steps" : 50
 "vf_coef" : 0.5
-"ent_coef" : 0.000000
+"ent_coef" : 0.00000
 "max_grad_norm" : 0.5
-"learning_rate" : 0.0005 # probably 0.0004 would be better
+"learning_rate" : 0.0004
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
 "verbose" : 1
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 96
+"policy_hid_dim" : 128
 "policy_memory_dim" : 128
 "policy_grad_clip_value" : 1.0
 "policy_residual_connection" : False

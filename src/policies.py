@@ -12,32 +12,23 @@ class FF_HEX_EEF(nn.Module):
         self.obs_dim = obs_dim
         self.act_dim = act_dim
         # [tensor(0.7135), tensor(-0.6724), tensor(-0.8629), tensor(-1.0894), tensor(0.0725), tensor(3.4730), tensor(0.3511), tensor(0.4637), tensor(-3.4840), tensor(-2.8000), tensor(-0.4658)]
-        # x_mult, y_offset, z_mult, z_offset, phase_offset, *phases
-        self.learned_params = \
-            nn.ParameterList([nn.Parameter(T.tensor(0.7135)), # x_mult
-                              nn.Parameter(T.tensor(-0.6724)), # y_offset
-                              nn.Parameter(T.tensor(-0.8629)), # z_mult
-                              nn.Parameter(T.tensor(-1.0894)), # z_offset
-                              nn.Parameter(T.tensor(0.0725)), # phase_offset
-                              nn.Parameter(T.tensor(3.4730)), # p0
-                              nn.Parameter(T.tensor(0.3511)), # p1
-                              nn.Parameter(T.tensor(0.4637)), # p2
-                              nn.Parameter(T.tensor(-3.4840)), # p3
-                              nn.Parameter(T.tensor(-2.8000)), # p4
-                              nn.Parameter(T.tensor(-0.4658))]) # p5
+        # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases
+        self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
+
 
     def forward(self, x):
         clipped_params = [np.clip(np.tanh(self.learned_params[0].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # x_mult
                           np.clip(np.tanh(self.learned_params[1].data) * 0.085 * 0.5 + 0.085, 0.05, 0.12), # y_offset
                           np.clip(np.tanh(self.learned_params[2].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # z_mult
                           np.clip(np.tanh(self.learned_params[3].data) * 0.1 * 0.5 + 0.1, 0.05, 0.15), # z_offset
-                          self.learned_params[4].data, # phase_offset
-                          self.learned_params[5].data,
+                          self.learned_params[4].data, # phase_offset_l
+                          self.learned_params[5].data, # phase_offset_r
                           self.learned_params[6].data,
                           self.learned_params[7].data,
                           self.learned_params[8].data,
                           self.learned_params[9].data,
-                          self.learned_params[10].data]
+                          self.learned_params[10].data,
+                          self.learned_params[11].data]
         act = [param.data for param in clipped_params]
         return act
 

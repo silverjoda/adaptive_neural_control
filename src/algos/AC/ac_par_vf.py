@@ -55,7 +55,7 @@ class ACTrainer:
 
         # Calculate loss function
         loss_policy = -T.mean(log_probs * batch_advantages_flat.detach())
-        loss_vf = T.mean(0.5 * T.pow(batch_advantages, 2))
+        loss_vf = T.mean(0.5 * T.pow(batch_advantages_flat, 2))
 
         loss = loss_policy + loss_vf
 
@@ -134,16 +134,16 @@ class ACTrainer:
 
     def calc_advantages(self, batch_observations, batch_rewards, batch_terminals):
         batch_values = self.vf(batch_observations).squeeze(2)
-        targets = []
+        advantages = []
         for i in reversed(range(len(batch_rewards))):
             r, v, t = batch_rewards[i], batch_values[i], batch_terminals[i]
             if i == len(batch_rewards) - 1:
                 A = r - v
             else:
                 A = r - v + self.config["gamma"] * batch_values[i + 1] * T.logical_not(t)
-            targets.append(A.view(1, self.config["n_envs"]))
-        targets = T.cat(list(reversed(targets)))
-        return batch_values, targets
+            advantages.append(A.view(1, self.config["n_envs"]))
+        advantages = T.cat(list(reversed(advantages)))
+        return batch_values, advantages
 
     def eval_agent_par(self, N=10):
         total_rew = 0

@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 11 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
+        self.act_dim = 12 # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, phase_0 ... phase_5
         self.just_obs_dim = 9
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
@@ -66,7 +66,6 @@ class HexapodBulletEnv(gym.Env):
         self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]))]
         self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]))]
         self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]))]
-
 
     def set_seed(self, np_seed, T_seed):
         np.random.seed(np_seed)
@@ -279,7 +278,7 @@ class HexapodBulletEnv(gym.Env):
 
     def render(self, close=False, mode=None):
         if self.config["animate"]:
-            time.sleep(self.config["sim_timestep"])
+            time.sleep(self.config["sim_step"])
 
     def load_robot(self):
         # Remove old robot
@@ -328,7 +327,7 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        x_mult, y_offset, z_mult, z_offset, phase_offset, *phases = ctrl_raw
+        x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases = ctrl_raw
 
         #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
 
@@ -337,15 +336,11 @@ class HexapodBulletEnv(gym.Env):
                                                 endEffectorLinkIndices=self.eef_list,
                                                 targetPositions=[
                                                     [np.cos(-self.angle * 2 * np.pi + phases[i]) * x_mult, y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * z_mult - z_offset]
+                                                     np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset_l * bool(i%2) + phase_offset_r * bool((i+1)%2)) * z_mult - z_offset]
                                                     for i in range(6)],
-                                                # targetPositions=[
-                                                #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.1, 0.5 * dir_vec[i],
-                                                #      np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * 0.2 - 0.1]
-                                                #     for i in range(6)],
                                                 currentPositions=[0] * 18)
 
-        self.angle += 0.005
+        self.angle += 0.006
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
@@ -418,12 +413,14 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1, # 0.1
-                 "bobbing": np.sqrt(np.square(zd)) * 0.2, # 0.2
+        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.0, # 0.1
+                 "bobbing": np.sqrt(np.square(zd)) * 0.0, # 0.2
                  "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
         #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}
-        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
+        r_pos = {#"velocity_rew": np.clip(velocity_rew, -2, 2),
+                 "turn_rew": psid * 0.1,
+                 "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
@@ -588,19 +585,14 @@ class HexapodBulletEnv(gym.Env):
         z_offset = -0.1
         angle = 0
         while True:
-            # obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID)
-            # joint_angles = []
-            # for o in obs:
-            #     joint_angles.append(o[0])
-
             targets = p.calculateInverseKinematics2(self.robot,
                                                     endEffectorLinkIndices=eef_list,
                                                     targetPositions=[[np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset],
                                                                      [np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset],
                                                                      [np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset]],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset]],
                                                     currentPositions=[0] * 18)
 
             for i in range(18):
@@ -608,9 +600,9 @@ class HexapodBulletEnv(gym.Env):
                                         jointIndex=i,
                                         controlMode=p.POSITION_CONTROL,
                                         targetPosition=targets[i],
-                                        force=5,
-                                        positionGain=0.1,
-                                        velocityGain=0.1,
+                                        force=2,
+                                        positionGain=0.01,
+                                        velocityGain=0.01,
                                         maxVelocity=2,
                                         physicsClientId=self.client_ID)
 

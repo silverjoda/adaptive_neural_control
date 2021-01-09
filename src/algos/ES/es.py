@@ -30,7 +30,7 @@ def f_wrapper(env, policy):
 
         while not done:
             with torch.no_grad():
-                act = policy.sample_action(obs, deterministic=True)
+                act = policy(obs) #policy.sample_action(obs, deterministic=True)
             obs, rew, done, _ = env.step(act)
             reward += rew
 
@@ -95,10 +95,10 @@ def test_agent(env, policy):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action = policy.sample_action(obs, deterministic=True)
+            action = policy(obs) #policy.sample_action(obs, deterministic=True)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
-            env.render()
+
             if done:
                 print(cum_rew)
                 break
@@ -139,5 +139,7 @@ if __name__=="__main__":
     if config["test"] and socket.gethostname() != "goedel":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
-        #print(policy.learned_params)
+        print([p.data for p in policy.learned_params])
         test_agent(env, policy)
+
+

@@ -35,8 +35,8 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 6 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 14
+        self.act_dim = 8 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
+        self.just_obs_dim = 8
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -335,15 +335,13 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        #mix_ratio = 0.9
-        #self.current_phases = (self.current_phases + ctrl_raw * 1.0) * mix_ratio + self.phases_op * (1 - mix_ratio)
-        #self.current_phases = np.clip(self.current_phases + ctrl_raw * self.config["phase_increment"], -np.pi * 2, np.pi * 2)
-        #print(self.current_phases)
+        # Training window 1
+        #self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * 2
+        #self.left_offset, self.right_offset = ctrl_raw[6:8] * np.pi * 2
 
-        self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * 2
-        #self.current_phases = self.phases_op
-
-        #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
+        # Training window 2
+        self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * 2
+        self.left_offset, self.right_offset = ctrl_raw[6:8] * np.pi * 2 + np.array([self.phase_offset, self.phase_offset])
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -351,13 +349,10 @@ class HexapodBulletEnv(gym.Env):
                                                 targetPositions=[
                                                     [np.cos(-self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult,
                                                      self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.phase_offset) * self.z_mult - self.z_offset]
+                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.left_offset * bool(i%2) + self.right_offset * bool((i+1)%2)) * self.z_mult - self.z_offset]
                                                      for i in range(6)],
-                                                # targetPositions=[
-                                                #     [np.cos(-self.angle * 2 * np.pi + phases[i]) * 0.1, 0.5 * dir_vec[i],
-                                                #      np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset) * 0.2 - 0.1]
-                                                #     for i in range(6)],
                                                 currentPositions=[0]*18)
+
 
         self.angle += 0.006
 
@@ -418,16 +413,14 @@ class HexapodBulletEnv(gym.Env):
                  "bobbing": np.sqrt(np.square(zd)) * 0.0,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
-        r_pos = {#"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
-                 "height_rew": np.clip(torso_pos[2], 0, 0.00),
-                 "turn_rew" : psid * 0.3}
+        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
+                 "height_rew": np.clip(torso_pos[2], 0, 0.00)}
         #print(psid)
         #r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
         r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
-
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
@@ -441,7 +434,7 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, [signed_deviation], contacts
+        compiled_obs = torso_quat, torso_vel, [signed_deviation]
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -600,14 +593,16 @@ class HexapodBulletEnv(gym.Env):
             # for o in obs:
             #     joint_angles.append(o[0])
 
+            dir_vec = [1., -1.] * 3
             targets = p.calculateInverseKinematics2(self.robot,
-                                                    endEffectorLinkIndices=eef_list,
-                                                    targetPositions=[[np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset]],
+                                                    endEffectorLinkIndices=self.eef_list,
+                                                    targetPositions=[
+                                                        [np.cos(-self.angle * 2 * np.pi + self.phases_op[
+                                                            i]) * self.x_mult,
+                                                         self.y_offset * dir_vec[i],
+                                                         np.sin(-self.angle * 2 * np.pi + self.phases_op[
+                                                             i] + self.phase_offset) * self.z_mult - self.z_offset]
+                                                        for i in range(6)],
                                                     currentPositions=[0] * 18)
 
             for i in range(18):
@@ -615,16 +610,15 @@ class HexapodBulletEnv(gym.Env):
                                         jointIndex=i,
                                         controlMode=p.POSITION_CONTROL,
                                         targetPosition=targets[i],
-                                        force=5,
-                                        positionGain=0.1,
-                                        velocityGain=0.1,
-                                        maxVelocity=2,
+                                        force=self.randomized_params["max_joint_force"],
+                                        positionGain=self.randomized_params["actuator_position_gain"],
+                                        velocityGain=self.randomized_params["actuator_velocity_gain"],
+                                        maxVelocity=self.randomized_params["max_actuator_velocity"],
                                         physicsClientId=self.client_ID)
 
             p.stepSimulation()
             time.sleep(self.config["sim_step"])
-            angle += 0.004
-
+            self.angle += 0.006
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)

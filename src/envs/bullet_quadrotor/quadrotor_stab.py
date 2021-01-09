@@ -125,11 +125,11 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_alpha": 0.2 + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
+                                 "motor_alpha": 0.05 + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
                                  "motor_force_multiplier": 6 + (np.random.rand() * 4 - 1.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
-                                 "output_transport_delay": 0 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
+                                 "output_transport_delay": 7 + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
@@ -268,7 +268,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def step(self, ctrl_raw):
         if self.prev_act is not None:
-            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * 0.2
+            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * 0.1
         else:
             raw_act_smoothness_pen = 0
         self.prev_act = ctrl_raw
@@ -317,8 +317,8 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.square(pos_delta)) * 1.0, -0.7, 0.7)
-        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.7, 0.7)
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
+        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
 
