@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
         # TODO: Make saving of env stats, and creation of new for evaluations
 
-        avg_episode_rew = test_multiple(env, model, deterministic=True, N=1)
+        avg_episode_rew = test_multiple(env, model, deterministic=True, N=100)
 
         env.close()
         del env
@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
         return avg_episode_rew
 
-    config["iters"] = 10000
+    config["iters"] = 2000000
 
     # Specify variables
     var_dict = {"norm_obs" : [True, False], "learning_rate" : [2e-4, 7e-4]}

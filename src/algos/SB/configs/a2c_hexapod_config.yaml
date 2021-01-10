@@ -20,6 +20,6 @@
 "policy_residual_connection" : False
 "norm_obs" : True
 "norm_reward" : True
-"w_1" : True
-"w_2" : False
-"phase_scalar" : 2
+"w_1" : False
+"w_2" : True
+"phase_scalar" : 1
