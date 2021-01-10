@@ -1,6 +1,6 @@
 from stable_baselines import PPO2, A2C, TD3, SAC
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize, DummyVecEnv
-from stable_baselines.common.callbacks import CheckpointCallback
+from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback
 import src.my_utils as my_utils
 import time
 import random
@@ -118,7 +118,7 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
-            if getattr(env, "get_original_reward", None):
+            if hasattr(env, "get_original_reward"):
                 reward = env.get_original_reward()
             episode_rew += reward
             total_rew += reward
@@ -129,20 +129,19 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
                 break
     return total_rew
 
-def test_multiple(env, model, deterministic=True, N=100, print_rew=True, seed=1337):
-    #env.set_seed(seed, seed)
+def test_multiple(env, model, deterministic=True, N=100, seed=1337):
     total_rew = 0.
     for _ in range(N):
         obs = env.reset()
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
-            reward = env.get_original_reward()
+            if hasattr(env, "get_original_reward"):
+                reward = env.get_original_reward()
             total_rew += reward[0]
-            env.render()
-            if done[0]: #  for rnn
+            if done[0]:
                 break
-    return total_rew
+    return total_rew / N
 
 
 def setup_train(config, setup_dirs=True):
@@ -159,6 +158,8 @@ def setup_train(config, setup_dirs=True):
 
     pprint(config)
 
+    stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
+
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
     env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'),
@@ -167,11 +168,11 @@ def setup_train(config, setup_dirs=True):
                        norm_reward=config["norm_reward"])
     model = make_model(config, env, None)
 
-    checkpoint_callback = CheckpointCallback(save_freq=150000,
+    checkpoint_callback = CheckpointCallback(save_freq=300000,
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 
-    return env, model, checkpoint_callback
+    return env, model, checkpoint_callback, stats_path
 
 if __name__ == "__main__":
     args = parse_args()
@@ -180,8 +181,7 @@ if __name__ == "__main__":
     config = {**args, **algo_config, **env_config}
 
     if args["train"] or socket.gethostname() == "goedel":
-        env, model, checkpoint_callback = setup_train(config)
-        stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
+        env, model, checkpoint_callback, stats_path = setup_train(config)
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -203,7 +203,9 @@ if __name__ == "__main__":
         env_fun = my_utils.import_env(env_config["env_name"])
         #env = env_fun(config)  # Default, without normalization
         env = DummyVecEnv([lambda: env_fun(config)])
-        #env = VecNormalize.load(stats_path, env)
+        env = VecNormalize.load(stats_path, env)
+        env.training = False
+        env.norm_reward = False
 
         model = load_model(config)
 

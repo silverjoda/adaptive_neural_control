@@ -24,8 +24,8 @@ class HexapodBulletEnv(gym.Env):
         if self.seed is not None:
             self.set_seed(self.seed, self.seed)
         else:
-            rnd_seed = int((time.time() % 1) * 10000000)
-            self.set_seed(rnd_seed, rnd_seed + 1)
+            self.seed = int((time.time() % 1) * 10000000)
+            self.set_seed(self.seed, self.seed + 1)
 
         if (self.config["animate"]):
             self.client_ID = p.connect(p.GUI)
@@ -36,7 +36,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 8 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 8
+        self.just_obs_dim = 26
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -77,6 +77,10 @@ class HexapodBulletEnv(gym.Env):
     def set_seed(self, np_seed, T_seed):
         np.random.seed(np_seed)
         T.manual_seed(T_seed)
+
+    def _seed(self, seed):
+        np.random.seed(seed)
+        T.manual_seed(seed)
 
     def create_targets(self):
         self.target = None
@@ -336,12 +340,14 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.pop(0)
 
         # Training window 1
-        #self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * 2
-        #self.left_offset, self.right_offset = ctrl_raw[6:8] * np.pi * 2
+        if self.config["w_1"]:
+            self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
+            self.left_offset, self.right_offset = np.tanh(ctrl_raw[6:8]) * np.pi * self.config["phase_scalar"]
 
         # Training window 2
-        self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * 2
-        self.left_offset, self.right_offset = ctrl_raw[6:8] * np.pi * 2 + np.array([self.phase_offset, self.phase_offset])
+        if self.config["w_2"]:
+            self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
+            self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(ctrl_raw[6:8]) * np.pi * self.config["phase_scalar"]
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -352,7 +358,6 @@ class HexapodBulletEnv(gym.Env):
                                                      np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.left_offset * bool(i%2) + self.right_offset * bool((i+1)%2)) * self.z_mult - self.z_offset]
                                                      for i in range(6)],
                                                 currentPositions=[0]*18)
-
 
         self.angle += 0.006
 
@@ -406,20 +411,18 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        # TODO: Change the reward function. Try see if it can train to turn
-        # TODO: Then add pure turning reward
-
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
                  "bobbing": np.sqrt(np.square(zd)) * 0.0,
-                 "yaw_pen": np.square(tar_angle - yaw) * 0.0}
+                 "yaw_pen": np.square(tar_angle - yaw) * 0.10}
 
         r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
-        #print(psid)
+        #print(r_pos["velocity_rew"])
         #r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
+
         r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
 
         self.rew_queue.append([r])
@@ -434,7 +437,7 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, [signed_deviation]
+        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
