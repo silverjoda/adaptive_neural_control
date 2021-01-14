@@ -52,6 +52,7 @@ def make_model(config, env):
         learning_rate=config["learning_rate"],
         verbose=config["verbose"],
         tensorboard_log="./tb/{}/".format(config["session_ID"]),
+        device="cpu",
         policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
 
     return model
