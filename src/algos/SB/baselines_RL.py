@@ -143,7 +143,6 @@ def test_multiple(env, model, deterministic=True, N=100, seed=1337):
                 break
     return total_rew / N
 
-
 def setup_train(config, setup_dirs=True):
     if setup_dirs:
         for s in ["agents", "agents_cp", "tb"]:

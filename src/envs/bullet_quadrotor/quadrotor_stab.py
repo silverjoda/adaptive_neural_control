@@ -82,9 +82,9 @@ class QuadrotorBulletEnv(gym.Env):
         else:
           self.client_ID = p.connect(p.DIRECT)
 
-        p.setGravity(0, 0, -9.8)
-        p.setRealTimeSimulation(0)
-        p.setTimeStep(config["sim_timestep"])
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        p.setTimeStep(config["sim_timestep"], physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         self.robot = self.load_robot()
@@ -162,7 +162,7 @@ class QuadrotorBulletEnv(gym.Env):
         # self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
 
         # Change base mass
-        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"])
+        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"], physicsClientId=self.client_ID)
 
         return self.robot
 
@@ -197,11 +197,11 @@ class QuadrotorBulletEnv(gym.Env):
         if self.current_disturbance is None: return
         if self.current_disturbance["effect"] == "translation":
             p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
-                                 posObj=[0, 0, 0], flags=p.LINK_FRAME)
+                                 posObj=[0, 0, 0], flags=p.LINK_FRAME, physicsClientId=self.client_ID)
         else:
             p.applyExternalTorque(self.robot, linkIndex=-1,
                                  torqueObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"] * 0.15,
-                                 flags=p.LINK_FRAME)
+                                 flags=p.LINK_FRAME, physicsClientId=self.client_ID)
         if self.current_disturbance is not None:
             self.current_disturbance["remaining_life"] -= 1
             if self.current_disturbance["remaining_life"] <= 0:
@@ -220,7 +220,7 @@ class QuadrotorBulletEnv(gym.Env):
         return velocity_target
 
     def calculate_stabilization_action(self, orientation, angular_velocities, targets):
-        roll, pitch, _ = p.getEulerFromQuaternion(orientation)
+        roll, pitch, _ = p.getEulerFromQuaternion(orientation, physicsClientId=self.client_ID)
         roll_vel, pitch_vel, yaw_vel = angular_velocities
         t_throttle, t_roll, t_pitch, t_yaw_vel = targets
 
@@ -299,15 +299,15 @@ class QuadrotorBulletEnv(gym.Env):
                                  linkIndex=i * 2 + 1,
                                  forceObj=[0, 0, motor_force_scaled],
                                  posObj=[0, 0, 0],
-                                 flags=p.LINK_FRAME)
+                                 flags=p.LINK_FRAME, physicsClientId=self.client_ID)
             p.applyExternalTorque(self.robot,
                                   linkIndex=i * 2 + 1,
                                   torqueObj=[0, 0, self.current_motor_velocity_vec[i] * self.reactive_torque_dir_vec[i] * self.config["propeller_parasitic_torque_coeff"]],
-                                  flags=p.LINK_FRAME)
+                                  flags=p.LINK_FRAME, physicsClientId=self.client_ID)
 
         self.apply_external_disturbances()
 
-        p.stepSimulation()
+        p.stepSimulation(physicsClientId=self.client_ID)
         if self.config["animate"]:
             time.sleep(self.config["sim_timestep"])
         self.step_ctr += 1
@@ -374,7 +374,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         if self.config["rnd_init"]:
             rnd_starting_pos_delta = np.random.rand(3) * 2 - 1.5
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .8 - 0.4, np.random.rand(1) * .8 - 0.4, np.random.rand(1) * 2 - 1.])
+            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .8 - 0.4, np.random.rand(1) * .8 - 0.4, np.random.rand(1) * 2 - 1.], physicsClientId=self.client_ID)
             rnd_starting_lin_velocity = np.random.rand(3) * .6 - .3
             rnd_starting_rot_velocity = np.random.rand(3) * .4 - 0.2
         else:
@@ -383,7 +383,7 @@ class QuadrotorBulletEnv(gym.Env):
             rnd_starting_lin_velocity = np.zeros(3)
             rnd_starting_rot_velocity = np.zeros(3)
 
-        p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0)
+        p.resetJointState(self.robot, 0, targetValue=0, targetVelocity=0, physicsClientId=self.client_ID)
         p.resetBasePositionAndOrientation(self.robot, self.config["starting_pos"] + rnd_starting_pos_delta, rnd_starting_orientation, physicsClientId=self.client_ID)
         p.resetBaseVelocity(self.robot,linearVelocity=rnd_starting_lin_velocity, angularVelocity=rnd_starting_rot_velocity, physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim) + 0.1)
@@ -497,7 +497,7 @@ class QuadrotorBulletEnv(gym.Env):
         print("Saved data")
 
     def kill(self):
-        p.disconnect()
+        p.disconnect(physicsClientId=self.client_ID)
 
     def close(self):
         self.kill()

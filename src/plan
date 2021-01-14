@@ -49,7 +49,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # -----------
 
 
-
 # TODO: Make easy version of buggy env and check if SB and ES works on it. Then tune AC
 # TODO: Reverse engineer A2C from SB3
 # TODO: Keep working on AC!! We need a good working algo (parallel as well)
@@ -58,7 +57,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # Study stable baselines3 policy modification through custom policy
 # Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)
 # Put to train quadcopter and buggy envs with randomization
-
 
 
 retrieve_ANC() {

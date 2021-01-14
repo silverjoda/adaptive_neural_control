@@ -73,10 +73,28 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
                 break
     return total_rew
 
-def setup_train(config):
-    for s in ["agents", "agents_cp", "tb"]:
-        if not os.path.exists(s):
-            os.makedirs(s)
+def test_multiple(env, model, deterministic=True, N=100, seed=1337):
+    t1 = time.time()
+    total_rew = 0.
+    for _ in range(N):
+        obs = env.reset()
+        while True:
+            action, _states = model.predict(obs, deterministic=deterministic)
+            obs, reward, done, info = env.step(action)
+            if hasattr(env, "get_original_reward"):
+                reward = env.get_original_reward()
+            total_rew += reward[0]
+            if done[0]:
+                break
+    t2 = time.time()
+    print(f"Eval time taken: {t2-t1}")
+    return total_rew / N
+
+def setup_train(config, setup_dirs=True):
+    if setup_dirs:
+        for s in ["agents", "agents_cp", "tb"]:
+            if not os.path.exists(s):
+                os.makedirs(s)
 
     # Random ID of this session
     if config["default_session_ID"] is None:
@@ -84,20 +102,21 @@ def setup_train(config):
     else:
         config["session_ID"] = "TST"
 
-    pprint(config)
+    stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
 
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
-
-    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'), gamma=config["gamma"])
-    #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'),
+                       gamma=config["gamma"],
+                       norm_obs=config["norm_obs"],
+                       norm_reward=config["norm_reward"])
     model = make_model(config, env)
 
     checkpoint_callback = CheckpointCallback(save_freq=300000,
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 
-    return env, model, checkpoint_callback
+    return env, model, checkpoint_callback, stats_path
 
 if __name__ == "__main__":
     args = parse_args()
@@ -106,8 +125,7 @@ if __name__ == "__main__":
     config = {**args, **algo_config, **env_config}
 
     if args["train"] or socket.gethostname() == "goedel":
-        env, model, checkpoint_callback = setup_train(config)
-        stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
+        env, model, checkpoint_callback, stats_path = setup_train(config)
 
         t1 = time.time()
         model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
@@ -117,22 +135,21 @@ if __name__ == "__main__":
         if os.path.exists(os.path.join("tb", config["session_ID"])):
             copyfile("tb_runner.py", os.path.join("tb", config["session_ID"], "tb_runner.py"))
 
-        print("Training time: {}".format(t2-t1))
+        print("Training time: {}".format(t2 - t1))
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
         env.save(stats_path)
-        #env.save_running_average("agents/{}_SB_policy".format(config["session_ID"]))
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
         stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(env_config["env_name"])
+        # env = env_fun(config)  # Default, without normalization
         env = DummyVecEnv([lambda: env_fun(config)])
         env = VecNormalize.load(stats_path, env)
-        #env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+        env.training = False
+        env.norm_reward = False
 
-        #env = env_fun(config) # Default, without normalization
         model = A2C.load("agents/{}".format(args["test_agent_path"]))
-
         test_agent(env, model, deterministic=True)
