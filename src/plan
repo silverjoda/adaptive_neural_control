@@ -58,3 +58,31 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # Study stable baselines3 policy modification through custom policy
 # Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)
 # Put to train quadcopter and buggy envs with randomization
+
+
+
+retrieve_ANC() {
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/PG/agents /home/silverjoda/SW/adaptive_neural_control/src/algos/PG
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/PG/tb /home/silverjoda/SW/adaptive_neural_control/src/algos/PG
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/SB/agents /home/silverjoda/SW/adaptive_neural_control/src/algos/SB
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/SB/tb /home/silverjoda/SW/adaptive_neural_control/src/algos/SB
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/ES/agents /home/silverjoda/SW/adaptive_neural_control/src/algos/ES
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/ES/tb /home/silverjoda/SW/adaptive_neural_control/src/algos/ES
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/AC/agents /home/silverjoda/SW/adaptive_neural_control/src/algos/AC
+    rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/AC/tb /home/silverjoda/SW/adaptive_neural_control/src/algos/AC
+    #rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/MAML/agents /home/silverjoda/PycharmProjects/adaptive_neural_control/src/algos/MAML
+    #rsync -rP azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/algos/MAML/tb /home/silverjoda/PycharmProjects/adaptive_neural_control/src/algos/MAML
+}
+
+sync_ANC_goedel_clear() {
+    python /home/silverjoda/SW/adaptive_neural_control/src/clear_all_data.py
+    ssh azayetey@goedel.felk.cvut.cz 'python /home.dokt/azayetey/SW/adaptive_neural_control/src/clear_all_data.py && exit'
+    rsync -rP /home/silverjoda/SW/adaptive_neural_control/src/ azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/
+}
+
+alias tblaunch='tensorboard --logdir .'
+alias sync_ANC_goedel='rsync -rP /home/silverjoda/SW/adaptive_neural_control/src/ azayetey@goedel.felk.cvut.cz:/home.dokt/azayetey/SW/adaptive_neural_control/src/'
+alias sshgoedel='ssh azayetey@goedel.felk.cvut.cz'
+alias sshpi='ssh -X pi@raspberrypi.local'
+alias sshpiz='ssh pi@piz.local'
+alias dimscreen='xrandr --output HDMI-0 --brightness 0.5'
