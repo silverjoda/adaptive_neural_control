@@ -119,6 +119,16 @@ def setup_train(config, setup_dirs=True):
 
     return env, model, checkpoint_callback, stats_path
 
+def setup_eval(config, stats_path, seed=1337):
+    env_fun = my_utils.import_env(config["env_name"])
+    config["seed"] = seed
+    env = VecNormalize(DummyVecEnv(env_fun(config)),
+                       gamma=config["gamma"],
+                       norm_obs=config["norm_obs"],
+                       norm_reward=config["norm_reward"])
+    VecNormalize.load(stats_path, env)
+    return env
+
 if __name__ == "__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])

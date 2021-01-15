@@ -98,9 +98,15 @@ class QuadrotorBulletEnv(gym.Env):
 
         self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]) + self.randomized_params["input_transport_delay"])]
         self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
-        self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
+        self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
 
         self.setup_stabilization_control()
+
+    def seed(self, seed=None):
+        self.seed = seed
+        np.random.seed(self.seed)
+        T.manual_seed(self.seed)
+        print("Setting seed")
 
     def setup_stabilization_control(self):
         self.e_roll_prev = 0
