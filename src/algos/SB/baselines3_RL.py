@@ -11,6 +11,7 @@ import os
 from pprint import pprint
 from shutil import copyfile
 from custom_policies import CustomActorCriticPolicy
+from copy import deepcopy
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -57,7 +58,7 @@ def make_model(config, env):
 
     return model
 
-def test_agent(env, model, deterministic=True, N=100, print_rew=True):
+def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=True):
     total_rew = 0
     for _ in range(N):
         obs = env.reset()
@@ -67,7 +68,8 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
             obs, reward, done, info = env.step(action)
             episode_rew += reward
             total_rew += reward
-            env.render()
+            if render:
+                env.render()
             if done:
                 if print_rew:
                     print(episode_rew)
@@ -121,8 +123,9 @@ def setup_train(config, setup_dirs=True):
 
 def setup_eval(config, stats_path, seed=1337):
     env_fun = my_utils.import_env(config["env_name"])
-    config["seed"] = seed
-    env = VecNormalize(DummyVecEnv(env_fun(config)),
+    config_tmp = deepcopy(config)
+    config_tmp["seed"] = seed
+    env = VecNormalize(DummyVecEnv([lambda: env_fun(config_tmp)]),
                        gamma=config["gamma"],
                        norm_obs=config["norm_obs"],
                        norm_reward=config["norm_reward"])

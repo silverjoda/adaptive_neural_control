@@ -5,17 +5,19 @@ def trial(config):
     env, model, _, stats_path = setup_train(config, setup_dirs=False)
 
     model.learn(total_timesteps=config["iters"])
+    env.save(stats_path)
 
-    env.training = False
-    env.norm_reward = False
-
-    avg_episode_rew = test_multiple(env, model, deterministic=True, N=100)
+    eval_env = setup_eval(config, stats_path, seed=1337)
+    model.set_env(eval_env)
+    avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=1, render=False, print_rew=False)
 
     env.close()
+    eval_env.close()
     del env
+    del eval_env
     del model
 
-    return avg_episode_rew
+    return avg_episode_rew[0]
 
 if __name__ == "__main__":
     env_fun = my_utils.import_env("quadrotor_stab")
@@ -26,6 +28,7 @@ if __name__ == "__main__":
     config["iters"] = 30000
     config["verbose"] = False
     config["animate"] = False
+    config["default_session_ID"] = "OPT"
 
     pprint(config)
 
