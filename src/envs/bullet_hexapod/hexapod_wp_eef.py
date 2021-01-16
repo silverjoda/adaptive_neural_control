@@ -342,12 +342,12 @@ class HexapodBulletEnv(gym.Env):
         # Training window 1
         if self.config["w_1"]:
             self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-            self.left_offset, self.right_offset = np.tanh(ctrl_raw[6:8]) * np.pi * self.config["phase_scalar"]
+            self.left_offset, self.right_offset = np.tanh(ctrl_raw[6:8]) * np.pi
 
         # Training window 2
         if self.config["w_2"]:
             self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-            self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(ctrl_raw[6:8]) * np.pi * self.config["phase_scalar"]
+            self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(ctrl_raw[6:8]) * np.pi
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
