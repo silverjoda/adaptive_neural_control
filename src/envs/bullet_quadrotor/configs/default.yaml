@@ -6,7 +6,7 @@
 "step_counter" : 1
 "latent_input" : 0
 "act_input" : 2
-"obs_input" : 1
+"obs_input" : 2
 "rew_input" : 0
 "randomize_env" : False
 "env_change_prob" : 0.5
@@ -28,4 +28,5 @@
 "d_yaw" : 0.1
 "i_roll" : -0.03
 "i_pitch" : -0.03
-
+"input_transport_delay" : 0
+"output_transport_delay" : 0

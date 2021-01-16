@@ -1,55 +1,45 @@
-#import warnings
-#warnings.filterwarnings("ignore")
-#import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import optuna
-from baselines_RL import *
+from baselines3_RL import *
+from copy import deepcopy
+
+def objective(trial):
+    config["n_steps"] = trial.suggest_int('n_steps', 6, 80)
+    config["learning_rate"] = trial.suggest_loguniform('learning_rate', 1e-5, 4e-4)
+    config["norm_reward"] = trial.suggest_categorical('norm_reward', [True, False])
+
+    env, model, _, stats_path = setup_train(config, setup_dirs=False)
+    model.learn(total_timesteps=config["iters"])
+    env.save(stats_path)
+
+    eval_env = setup_eval(config, stats_path, seed=1337)
+    model.set_env(eval_env)
+    N_test = 30
+    avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=N_test, render=False, print_rew=False)
+
+    env.close()
+    eval_env.close()
+    del env
+    del eval_env
+    del model
+
+    return avg_episode_rew[0] / N_test
 
 if __name__ == "__main__":
-    env_fun = my_utils.import_env("hexapod_wp")
-    args = parse_args()
+    env_fun = my_utils.import_env("quadrotor_stab")
+    algo_config = my_utils.read_config("configs/a2c_quadrotor_config.yaml")
+    env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
 
-    algo_config = my_utils.read_config(args["algo_config"])
-    env_config = my_utils.read_config(args["env_config"])
-    config = {**args, **algo_config, **env_config}
-
-    config["iters"] = 2000000
-
-    def objective(trial):
-        config["n_steps"] = trial.suggest_int('n_steps', 6, 80)
-        #config["ent_coef"] = trial.suggest_loguniform("ent_coef", 0.000001, 0.001)
-        config["learning_rate"] = trial.suggest_loguniform('learning_rate', 1e-5, 4e-4)
-        #config["phase_increment"] = trial.suggest_uniform('phase_increment', 0.07, 0.2)
-        config["norm_reward"] = trial.suggest_categorical('norm_reward', [True, False])
-        #config["gamma"] = trial.suggest_loguniform('gamma', 0.93, 0.999)
-        #config["max_grad_norm"] = trial.suggest_uniform('max_grad_norm', 0.3, 0.8)
-        #config["vf_coef"] = trial.suggest_uniform('vf_coef', 0.3, 0.7)
-        #config["policy_hid_dim"] = trial.suggest_categorical('policy_hid_dim', [64,128,256,512])
-
-        env, model, _ = setup_train(config, setup_dirs=False)
-
-        model.learn(total_timesteps=config["iters"])
-        #env.close()
-        #del env
-
-        #env_fun = my_utils.import_env(env_config["env_name"])
-        #env = env_fun(config)
-        #model.env = env
-        value = test_multiple(env, model, deterministic=True, N=300, print_rew=False)
-
-        env.close()
-        del env
-        del model
-
-        return value
-
+    config = {**algo_config, **env_config}
+    config["iters"] = 30000
+    config["verbose"] = False
+    config["animate"] = False
+    config["default_session_ID"] = "OPT"
 
     study = optuna.create_study(direction='maximize')
     study.optimize(objective, n_trials=30, show_progress_bar=True)
 
-    [print("---------------------------------") for _ in range(10)]
     print("Best params: ", study.best_params, " Best value: ", study.best_value)
-    [print("---------------------------------") for _ in range(10)]
+
 
 
 

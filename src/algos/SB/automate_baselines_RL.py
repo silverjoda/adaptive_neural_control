@@ -3,13 +3,13 @@ from copy import deepcopy
 
 def trial(config):
     env, model, _, stats_path = setup_train(config, setup_dirs=False)
-
     model.learn(total_timesteps=config["iters"])
     env.save(stats_path)
 
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
-    avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=1, render=False, print_rew=False)
+    N_test = 30
+    avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=N_test, render=False, print_rew=False)
 
     env.close()
     eval_env.close()
@@ -17,7 +17,7 @@ def trial(config):
     del eval_env
     del model
 
-    return avg_episode_rew[0]
+    return avg_episode_rew[0] / N_test
 
 if __name__ == "__main__":
     env_fun = my_utils.import_env("quadrotor_stab")
@@ -29,24 +29,37 @@ if __name__ == "__main__":
     config["verbose"] = False
     config["animate"] = False
     config["default_session_ID"] = "OPT"
+    N_reps = 1
 
     pprint(config)
 
     # Specify variables
-    var_dict = {"norm_obs" : [True, False], "learning_rate" : [1e-5, 5e-5, 1e-4, 3e-4, 7e-4]}
+    var_dict_list = [{"output_transport_delay" : i, "act_input" : i, "obs_input" : i} for i in range(10)]
+    results_list = []
+    best_result_dict = {}
+    best_result_value = -1e10
 
-    results_dict = {}
-    for varname, options_list in var_dict.items():
-        for opt in options_list:
+    for var_dict in var_dict_list:
+        mean_avg_episode_rew = 0
+        for _ in range(N_reps):
             trial_config = deepcopy(config)
-            trial_config[varname] = opt
-            print(f"Starting evaluation for {varname} = {opt}")
+            for varname, opt in var_dict.items():
+                trial_config[varname] = opt
+            print(f"Starting evaluation for dict: {var_dict}")
             avg_episode_rew = trial(trial_config)
-            print(f"For option: {varname} = {opt}, avg_episode_rew attained: {avg_episode_rew}")
-            results_dict[(varname, opt)] = avg_episode_rew
+            mean_avg_episode_rew += avg_episode_rew
+        mean_avg_episode_rew /= N_reps
+        print(f"For dict:{var_dict}, avg_episode_rew attained: {mean_avg_episode_rew}")
+        results_list.append((var_dict, mean_avg_episode_rew))
+        if mean_avg_episode_rew > best_result_value:
+            best_result_value = mean_avg_episode_rew
+            best_result_dict = var_dict
 
     print("Results: ")
-    pprint(results_dict)
+    pprint(results_list)
+
+    print("Best result: ")
+    pprint(best_result_dict, best_result_value)
 
 
 
