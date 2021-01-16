@@ -1,6 +1,6 @@
 "env_name" : "hexapod_wp_eef"
 "controller_source" : "joystick" # joystick
-"max_steps" : 1000
+"max_steps" : 700
 "terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
