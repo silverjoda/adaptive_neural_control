@@ -1,6 +1,4 @@
-import matplotlib.pyplot as plt
 import numpy as np
-x = np.linspace(-1,1,100)
-a = plt.plot(x, np.square(x))
-plt.show()
+
+[print(i, i % (2 * np.pi), np.sin(i), np.sin(i), np.sin(i % (2 * np.pi))) for i in range(9999900,10000000)]
 

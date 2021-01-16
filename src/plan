@@ -41,7 +41,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # TODO:
 
 # -----------
-# TODO: Fix automation and optuna evaluation. (ADD SEED!!!)
 # TODO: Find out how variance is handled on A2C SB
 # TODO: INTEGRATE THE FUCKING CONV POLICY ON A2C SB
 # TODO: THROW QUAD AND HEXA IN THE TUNER

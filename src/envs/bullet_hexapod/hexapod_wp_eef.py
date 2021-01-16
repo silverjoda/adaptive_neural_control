@@ -43,8 +43,8 @@ class HexapodBulletEnv(gym.Env):
                        + self.config["latent_input"] * 6 \
                        + self.config["step_counter"] * 1 \
 
-        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
-        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-2, high=2, shape=(self.obs_dim,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-2, high=2, shape=(self.act_dim,), dtype=np.float32)
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
