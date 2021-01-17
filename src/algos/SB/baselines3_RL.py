@@ -43,6 +43,10 @@ def make_model(config, env):
         policy = CustomActorCriticPolicy(observation_space=env.observation_space.shape,
                                          action_space=env.action_space.shape)
 
+    tb_log = None
+    if config["tensorboard_log"]:
+        tb_log = "./tb/{}/".format(config["session_ID"])
+
     model = A2C(policy=policy,
         env=env,
         gamma=config["gamma"],
@@ -50,9 +54,10 @@ def make_model(config, env):
         vf_coef=config["vf_coef"],
         ent_coef = config["ent_coef"],
         max_grad_norm=config["max_grad_norm"],
-        learning_rate=config["learning_rate"],
+        learning_rate= lambda x : config["learning_rate"],
         verbose=config["verbose"],
-        tensorboard_log="./tb/{}/".format(config["session_ID"]),
+        use_sde=config["use_sde"],
+        tensorboard_log=tb_log,
         device="cpu",
         policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
 
@@ -76,22 +81,6 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=Tru
                 break
     return total_rew
 
-def test_multiple(env, model, deterministic=True, N=100, seed=1337):
-    t1 = time.time()
-    total_rew = 0.
-    for _ in range(N):
-        obs = env.reset()
-        while True:
-            action, _states = model.predict(obs, deterministic=deterministic)
-            obs, reward, done, info = env.step(action)
-            if hasattr(env, "get_original_reward"):
-                reward = env.get_original_reward()
-            total_rew += reward[0]
-            if done[0]:
-                break
-    t2 = time.time()
-    print(f"Eval time taken: {t2-t1}")
-    return total_rew / N
 
 def setup_train(config, setup_dirs=True):
     if setup_dirs:

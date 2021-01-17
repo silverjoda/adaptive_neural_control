@@ -36,15 +36,15 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 8 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 26
+        self.just_obs_dim = 27
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
                        + self.config["latent_input"] * 6 \
                        + self.config["step_counter"] * 1 \
 
-        self.observation_space = spaces.Box(low=-2, high=2, shape=(self.obs_dim,), dtype=np.float32)
-        self.action_space = spaces.Box(low=-2, high=2, shape=(self.act_dim,), dtype=np.float32)
+        self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,), dtype=np.float32)
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
@@ -62,7 +62,7 @@ class HexapodBulletEnv(gym.Env):
         self.angle = 0
         self.eef_list = [i * 3 + 2 for i in range(6)]
         self.phases_op = np.array([3.4730, 0.3511, 0.4637, -3.4840, -2.8000, -0.4658])
-        self.current_phases = np.zeros(6) #self.phases_op
+        self.current_phases = self.phases_op
         self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset = [np.tanh(0.7135) * 0.075 * 0.5 + 0.075,
                                                                                      np.tanh(-0.6724) * 0.085 * 0.5 + 0.085,
                                                                                      np.tanh(-0.8629) * 0.075 * 0.5 + 0.075,
@@ -359,7 +359,7 @@ class HexapodBulletEnv(gym.Env):
                                                      for i in range(6)],
                                                 currentPositions=[0]*18)
 
-        self.angle += 0.006
+        self.angle += self.config["angle_increment"]
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
@@ -433,11 +433,10 @@ class HexapodBulletEnv(gym.Env):
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
-
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles
+        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -585,17 +584,8 @@ class HexapodBulletEnv(gym.Env):
     def test_ikt(self):
         np.set_printoptions(precision=3)
         self.reset()
-        eef_list = [i * 3 + 2 for i in range(6)]
 
-        y_dist = 0.1
-        z_offset = -0.1
-        angle = 0
         while True:
-            # obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID)
-            # joint_angles = []
-            # for o in obs:
-            #     joint_angles.append(o[0])
-
             dir_vec = [1., -1.] * 3
             targets = p.calculateInverseKinematics2(self.robot,
                                                     endEffectorLinkIndices=self.eef_list,
@@ -621,7 +611,7 @@ class HexapodBulletEnv(gym.Env):
 
             p.stepSimulation()
             time.sleep(self.config["sim_step"])
-            self.angle += 0.006
+            self.angle += self.config["angle_increment"]
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)

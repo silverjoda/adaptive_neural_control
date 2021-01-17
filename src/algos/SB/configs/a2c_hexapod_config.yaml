@@ -2,7 +2,7 @@
 "policy_name" : "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 20000000
+"iters" : 10000000
 "gamma" : 0.99
 "n_steps" : 20
 "vf_coef" : 0.5
@@ -12,14 +12,16 @@
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
-"verbose" : 1
+"verbose" : 2
+"tensorboard_log" : True
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
 "policy_hid_dim" : 96
 "policy_memory_dim" : 64
 "policy_residual_connection" : False
-"norm_obs" : True
-"norm_reward" : True
-"w_1" : True
-"w_2" : False
+"norm_obs" : False
+"norm_reward" : False
+"use_sde" : False
+"w_1" : False
+"w_2" : True
 "phase_scalar" : .5

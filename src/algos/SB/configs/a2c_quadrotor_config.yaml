@@ -14,6 +14,7 @@
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
 "verbose" : 1
+"tensorboard_log" : True
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
 "policy_hid_dim" : 128

@@ -24,21 +24,29 @@ if __name__ == "__main__":
     algo_config = my_utils.read_config("configs/a2c_quadrotor_config.yaml")
     env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
 
-    #env_fun = my_utils.import_env("hexapod_wp_eef")
-    #algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
-    #env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
+    # env_fun = my_utils.import_env("hexapod_wp_eef")
+    # algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
+    # env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 20000000
+    config["iters"] = 30000000
     config["verbose"] = False
     config["animate"] = False
-    config["default_session_ID"] = "OPT"
+    config["animate"] = False
+    config["default_session_ID"] = "OPT_QUAD"
+    config["tensorboard_log"] = False
     N_reps = 1
 
     pprint(config)
 
     # Specify variables
     var_dict_list = [{"output_transport_delay" : i, "act_input" : i, "obs_input" : i} for i in range(10)]
+    # var_dict_list = [{"norm_obs" : False, "norm_reward" : False, "w_1" : False, "w_2" : True},
+    #                  {"norm_obs" : True, "norm_reward" : False, "w_1" : False, "w_2" : True},
+    #                  {"norm_obs" : False, "norm_reward" : True, "w_1" : False, "w_2" : True},
+    #                  {"norm_obs" : True, "norm_reward" : True, "w_1" : False, "w_2" : True},
+    #                  {"norm_obs" : True, "norm_reward" : True, "w_1" : True, "w_2" : False}]
+
     results_list = []
     best_result_dict = {}
     best_result_value = -1e10

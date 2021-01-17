@@ -1,1 +1,5 @@
-print([[bool(i%2),not(i%2)] for i in range(6)])
+class Balls:
+    pass
+
+a = Balls
+print(a)
