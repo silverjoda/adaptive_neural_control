@@ -13,6 +13,8 @@ from shutil import copyfile
 from custom_policies import CustomActorCriticPolicy
 from copy import deepcopy
 
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
     parser.add_argument('--train',  action='store_true', required=False,
@@ -80,7 +82,6 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=Tru
                     print(episode_rew)
                 break
     return total_rew
-
 
 def setup_train(config, setup_dirs=True):
     if setup_dirs:
