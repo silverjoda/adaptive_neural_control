@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Optional, Tuple, Type, Union
 
 import gym
-import torch as th
+import torch as T
 from torch import nn
 
 from stable_baselines3.common.policies import ActorCriticPolicy
@@ -95,17 +95,21 @@ class CustomNetwork(nn.Module):
         self.latent_dim_vf = last_layer_dim_vf
         self.in_channels = self.feature_dim // self.history_length
 
-        self.policy_net = TemporalConvNet(num_inputs=self.in_channels,
-                                          num_channels=(32, 32, 32),
+        self.policy_net_tc = TemporalConvNet(num_inputs=self.in_channels,
+                                          num_channels=(32, 32, last_layer_dim_pi),
                                           kernel_size=2,
                                           dropout=0.0)
+
+        self.policy_net_mlp = nn.Sequential(nn.Linear(self.in_channels, last_layer_dim_pi), nn.ReLU())
 
         self.value_net = TemporalConvNet(num_inputs=self.in_channels,
-                                          num_channels=(32, 32, 32),
+                                          num_channels=(32, 32, 1),
                                           kernel_size=2,
                                           dropout=0.0)
 
-    def forward(self, features: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
+        self.policy_net_mlp = nn.Sequential(nn.Linear(self.in_channels, last_layer_dim_vf), nn.ReLU())
+
+    def forward(self, features: T.Tensor) -> Tuple[T.Tensor, T.Tensor]:
         """
         :return: (th.Tensor, th.Tensor) latent_policy, latent_value of the specified network.
             If all layers are shared, then ``latent_policy == latent_value``
@@ -117,34 +121,34 @@ class CustomNetwork(nn.Module):
         features_reshaped = features.view((-1, self.in_channels, self.history_length))
         return self.policy_net(features_reshaped), self.value_net(features_reshaped)
 
-
-class CustomActorCriticPolicy(ActorCriticPolicy):
-    def __init__(
-        self,
-        observation_space: gym.spaces.Space,
-        action_space: gym.spaces.Space,
-        lr_schedule: Callable[[float], float],
-        net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
-        activation_fn: Type[nn.Module] = nn.Tanh,
-        *args,
-        **kwargs,
-    ):
-
-        super(CustomActorCriticPolicy, self).__init__(
-            observation_space,
-            action_space,
-            lr_schedule,
-            net_arch,
-            activation_fn,
-            # Pass remaining arguments to base class
+def customActorCriticPolicyWrapper(feature_dim, history_length):
+    class CustomActorCriticPolicy(ActorCriticPolicy):
+        def __init__(
+            self,
+            observation_space: gym.spaces.Space,
+            action_space: gym.spaces.Space,
+            lr_schedule: Callable[[float], float],
+            net_arch: Optional[List[Union[int, Dict[str, List[int]]]]] = None,
+            activation_fn: Type[nn.Module] = nn.Tanh,
             *args,
             **kwargs,
-        )
+        ):
 
-        self.history_length = args[0]
+            super(CustomActorCriticPolicy, self).__init__(
+                observation_space,
+                action_space,
+                lr_schedule,
+                net_arch,
+                activation_fn,
+                # Pass remaining arguments to base class
+                *args,
+                **kwargs,
+            )
 
-        # Disable orthogonal initialization
-        self.ortho_init = False
+            self.history_length = args[0]
+            self.ortho_init = False
 
-    def _build_mlp_extractor(self) -> None:
-        self.mlp_extractor = CustomNetwork(self.features_dim, self.history_length)
+        def _build_mlp_extractor(self) -> None:
+            self.mlp_extractor = CustomNetwork(feature_dim, history_length)
+
+    return CustomActorCriticPolicy

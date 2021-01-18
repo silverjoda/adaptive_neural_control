@@ -1,6 +1,6 @@
 from stable_baselines3 import A2C
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize
-from stable_baselines3.common.callbacks import CheckpointCallback
+from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback, CallbackList
 import src.my_utils as my_utils
 import time
 import random
@@ -10,11 +10,24 @@ import yaml
 import os
 from pprint import pprint
 from shutil import copyfile
-from custom_policies import CustomActorCriticPolicy
+from custom_policies import customActorCriticPolicyWrapper
 from copy import deepcopy
 import numpy as np
 
 
+class TensorboardCallback(BaseCallback):
+    def __init__(self, verbose=0):
+        super(TensorboardCallback, self).__init__(verbose)
+
+    def _on_step(self) -> bool:
+        pass
+
+    def _on_rollout_end(self) -> None:
+        # Log scalar value (here a random variable)
+        max_returns = np.max(self.locals['rollout_buffer'].returns, axis=0).mean()
+        self.logger.record('mean_max_returns', max_returns)
+
+        return None
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -41,28 +54,31 @@ def read_config(path):
     return data
 
 def make_model(config, env):
-    policy = "MlpPolicy"
-    if config["policy_name"] == "CustomPC":
-        policy = CustomActorCriticPolicy(observation_space=env.observation_space.shape,
-                                         action_space=env.action_space.shape)
+    policy = config["policy_name"]
+
+    if config["policy_name"] == "CustomTCNPolicy":
+        # TODO: Continue here
+        policy = customActorCriticPolicyWrapper(env.)
 
     tb_log = None
     if config["tensorboard_log"]:
         tb_log = "./tb/{}/".format(config["session_ID"])
 
     model = A2C(policy=policy,
-        env=env,
-        gamma=config["gamma"],
-        n_steps=config["n_steps"],
-        vf_coef=config["vf_coef"],
-        ent_coef = config["ent_coef"],
-        max_grad_norm=config["max_grad_norm"],
-        learning_rate= eval(config["learning_rate"]),
-        verbose=config["verbose"],
-        use_sde=config["use_sde"],
-        tensorboard_log=tb_log,
-        device="cpu",
-        policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
+                env=env,
+                gamma=config["gamma"],
+                n_steps=config["n_steps"],
+                vf_coef=config["vf_coef"],
+                ent_coef = config["ent_coef"],
+                max_grad_norm=config["max_grad_norm"],
+                learning_rate=eval(config["learning_rate"]),
+                verbose=config["verbose"],
+                use_sde=config["use_sde"],
+                tensorboard_log=tb_log,
+                device="cpu",
+                policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
+
+    exit()
 
     return model
 
@@ -94,7 +110,7 @@ def setup_train(config, setup_dirs=True):
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
     else:
-        config["session_ID"] = "default_session_ID"
+        config["session_ID"] = config["default_session_ID"]
 
     stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
 
@@ -110,7 +126,10 @@ def setup_train(config, setup_dirs=True):
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 
-    return env, model, checkpoint_callback, stats_path
+    log_rew_callback = TensorboardCallback(verbose=1)
+    callback_list = CallbackList([checkpoint_callback, log_rew_callback])
+
+    return env, model, callback_list, stats_path
 
 def setup_eval(config, stats_path, seed=1337):
     env_fun = my_utils.import_env(config["env_name"])
