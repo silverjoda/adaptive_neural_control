@@ -12,6 +12,7 @@ from pprint import pprint
 from shutil import copyfile
 from custom_policies import CustomActorCriticPolicy
 from copy import deepcopy
+import numpy as np
 
 
 
@@ -56,7 +57,7 @@ def make_model(config, env):
         vf_coef=config["vf_coef"],
         ent_coef = config["ent_coef"],
         max_grad_norm=config["max_grad_norm"],
-        learning_rate= lambda x : config["learning_rate"],
+        learning_rate= eval(config["learning_rate"]),
         verbose=config["verbose"],
         use_sde=config["use_sde"],
         tensorboard_log=tb_log,
@@ -93,7 +94,7 @@ def setup_train(config, setup_dirs=True):
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
     else:
-        config["session_ID"] = "TST"
+        config["session_ID"] = "default_session_ID"
 
     stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
 
