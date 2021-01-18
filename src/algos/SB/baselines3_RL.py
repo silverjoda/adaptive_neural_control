@@ -77,8 +77,6 @@ def make_model(config, env):
                 device="cpu",
                 policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
 
-    exit()
-
     return model
 
 def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=True):
