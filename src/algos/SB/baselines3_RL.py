@@ -57,8 +57,7 @@ def make_model(config, env):
     policy = config["policy_name"]
 
     if config["policy_name"] == "CustomTCNPolicy":
-        # TODO: Continue here
-        policy = customActorCriticPolicyWrapper(env.)
+        policy = customActorCriticPolicyWrapper(env.observation_space.shape[0] // config["obs_input"], config["obs_input"])
 
     tb_log = None
     if config["tensorboard_log"]:
