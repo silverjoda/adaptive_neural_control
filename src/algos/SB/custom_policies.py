@@ -93,21 +93,23 @@ class CustomNetwork(nn.Module):
         self.history_length = history_length
         self.latent_dim_pi = last_layer_dim_pi
         self.latent_dim_vf = last_layer_dim_vf
-        self.in_channels = self.feature_dim // self.history_length
 
-        self.policy_net_tc = TemporalConvNet(num_inputs=self.in_channels,
+        self.policy_net_tc = TemporalConvNet(num_inputs=self.feature_dim,
                                           num_channels=(32, 32, last_layer_dim_pi),
                                           kernel_size=2,
                                           dropout=0.0)
 
-        self.policy_net_mlp = nn.Sequential(nn.Linear(self.in_channels, last_layer_dim_pi), nn.ReLU())
+        # TODO: properly combine the policy
 
-        self.value_net = TemporalConvNet(num_inputs=self.in_channels,
+        self.policy_l1 = nn.Sequential(nn.Linear(self.feature_dim, last_layer_dim_pi), nn.ReLU())
+        self.policy_l2 = nn.Sequential(nn.Linear(self.feature_dim, last_layer_dim_pi), nn.ReLU())
+
+        self.value_net_tc = TemporalConvNet(num_inputs=self.feature_dim,
                                           num_channels=(32, 32, 1),
                                           kernel_size=2,
                                           dropout=0.0)
 
-        self.policy_net_mlp = nn.Sequential(nn.Linear(self.in_channels, last_layer_dim_vf), nn.ReLU())
+        self.value_net_mlp = nn.Sequential(nn.Linear(self.feature_dim, last_layer_dim_vf), nn.ReLU())
 
     def forward(self, features: T.Tensor) -> Tuple[T.Tensor, T.Tensor]:
         """
@@ -115,10 +117,15 @@ class CustomNetwork(nn.Module):
             If all layers are shared, then ``latent_policy == latent_value``
         """
 
-        # TODO: Check dimension, probably need to add n_envs dimension
-        raise Exception("BLEEEH")
+        features_reshaped = features.view((-1, self.history_length, self.feature_dim))
 
-        features_reshaped = features.view((-1, self.in_channels, self.history_length))
+        # FF of last obs step
+
+        # Conv of the whole thing
+
+        # Combination of both
+
+
         return self.policy_net(features_reshaped), self.value_net(features_reshaped)
 
 def customActorCriticPolicyWrapper(feature_dim, history_length):
@@ -145,7 +152,8 @@ def customActorCriticPolicyWrapper(feature_dim, history_length):
                 **kwargs,
             )
 
-            self.history_length = args[0]
+            self.history_length = history_length
+            self.feature_dim = feature_dim
             self.ortho_init = False
 
         def _build_mlp_extractor(self) -> None:

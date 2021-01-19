@@ -62,7 +62,6 @@ class QuadrotorBulletEnv(gym.Env):
             np.random.seed(rnd_seed)
             T.manual_seed(rnd_seed + 1)
 
-        self.num_envs = 1
         self.config = config
         self.just_obs_dim = 13
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
@@ -90,7 +89,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        self.observation_space = spaces.Box(low=-1.5, high=1.5, shape=(self.obs_dim,))
+        self.observation_space = spaces.Box(low=-2.0, high=2.0, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
@@ -362,7 +361,13 @@ class QuadrotorBulletEnv(gym.Env):
         if self.config["latent_input"]:
             aux_obs.extend(self.randomized_params_list_norm)
         if self.config["step_counter"]:
-            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
+            def step_ctr_to_obs(step_ctr):
+                return (float(step_ctr) / self.config["max_steps"]) * 2 - 1
+
+            step_ctr_list = []
+            for sc_i in range(self.config["step_counter"]):
+                step_ctr_list.append(step_ctr_to_obs(np.maximum(self.step_ctr - sc_i - 1, 0)))
+            aux_obs.extend(step_ctr_list)
 
         obs = np.array(aux_obs).astype(np.float32)
 
