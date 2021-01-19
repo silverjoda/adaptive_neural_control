@@ -41,8 +41,9 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # TODO:
 
 # -----------
+# TODO: Currently integrating conv policy
+# TODO: Somethign wrong with quad env, not training
 # TODO: Find out how variance is handled on A2C SB
-# TODO: INTEGRATE THE FUCKING CONV POLICY ON A2C SB
 # TODO: THROW QUAD AND HEXA IN THE TUNER
 # TODO: Check what can be run on GRID, perhaps it can be used for hyperparam opt
 # -----------
