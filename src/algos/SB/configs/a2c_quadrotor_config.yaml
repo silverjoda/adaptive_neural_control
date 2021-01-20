@@ -1,5 +1,5 @@
 "algo_name" : "A2C"
-"policy_name" : "CustomTCNPolicy" # "MlpPolicy", "CustomAC", "CustomTCNPolicy"
+"policy_name" : "MlpPolicy" # "MlpPolicy", "CustomAC", "CustomTCNPolicy"
 "default_session_ID" :
 "n_envs" : 6
 "iters" : 30000000
