@@ -66,7 +66,7 @@ def make_model(config, env, action_noise_fun):
             vf_coef=config["vf_coef"],
             ent_coef = config["ent_coef"],
             max_grad_norm=config["max_grad_norm"],
-            learning_rate=config["learning_rate"],
+            learning_rate=eval(config["learning_rate"]),
             alpha=config["alpha"],
             epsilon=config["epsilon"],
             lr_schedule=config["lr_schedule"],

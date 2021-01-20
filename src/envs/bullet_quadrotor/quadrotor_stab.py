@@ -273,7 +273,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def step(self, ctrl_raw):
         if self.prev_act is not None:
-            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * 0.1
+            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * 0.01
         else:
             raw_act_smoothness_pen = 0
         self.prev_act = ctrl_raw
@@ -351,23 +351,23 @@ class QuadrotorBulletEnv(gym.Env):
         else:
             obs_raw_unqueued = self.obs_queue
 
-        aux_obs = [] 
-        if self.config["obs_input"] > 0:
-            [aux_obs.extend(c) for c in obs_raw_unqueued]
-        if self.config["act_input"] > 0:
-            [aux_obs.extend(c) for c in ctrl_raw_unqueued]
-        if self.config["rew_input"] > 0:
-            [aux_obs.extend(c) for c in r_unqueued]
+        aux_obs = []
+        for i in range(len(obs_raw_unqueued)):
+            t_obs = []
+            t_obs.extend(obs_raw_unqueued[i])
+            if self.config["act_input"] > 0:
+                t_obs.extend(ctrl_raw_unqueued[i])
+            if self.config["rew_input"] > 0:
+                t_obs.extend(r_unqueued[i])
+            if self.config["step_counter"] > 0:
+                def step_ctr_to_obs(step_ctr):
+                    return (float(step_ctr) / self.config["max_steps"]) * 2 - 1
+
+                t_obs.extend([step_ctr_to_obs(np.maximum(self.step_ctr - i - 1, 0))])
+            aux_obs.extend(t_obs)
+
         if self.config["latent_input"]:
             aux_obs.extend(self.randomized_params_list_norm)
-        if self.config["step_counter"]:
-            def step_ctr_to_obs(step_ctr):
-                return (float(step_ctr) / self.config["max_steps"]) * 2 - 1
-
-            step_ctr_list = []
-            for sc_i in range(self.config["step_counter"]):
-                step_ctr_list.append(step_ctr_to_obs(np.maximum(self.step_ctr - sc_i - 1, 0)))
-            aux_obs.extend(step_ctr_list)
 
         obs = np.array(aux_obs).astype(np.float32)
 

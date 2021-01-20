@@ -18,8 +18,8 @@
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
 "policy_hid_dim" : 32
-"policy_memory_dim" : 128
-"policy_grad_clip_value" : 1.0
+"policy_memory_dim" : 32
+"policy_grad_clip_value" : 0.5
 "policy_residual_connection" : False
 "norm_obs" : False
 "norm_reward" : False

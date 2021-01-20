@@ -95,21 +95,22 @@ class CustomNetwork(nn.Module):
         self.latent_dim_vf = last_layer_dim_vf
 
         self.policy_net_tc = TemporalConvNet(num_inputs=self.feature_dim,
-                                          num_channels=(32, 32, last_layer_dim_pi),
+                                          num_channels=(32, 32, 32),
                                           kernel_size=2,
                                           dropout=0.0)
 
-        # TODO: properly combine the policy
 
-        self.policy_l1 = nn.Sequential(nn.Linear(self.feature_dim, last_layer_dim_pi), nn.ReLU())
-        self.policy_l2 = nn.Sequential(nn.Linear(self.feature_dim, last_layer_dim_pi), nn.ReLU())
+        self.policy_l1 = nn.Sequential(nn.Linear(self.feature_dim, 32), nn.ReLU())
+        self.policy_l2 = nn.Sequential(nn.Linear(32 + 32, last_layer_dim_pi), nn.ReLU())
 
         self.value_net_tc = TemporalConvNet(num_inputs=self.feature_dim,
-                                          num_channels=(32, 32, 1),
+                                          num_channels=(32, 32, 32),
                                           kernel_size=2,
                                           dropout=0.0)
 
-        self.value_net_mlp = nn.Sequential(nn.Linear(self.feature_dim, last_layer_dim_vf), nn.ReLU())
+        self.value_l1 = nn.Sequential(nn.Linear(self.feature_dim, 32), nn.ReLU())
+        self.value_l2 = nn.Sequential(nn.Linear(32 + 32, last_layer_dim_vf), nn.ReLU())
+
 
     def forward(self, features: T.Tensor) -> Tuple[T.Tensor, T.Tensor]:
         """
@@ -117,16 +118,25 @@ class CustomNetwork(nn.Module):
             If all layers are shared, then ``latent_policy == latent_value``
         """
 
-        features_reshaped = features.view((-1, self.history_length, self.feature_dim))
+        features_conv = features.view((-1, self.history_length, self.feature_dim))
+        features_conv = features_conv.transpose(2, 1)
+        features_last_step = features[:, -self.feature_dim:]
 
         # FF of last obs step
+        pi_l1 = self.policy_l1(features_last_step)
+        vf_l1 = self.value_l1(features_last_step)
 
         # Conv of the whole thing
+        policy_conv_features = self.policy_net_tc(features_conv)
+        policy_conv_features = T.sum(policy_conv_features, dim=2)
+        value_conv_features = self.value_net_tc(features_conv)
+        value_conv_features = T.sum(value_conv_features, dim=2)
 
         # Combination of both
+        pi_l2 = self.policy_l2(T.cat([pi_l1, policy_conv_features], dim=1))
+        vf_l2 = self.value_l2(T.cat([vf_l1, value_conv_features], dim=1))
 
-
-        return self.policy_net(features_reshaped), self.value_net(features_reshaped)
+        return pi_l2, vf_l2
 
 def customActorCriticPolicyWrapper(feature_dim, history_length):
     class CustomActorCriticPolicy(ActorCriticPolicy):
