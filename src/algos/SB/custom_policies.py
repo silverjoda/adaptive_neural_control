@@ -95,21 +95,21 @@ class CustomNetwork(nn.Module):
         self.latent_dim_vf = last_layer_dim_vf
 
         self.policy_net_tc = TemporalConvNet(num_inputs=self.feature_dim,
-                                          num_channels=(32, 32, 32),
+                                          num_channels=(16, 16, 16),
                                           kernel_size=2,
                                           dropout=0.0)
 
 
         self.policy_l1 = nn.Sequential(nn.Linear(self.feature_dim, 32), nn.ReLU())
-        self.policy_l2 = nn.Sequential(nn.Linear(32 + 32, last_layer_dim_pi), nn.ReLU())
+        self.policy_l2 = nn.Sequential(nn.Linear(32 + 16, last_layer_dim_pi), nn.ReLU())
 
         self.value_net_tc = TemporalConvNet(num_inputs=self.feature_dim,
-                                          num_channels=(32, 32, 32),
+                                          num_channels=(16, 16, 16),
                                           kernel_size=2,
                                           dropout=0.0)
 
         self.value_l1 = nn.Sequential(nn.Linear(self.feature_dim, 32), nn.ReLU())
-        self.value_l2 = nn.Sequential(nn.Linear(32 + 32, last_layer_dim_vf), nn.ReLU())
+        self.value_l2 = nn.Sequential(nn.Linear(32 + 16, last_layer_dim_vf), nn.ReLU())
 
 
     def forward(self, features: T.Tensor) -> Tuple[T.Tensor, T.Tensor]:
