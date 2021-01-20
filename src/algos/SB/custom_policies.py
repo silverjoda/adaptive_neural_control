@@ -127,10 +127,8 @@ class CustomNetwork(nn.Module):
         vf_l1 = self.value_l1(features_last_step)
 
         # Conv of the whole thing
-        policy_conv_features = self.policy_net_tc(features_conv)
-        policy_conv_features = T.sum(policy_conv_features, dim=2)
-        value_conv_features = self.value_net_tc(features_conv)
-        value_conv_features = T.sum(value_conv_features, dim=2)
+        policy_conv_features = self.policy_net_tc(features_conv)[:,:,-1]
+        value_conv_features = self.value_net_tc(features_conv)[:,:,-1]
 
         # Combination of both
         pi_l2 = self.policy_l2(T.cat([pi_l1, policy_conv_features], dim=1))
