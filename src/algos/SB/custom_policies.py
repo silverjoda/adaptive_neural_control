@@ -99,7 +99,6 @@ class CustomNetwork(nn.Module):
                                           kernel_size=2,
                                           dropout=0.0)
 
-
         self.policy_l1 = nn.Sequential(nn.Linear(self.feature_dim, 32), nn.ReLU())
         self.policy_l2 = nn.Sequential(nn.Linear(32 + 16, last_layer_dim_pi), nn.ReLU())
 

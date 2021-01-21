@@ -89,7 +89,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        self.observation_space = spaces.Box(low=-2.0, high=2.0, shape=(self.obs_dim,))
+        self.observation_space = spaces.Box(low=-5.0, high=5.0, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
@@ -130,7 +130,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_alpha": 0.2 + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
+                                 "motor_alpha": 0.1 + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
                                  "motor_force_multiplier": 8 + (np.random.rand() * 4 - 1.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": self.config["input_transport_delay"] + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
@@ -324,8 +324,8 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.square(pos_delta)) * 0.5, -0.5, 0.5)
-        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.5, 0.5)
+        p_position = np.clip(np.mean(np.abs(pos_delta)) * 1.0, -3, 3)
+        p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 1.0, -3, 3)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
 
@@ -384,10 +384,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.prev_act = None
 
         if self.config["rnd_init"]:
-            rnd_starting_pos_delta = np.random.rand(3) * 2 - 1.5
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .8 - 0.4, np.random.rand(1) * .8 - 0.4, np.random.rand(1) * 2 - 1.], physicsClientId=self.client_ID)
-            rnd_starting_lin_velocity = np.random.rand(3) * .6 - .3
-            rnd_starting_rot_velocity = np.random.rand(3) * .4 - 0.2
+            rnd_starting_pos_delta = np.random.rand(3) * 1. - .5
+            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .4 - 0.2, np.random.rand(1) * .4 - 0.2, np.random.rand(1) * 1 - .5], physicsClientId=self.client_ID)
+            rnd_starting_lin_velocity = np.random.rand(3) * .4 - .2
+            rnd_starting_rot_velocity = np.random.rand(3) * .2 - .1
         else:
             rnd_starting_pos_delta = np.zeros(3)
             rnd_starting_orientation = np.array([0,0,0,1])
@@ -439,7 +439,6 @@ class QuadrotorBulletEnv(gym.Env):
             else:
                 act = self.calculate_stabilization_action(obs[3:7], obs[10:13], velocity_target)
             obs, r, done, _ = self.step(act)
-            time.sleep(self.config["sim_timestep"])
             if done: obs = self.reset()
 
     def gather_data(self, policy=None, n_iterations=20000):

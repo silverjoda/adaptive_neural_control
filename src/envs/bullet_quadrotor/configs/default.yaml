@@ -26,7 +26,7 @@
 "d_roll" : 3.0
 "d_pitch" : 3.0
 "d_yaw" : 0.1
-"i_roll" : -0.03
-"i_pitch" : -0.03
+"i_roll" : -0.00
+"i_pitch" : -0.00
 "input_transport_delay" : 0
 "output_transport_delay" : 0
