@@ -4,8 +4,9 @@ from copy import deepcopy
 
 def objective(trial):
     config["n_steps"] = trial.suggest_int('n_steps', 6, 80)
-    config["learning_rate"] = trial.suggest_loguniform('learning_rate', 1e-5, 4e-4)
-    config["norm_reward"] = trial.suggest_categorical('norm_reward', [True, False])
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_loguniform('learning_rate', 1e-5, 5e-4))
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.97, 0.999)
+    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.01, 0.5)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
@@ -24,14 +25,17 @@ def objective(trial):
     return avg_episode_rew[0] / config["N_test"]
 
 if __name__ == "__main__":
-    env_fun = my_utils.import_env("quadrotor_stab")
-    algo_config = my_utils.read_config("configs/a2c_quadrotor_config.yaml")
-    env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
+    # env_fun = my_utils.import_env("quadrotor_stab")
+    # algo_config = my_utils.read_config("configs/a2c_quadrotor_config.yaml")
+    # env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
+
+    env_fun = my_utils.import_env("hexapod_wp_eef")
+    algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
+    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 12000
+    config["iters"] = 7000000
     config["verbose"] = False
-    config["animate"] = False
     config["animate"] = False
     config["default_session_ID"] = "OPT"
     config["tensorboard_log"] = False

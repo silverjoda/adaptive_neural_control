@@ -9,7 +9,7 @@
 "vf_coef" : 0.5
 "ent_coef" : 0.00000
 "max_grad_norm" : 0.5
-"learning_rate" : "0.0001" #"lambda x : x * 0.0004"
+"learning_rate" : "0.0004" #"lambda x : x * 0.0004"
 "lr_schedule" : "linear"
 "alpha" : 0.99
 "epsilon" : 0.00001

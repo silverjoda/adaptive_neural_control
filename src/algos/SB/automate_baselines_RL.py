@@ -43,17 +43,6 @@ if __name__ == "__main__":
     # Specify variables
     #var_dict_list = [{"output_transport_delay" : i, "act_input" : i, "obs_input" : i} for i in range(10)]
     var_dict_list = [{"norm_obs" : False, "norm_reward" : False, "w_1" : True, "w_2" : False},
-                     {"norm_obs" : True, "norm_reward" : False, "w_1" : True, "w_2" : False},
-                     {"norm_obs" : False, "norm_reward" : True, "w_1" : True, "w_2" : False},
-                     {"norm_obs" : True, "norm_reward" : True, "w_1" : True, "w_2" : False},
-                     {"norm_obs" : False, "norm_reward" : False, "w_1" : False, "w_2" : True},
-                     {"norm_obs": False, "norm_reward": False, "w_1": False, "w_2": True,
-                      "learning_rate": "lambda x : x * 0.0001"},
-                     {"norm_obs": False, "norm_reward": False, "w_1": False, "w_2": True,
-                      "learning_rate": "lambda x : (np.exp(x * 3) - 1) / (np.exp(3) - 1) * 0.0001"},
-                     {"norm_obs" : True, "norm_reward" : False, "w_1" : False, "w_2" : True},
-                     {"norm_obs" : False, "norm_reward" : True, "w_1" : False, "w_2" : True},
-                     {"norm_obs" : True, "norm_reward" : True, "w_1" : False, "w_2" : True},
                      ]
     # Previous result: With norming the result gets worse. Best result is:  No norm anywhere and W_2 True
 

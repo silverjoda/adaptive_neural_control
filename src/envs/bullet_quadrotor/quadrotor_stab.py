@@ -324,7 +324,7 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.clip(np.mean(np.abs(pos_delta)) * 1.0, -3, 3)
+        p_position = np.mean(np.abs(pos_delta)) * 1.0
         p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 1.0, -3, 3)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
@@ -370,6 +370,7 @@ class QuadrotorBulletEnv(gym.Env):
             aux_obs.extend(self.randomized_params_list_norm)
 
         obs = np.array(aux_obs).astype(np.float32)
+
 
         return obs, r, done, {"aux_obs" : aux_obs, "randomized_params" : self.randomized_params}
 

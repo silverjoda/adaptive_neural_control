@@ -7,7 +7,7 @@
 "n_steps" : 20
 "vf_coef" : 0.5
 "ent_coef" : 0.00000 # Should be very low
-"max_grad_norm" : 0.4
+"max_grad_norm" : 0.5
 "learning_rate" : "lambda x : x * 0.0004"
 "alpha" : 0.99
 "epsilon" : 0.00001
@@ -22,6 +22,3 @@
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
-"w_1" : False
-"w_2" : True
-"phase_scalar" : .5

@@ -36,7 +36,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 8 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 27
+        self.just_obs_dim = 35
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -68,6 +68,8 @@ class HexapodBulletEnv(gym.Env):
                                                                                      np.tanh(-0.8629) * 0.075 * 0.5 + 0.075,
                                                                                      np.tanh(-1.0894) * 0.1 * 0.5 + 0.1,
                                                                                      0.0725]
+
+        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset])
         self.create_targets()
 
         self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]))]
@@ -339,15 +341,13 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        # Training window 1
-        if self.config["w_1"]:
-            self.current_phases = np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-            self.left_offset, self.right_offset = np.tanh(ctrl_raw[6:8]) * np.pi
+        self.current_phases = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
+        self.left_offset, self.right_offset = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
 
-        # Training window 2
-        if self.config["w_2"]:
-            self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-            self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(ctrl_raw[6:8]) * np.pi
+        # This works ok
+        #self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
+        #self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(
+        #    ctrl_raw[6:8]) * np.pi
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -436,7 +436,7 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles
+        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, self.current_phases, [self.left_offset, self.right_offset]
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -471,7 +471,8 @@ class HexapodBulletEnv(gym.Env):
         if self.config["randomize_env"]:
             self.robot = self.load_robot()
 
-        self.current_phases = np.zeros(6)
+        self.current_phases = self.phases_op
+        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset])
 
         # Reset episodal vars
         self.step_ctr = 0
@@ -514,72 +515,6 @@ class HexapodBulletEnv(gym.Env):
 
         return obs
 
-    def test_agent(self, policy):
-        import src.my_utils as my_utils
-        for _ in range(100):
-            obs = self.reset()
-            cum_rew = 0
-            ctr = 0
-            while True:
-                torso_pos_prev, torso_quat_prev, _, _, joint_angles_prev, _, _, _, _, _ = self.get_obs()
-                action, _ = policy.sample_action(my_utils.to_tensor(obs, True))
-                obs, reward, done, info = self.step(action.detach().squeeze(0).numpy())
-                cum_rew += reward
-                self.render()
-
-                if ctr % 10 == 0 and ctr > 0 and True:
-                    p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                                jointIndices=range(18),
-                                                controlMode=p.POSITION_CONTROL,
-                                                targetPositions=[0] * 18,
-                                                forces=[0] * 18,
-                                                physicsClientId=self.client_ID)
-                    joint_angles_desired = self.norm_to_rads(np.tanh(action.detach().squeeze(0).numpy() * 0.5))
-                    for _ in range(3):
-                        [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in range(18)]
-                        p.stepSimulation(physicsClientId=self.client_ID)
-                        time.sleep(0.6)
-
-                        [p.resetJointState(self.robot, k, joint_angles_desired[k], 0, physicsClientId=self.client_ID) for k in range(18)]
-                        p.stepSimulation(physicsClientId=self.client_ID)
-                        time.sleep(0.6)
-
-                    [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in
-                     range(18)]
-                    p.stepSimulation(physicsClientId=self.client_ID)
-
-                ctr += 1
-
-                if done:
-                    print(cum_rew)
-                    break
-        env.close()
-
-    def test_leg_coordination(self):
-        np.set_printoptions(precision=3)
-        self.reset()
-        n_steps = 30
-        VERBOSE=True
-        while True:
-            t1 = time.time()
-            sc = 1.0
-            test_acts = [[0, 0, 0], [0, sc, sc], [0, -sc, -sc], [0, sc, -sc], [0, -sc, sc], [sc, 0, 0], [-sc, 0, 0]]
-            for i, a in enumerate(test_acts):
-                for j in range(n_steps):
-                    #a = list(np.random.randn(3))
-                    scaled_obs, _, _, _ = self.step(a * 12)
-                _, _, _, _, joint_angles, _, joint_torques, contacts, ctct_torso = self.get_obs()
-                if VERBOSE:
-                    print("Obs rads: ", joint_angles)
-                    print("Obs normed: ", self.rads_to_norm(joint_angles))
-                    print("For action rads: ", self.norm_to_rads(a * 8))
-                    print("action normed: ", a)
-                    #input()
-
-                #self.reset()
-
-            t2 = time.time()
-            print("Time taken for iteration: {}".format(t2 - t1))
 
     def test_ikt(self):
         np.set_printoptions(precision=3)
