@@ -19,6 +19,7 @@ import src.policies as policies
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 from torch.utils.tensorboard import SummaryWriter
+T.set_num_threads(1)
 
 def f_wrapper(env, policy):
     def f(w):
@@ -30,7 +31,7 @@ def f_wrapper(env, policy):
 
         while not done:
             with torch.no_grad():
-                act = policy(obs) #policy.sample_action(obs, deterministic=True)
+                act = policy.sample_action(obs)
             obs, rew, done, _ = env.step(act)
             reward += rew
 
@@ -95,7 +96,7 @@ def test_agent(env, policy):
         obs = env.reset()
         cum_rew = 0
         while True:
-            action = policy(obs) #policy.sample_action(obs, deterministic=True)
+            action = policy.sample_action(obs)
             obs, reward, done, info = env.step(action)
             cum_rew += reward
 
@@ -139,7 +140,6 @@ if __name__=="__main__":
     if config["test"] and socket.gethostname() != "goedel":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
-        print([p.data for p in policy.learned_params])
         test_agent(env, policy)
 
 

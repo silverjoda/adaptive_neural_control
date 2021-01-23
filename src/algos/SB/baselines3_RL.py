@@ -13,7 +13,8 @@ from shutil import copyfile
 from custom_policies import customActorCriticPolicyWrapper
 from copy import deepcopy
 import numpy as np
-
+import torch as T
+T.set_num_threads(1)
 
 class TensorboardCallback(BaseCallback):
     def __init__(self, verbose=0):
@@ -25,7 +26,9 @@ class TensorboardCallback(BaseCallback):
     def _on_rollout_end(self) -> None:
         # Log scalar value (here a random variable)
         max_returns = np.max(self.locals['rollout_buffer'].returns, axis=0).mean()
-        self.logger.record('mean_max_returns', max_returns)
+        mean_advantages = self.locals['rollout_buffer'].advantages.mean()
+        self.logger.record('train/mean_max_returns', max_returns)
+        self.logger.record('train/mean_advantages', mean_advantages)
 
         return None
 
@@ -89,8 +92,7 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=Tru
             obs, reward, done, info = env.step(action)
             episode_rew += reward
             total_rew += reward
-            if render:
-                env.render()
+
             if done:
                 if print_rew:
                     print(episode_rew)
@@ -113,7 +115,11 @@ def setup_train(config, setup_dirs=True):
 
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
-    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'),
+    if config["dummy_vec_env"]:
+        vec_env = DummyVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])])
+    else:
+        vec_env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    env = VecNormalize(vec_env,
                        gamma=config["gamma"],
                        norm_obs=config["norm_obs"],
                        norm_reward=config["norm_reward"])

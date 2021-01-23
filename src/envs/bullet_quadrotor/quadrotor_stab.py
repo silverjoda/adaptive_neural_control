@@ -371,7 +371,6 @@ class QuadrotorBulletEnv(gym.Env):
 
         obs = np.array(aux_obs).astype(np.float32)
 
-
         return obs, r, done, {"aux_obs" : aux_obs, "randomized_params" : self.randomized_params}
 
     def reset(self, force_randomize=None):

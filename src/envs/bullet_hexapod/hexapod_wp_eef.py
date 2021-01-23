@@ -341,13 +341,19 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        self.current_phases = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
-        self.left_offset, self.right_offset = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
+        current_phases_updated = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
+        self.current_phases = np.clip(current_phases_updated, self.phases_op - np.pi, self.phases_op + np.pi) * \
+                              self.config["phase_decay"] + self.phases_op * (1 - self.config["phase_decay"])
+
+        # current_offsets_updated = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
+        # offsets_arr = np.array([self.left_offset, self.right_offset])
+        # self.left_offset, self.right_offset = np.clip(current_offsets_updated, offsets_arr - np.pi, offsets_arr + np.pi) * self.config["phase_decay"] + \
+        #                                       offsets_arr * (1 - self.config["phase_decay"])
 
         # This works ok
-        #self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-        #self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(
-        #    ctrl_raw[6:8]) * np.pi
+        self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
+        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(
+           ctrl_raw[6:8]) * np.pi
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -436,7 +442,9 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, self.current_phases, [self.left_offset, self.right_offset]
+        current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
+        offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
+        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, current_phases_obs, offset_obs
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)

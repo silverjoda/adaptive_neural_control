@@ -590,6 +590,52 @@ class TemporalConvNet(nn.Module):
     def forward(self, x):
         return self.network(x)
 
+class MLP_ES(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(MLP_ES, self).__init__()
+        self.config = config
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+
+        self.hid_dim = config["policy_hid_dim"]
+
+        if self.config["policy_residual_connection"]:
+            self.fc_res = nn.Linear(self.obs_dim, self.act_dim)
+
+        self.activation_fun = eval(config["activation_fun"])
+
+        self.hidden_layers_list = nn.ModuleList()
+        for i in range(config["n_hidden_layers"]):
+            if i == 0:
+                self.hidden_layers_list.append(nn.Linear(self.obs_dim, self.hid_dim))
+            else:
+                self.hidden_layers_list.append(nn.Linear(self.hid_dim, self.hid_dim))
+
+        if config["n_hidden_layers"] > 0:
+            self.final_layer = nn.Linear(self.hid_dim, self.act_dim)
+        else:
+            self.final_layer = nn.Linear(self.obs_dim, self.act_dim)
+
+    def forward(self, x):
+        l_hidden = x
+        if self.config["n_hidden_layers"] > 0:
+            for i in range(self.config["n_hidden_layers"]):
+                l_hidden = self.activation_fun(self.hidden_layers_list[i](l_hidden))
+        l_final = self.final_layer(l_hidden)
+
+        if self.config["policy_residual_connection"]:
+            out = l_final + self.fc_res(x)
+        else:
+            out = l_final
+        return out
+
+    def sample_action(self, s):
+        with T.no_grad():
+            s_T = T.tensor(s).unsqueeze(0)
+            act = self.forward(s_T)
+        return act.detach().squeeze(0).numpy()
+
+
 if __name__ == "__main__":
     env = type('',(object,),{'obs_dim':12,'act_dim':6})()
     config_rnn = {"policy_lastlayer_tanh" : False, "policy_memory_dim" : 96, "policy_grad_clip_value" : 1.0}

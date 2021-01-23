@@ -3,7 +3,7 @@
 "target_vel_source" : "still" # still/rnd/joystick
 "rnd_init" : True
 "max_steps" : 500
-"step_counter" : 1
+"step_counter" : 0
 "latent_input" : 0
 "act_input" : 0
 "obs_input" : 1

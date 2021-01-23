@@ -4,12 +4,12 @@
 "n_envs" : 6
 "iters" : 30000000
 "n_steps_per_checkpoint" : 1000000
-"gamma" : 0.99
-"n_steps" : 40
+"gamma" : 0.987
+"n_steps" : 45
 "vf_coef" : 0.5
 "ent_coef" : 0.00000
 "max_grad_norm" : 0.5
-"learning_rate" : "0.0004" #"lambda x : x * 0.0004"
+"learning_rate" : "lambda x : x * 0.0004"
 "lr_schedule" : "linear"
 "alpha" : 0.99
 "epsilon" : 0.00001
@@ -17,10 +17,10 @@
 "tensorboard_log" : True
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 32
-"policy_memory_dim" : 32
+"policy_hid_dim" : 128
 "policy_grad_clip_value" : 0.5
 "policy_residual_connection" : False
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
+"dummy_vec_env" : True

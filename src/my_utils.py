@@ -60,6 +60,10 @@ def make_policy(env, config):
         return policies.SLP_PG(env.obs_dim, env.act_dim, config)
     elif config["policy_type"] == "mlp":
         return policies.PI_AC(env.obs_dim, env.act_dim, config)
+    elif config["policy_type"] == "slp_es":
+        return policies.SLP_ES(env.obs_dim, env.act_dim, config)
+    elif config["policy_type"] == "mlp_es":
+        return policies.MLP_ES(env.obs_dim, env.act_dim, config)
     elif config["policy_type"] == "ff_hex_eef":
         return policies.FF_HEX_EEF(env.obs_dim, env.act_dim, config)
     else:

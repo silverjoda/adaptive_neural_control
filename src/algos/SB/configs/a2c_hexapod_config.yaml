@@ -3,12 +3,12 @@
 "default_session_ID" :
 "n_envs" : 6
 "iters" : 16000000
-"gamma" : 0.99
-"n_steps" : 20
+"gamma" : 0.996
+"n_steps" : 30
 "vf_coef" : 0.5
 "ent_coef" : 0.00000 # Should be very low
 "max_grad_norm" : 0.5
-"learning_rate" : "lambda x : x * 0.0004"
+"learning_rate" : "lambda x : x * 0.00026"
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
@@ -22,3 +22,4 @@
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
+"dummy_vec_env" : False
