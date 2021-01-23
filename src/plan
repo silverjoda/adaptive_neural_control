@@ -58,3 +58,4 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)
 # Put to train quadcopter and buggy envs with randomization
 
+# TODO: Hexa works on flat with turning perfectly. Now try on perlin, with additional NN inputs (correction from NN)
