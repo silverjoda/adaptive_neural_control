@@ -59,3 +59,5 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # Put to train quadcopter and buggy envs with randomization
 
 # TODO: Hexa works on flat with turning perfectly. Now try on perlin, with additional NN inputs (correction from NN)
+Best params:  {'n_steps': 38, 'learning_rate': 0.0004041431413252437, 'gamma': 0.9970081288014816, 'p
+hase_scalar': 0.26881373950773213, 'phase_decay': 0.988248774110033}  Best value:  43.675244140625

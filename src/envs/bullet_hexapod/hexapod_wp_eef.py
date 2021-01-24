@@ -35,8 +35,8 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 8 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 35
+        self.act_dim = 14 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
+        self.just_obs_dim = 41
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -361,7 +361,9 @@ class HexapodBulletEnv(gym.Env):
                                                 targetPositions=[
                                                     [np.cos(-self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult,
                                                      self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.left_offset * bool(i%2) + self.right_offset * bool((i+1)%2)) * self.z_mult - self.z_offset]
+                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.left_offset * bool(i%2) + self.right_offset * bool((i+1)%2)) * self.z_mult
+                                                     - self.z_offset
+                                                     + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"]]
                                                      for i in range(6)],
                                                 currentPositions=[0]*18)
 
@@ -418,7 +420,7 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                 "bobbing": np.sqrt(np.square(zd)) * 0.0,
+                 "bobbing": np.sqrt(np.square(zd)) * 0.1,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.10}
 
         r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
@@ -444,7 +446,7 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
         offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
-        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, current_phases_obs, offset_obs
+        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, current_phases_obs, offset_obs, contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -538,7 +540,7 @@ class HexapodBulletEnv(gym.Env):
                                                          self.y_offset * dir_vec[i],
                                                          np.sin(-self.angle * 2 * np.pi + self.phases_op[
                                                              i] + self.phase_offset) * self.z_mult - self.z_offset]
-                                                        for i in range(6)],
+                                                         for i in range(6)],
                                                     currentPositions=[0] * 18)
 
             for i in range(18):
