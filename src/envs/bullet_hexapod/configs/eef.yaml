@@ -33,7 +33,6 @@
 "target_proximity_threshold" : 0.5
 "target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 6.0] #[1.0, 4.0]
-"inclination_pen" : 0.05
 "angle_increment" : 0.006
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
@@ -42,3 +41,4 @@
 "phase_scalar": .2 # 0.1
 "phase_decay": .985 # 0.98
 "z_aux_scalar" : 0.05
+"inclination_pen" : 0.03

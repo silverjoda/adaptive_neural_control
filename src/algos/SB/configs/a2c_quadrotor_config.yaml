@@ -2,14 +2,14 @@
 "policy_name" : "MlpPolicy" # "MlpPolicy", "CustomAC", "CustomTCNPolicy"
 "default_session_ID" :
 "n_envs" : 6
-"iters" : 30000000
+"iters" : 36000000
 "n_steps_per_checkpoint" : 1000000
 "gamma" : 0.987
-"n_steps" : 45
+"n_steps" : 20
 "vf_coef" : 0.5
 "ent_coef" : 0.00000
 "max_grad_norm" : 0.5
-"learning_rate" : "lambda x : x * 0.0004"
+"learning_rate" : "lambda x : x * 0.0002"
 "lr_schedule" : "linear"
 "alpha" : 0.99
 "epsilon" : 0.00001
