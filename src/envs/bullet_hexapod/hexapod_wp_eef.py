@@ -468,7 +468,7 @@ class HexapodBulletEnv(gym.Env):
         done = self.step_ctr > self.config["max_steps"] or reached_target
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
-            print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
+            #print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
             done = True
 
         if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 6 or abs(torso_pos[2]) > 2.5:

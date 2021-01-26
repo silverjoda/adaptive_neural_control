@@ -33,8 +33,8 @@ if __name__ == "__main__":
     config["verbose"] = False
     config["animate"] = False
     config["animate"] = False
-    config["default_session_ID"] = "AUTO_HEX"
-    config["tensorboard_log"] = False
+    #config["default_session_ID"] = "AUTO_HEX"
+    config["tensorboard_log"] = True
     config["N_test"] = 30
     N_reps = 1
 
@@ -42,9 +42,13 @@ if __name__ == "__main__":
 
     # Specify variables
     #var_dict_list = [{"output_transport_delay" : i, "act_input" : i, "obs_input" : i} for i in range(10)]
-    var_dict_list = [{"norm_obs" : False, "norm_reward" : False, "w_1" : True, "w_2" : False},
+    var_dict_list = [{"z_aux_scalar" : 0.05},
+                     {"z_aux_scalar": 0.05},
+                     {"z_aux_scalar": 0.05},
+                     {"z_aux_scalar": 0.0},
+                     {"z_aux_scalar": 0.0},
+                     {"z_aux_scalar": 0.0},
                      ]
-    # Previous result: With norming the result gets worse. Best result is:  No norm anywhere and W_2 True
 
     results_list = []
     best_result_dict = {}

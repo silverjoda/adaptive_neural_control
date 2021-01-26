@@ -17,7 +17,6 @@
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
 "policy_hid_dim" : 96
-"policy_memory_dim" : 64
 "policy_residual_connection" : False
 "norm_obs" : False
 "norm_reward" : False

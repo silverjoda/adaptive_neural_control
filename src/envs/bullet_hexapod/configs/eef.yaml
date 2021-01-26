@@ -19,7 +19,7 @@
 "randomize_env" : False
 "max_actuator_velocity" : 4.0
 "lateral_friction" : 1.2
-"max_joint_force" : 1.5
+"max_joint_force" : 1.3
 "target_vel" : 0.2
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
