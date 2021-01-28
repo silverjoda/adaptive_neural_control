@@ -43,17 +43,23 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 12000000
-    config["verbose"] = False
+    config["iters"] = 30000
+    config["verbose"] = True
     config["animate"] = False
     config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
-    config["N_test"] = 50
-    N_trials = 50
+    config["dummy_vec_env"] = True
+    config["N_test"] = 10
+    N_trials = 1
 
-    study = optuna.create_study(direction='maximize', study_name="example-study", storage='sqlite:///example.db', load_if_exists=True)
+    # TODO: keep testing single threaded optuna_baselines vs parallel variant to see if it does what it says on the tin.
+
+    t1 = time.time()
+    #study = optuna.create_study(direction='maximize', study_name="example-study", storage='sqlite:///example.db', load_if_exists=True)
+    study = optuna.create_study(direction='maximize')
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
-
+    t2 = time.time()
+    print("Time taken: ", t2-t1)
     print("Best params: ", study.best_params, " Best value: ", study.best_value)
 
 

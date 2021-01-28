@@ -12,7 +12,7 @@
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
-"verbose" : 2
+"verbose" : True
 "tensorboard_log" : True
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
@@ -21,4 +21,4 @@
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
-"dummy_vec_env" : False
+"dummy_vec_env" : True

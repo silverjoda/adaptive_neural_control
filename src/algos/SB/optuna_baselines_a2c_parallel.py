@@ -1,10 +1,9 @@
 import optuna
 from baselines3_RL import *
 from copy import deepcopy
-from multiprocessing import Pool
+from multiprocessing import Pool, Process, Manager
 
-
-def train_and_eval(config):
+def train_and_eval(config, procnum, return_dict):
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
     env.save(stats_path)
@@ -19,7 +18,7 @@ def train_and_eval(config):
     del eval_env
     del model
 
-    return avg_episode_rew[0] / config["N_test"]
+    return_dict[procnum] = avg_episode_rew[0] / config["N_test"]
 
 def objective(trial, config):
     # Hexapod
@@ -37,12 +36,18 @@ def objective(trial, config):
     # config["gamma"] = trial.suggest_loguniform('gamma', 0.985, 0.999)
     # config["policy_hid_dim"] = trial.suggest_int("policy_hid_dim", 48, 256)
 
-    with Pool(config["N_reps"]) as p:
-        avg_rews = p.map(train_and_eval, [config] * config["N_reps"])
-    print(avg_rews)
-    exit()
+    manager = Manager()
+    return_dict = manager.dict()
+    jobs = []
+    for i in range(config["N_reps"]):
+        p = Process(target=train_and_eval, args=(config, i, return_dict))
+        jobs.append(p)
+        p.start()
 
-    return np.mean(avg_rews)
+    for proc in jobs:
+        proc.join()
+
+    return np.mean([k for k in return_dict.values()])
 
 if __name__ == "__main__":
     # env_fun = my_utils.import_env("quadrotor_stab")
@@ -54,19 +59,22 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 12000
-    config["verbose"] = False
+    config["iters"] = 30000
+    config["verbose"] = True
     config["animate"] = False
     config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
-    config["N_test"] = 50
-    config["N_reps"] = 5
-    N_trials = 50
+    config["dummy_vec_env"] = True
+    config["N_test"] = 10
+    config["N_reps"] = 7
+    N_trials = 1
 
-    # TODO: Demonic processes cannot have children :<
-
-    study = optuna.create_study(direction='maximize', study_name="example-study", storage='sqlite:///example.db', load_if_exists=True)
+    t1 = time.time()
+    # study = optuna.create_study(direction='maximize', study_name="example-study", storage='sqlite:///example.db', load_if_exists=True)
+    study = optuna.create_study(direction='maximize')
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
+    t2 = time.time()
+    print("Time taken: ", t2 - t1)
 
     print("Best params: ", study.best_params, " Best value: ", study.best_value)
 
