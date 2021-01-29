@@ -1,14 +1,14 @@
 "algo_name" : "A2C"
 "policy_name" : "MlpPolicy"
 "default_session_ID" :
-"n_envs" : 6
-"iters" : 16000000
-"gamma" : 0.997
-"n_steps" : 36
+"n_envs" : 6 # 6
+"iters" : 36000000 # More
+"gamma" : 0.998
+"n_steps" : 25
 "vf_coef" : 0.5
-"ent_coef" : 0.00000 # Should be very low
+"ent_coef" : 0.00000
 "max_grad_norm" : 0.5
-"learning_rate" : "lambda x : x * 0.0004" # 0.00026
+"learning_rate" : "lambda x : x * 0.00037"
 "alpha" : 0.99
 "epsilon" : 0.00001
 "lr_schedule" : 'linear'
@@ -16,9 +16,9 @@
 "tensorboard_log" : True
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 96
+"policy_hid_dim" : 128
 "policy_residual_connection" : False
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
-"dummy_vec_env" : True
+"dummy_vec_env" : True # True

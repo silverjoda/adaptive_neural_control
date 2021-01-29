@@ -2,16 +2,17 @@ import optuna
 from baselines3_RL import *
 from copy import deepcopy
 
-
 def objective(trial, config):
-    config["n_steps"] = trial.suggest_int('n_steps', 20, 50)
-    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 8e-4))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.985, 0.999)
-    config["policy_hid_dim"] = trial.suggest_int("policy_hid_dim", 64, 256)
-    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.03, 0.5)
-    config["phase_decay"] = trial.suggest_loguniform('phase_decay', 0.9, 0.99)
-    config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.05, 0.1)
+    # Hexapod
+    config["n_steps"] = trial.suggest_int('n_steps', 10, 35)
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 2e-4, 7e-4))
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.993, 0.999)
+    config["policy_hid_dim"] = trial.suggest_int("policy_hid_dim", 96, 196)
+    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.1, 0.3)
+    config["phase_decay"] = trial.suggest_loguniform('phase_decay', 0.85, 0.99)
+    config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.07, 0.14)
 
+    # Quad
     # config["n_steps"] = trial.suggest_int('n_steps', 6, 40)
     # config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 7e-4))
     # config["gamma"] = trial.suggest_loguniform('gamma', 0.985, 0.999)
@@ -43,20 +44,18 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 30000
-    config["verbose"] = True
+    config["iters"] = 16000000
+    config["verbose"] = False
     config["animate"] = False
-    config["default_session_ID"] = "OPT_HEX"
+    #config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = True
-    config["N_test"] = 10
+    config["N_test"] = 50
     N_trials = 1
 
-    # TODO: keep testing single threaded optuna_baselines vs parallel variant to see if it does what it says on the tin.
-
     t1 = time.time()
-    #study = optuna.create_study(direction='maximize', study_name="example-study", storage='sqlite:///example.db', load_if_exists=True)
-    study = optuna.create_study(direction='maximize')
+    study = optuna.create_study(direction='maximize', study_name="hexapod_opt_study", storage='sqlite:///hexapod_opt.db', load_if_exists=True)
+    #study = optuna.create_study(direction='maximize')
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
     t2 = time.time()
     print("Time taken: ", t2-t1)

@@ -14,7 +14,6 @@ from custom_policies import customActorCriticPolicyWrapper
 from copy import deepcopy
 import numpy as np
 import torch as T
-T.set_num_threads(1)
 
 class TensorboardCallback(BaseCallback):
     def __init__(self, verbose=0):
@@ -100,6 +99,7 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=Tru
     return total_rew
 
 def setup_train(config, setup_dirs=True):
+    T.set_num_threads(1)
     if setup_dirs:
         for s in ["agents", "agents_cp", "tb"]:
             if not os.path.exists(s):
@@ -135,6 +135,7 @@ def setup_train(config, setup_dirs=True):
     return env, model, callback_list, stats_path
 
 def setup_eval(config, stats_path, seed=1337):
+    T.set_num_threads(1)
     env_fun = my_utils.import_env(config["env_name"])
     config_tmp = deepcopy(config)
     config_tmp["seed"] = seed

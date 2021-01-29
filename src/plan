@@ -65,3 +65,11 @@ hase_scalar': 0.26881373950773213, 'phase_decay': 0.988248774110033}  Best value
 # Automate:
 On automate: Try 5 envs with same hyperparams to see what the variance is, also try with larger amount of steps, also try without aux action z scaling
 
+# On RCI cluster:
+ml Python/3.7.4-GCCcore-8.3.0 # To load python
+
+# Python installs:
+pip install --user optuna
+pip install --user stable_baselines3
+pip install --user opensimplex
+pip install --user pybullet

@@ -38,7 +38,7 @@
 "seed" :
 "w_1": False
 "w_2": True
-"phase_scalar": .2 # 0.1
-"phase_decay": .985 # 0.98
-"z_aux_scalar" : 0.05
+"phase_scalar": .21   # 0.1
+"phase_decay": .92 # 0.98
+"z_aux_scalar" : 0.1 # 0.05
 "inclination_pen" : 0.03
