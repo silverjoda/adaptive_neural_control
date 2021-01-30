@@ -83,8 +83,8 @@ def make_model(config, env):
 
 def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=True):
     total_rew = 0
+    obs = env.reset()
     for _ in range(N):
-        obs = env.reset()
         episode_rew = 0
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
@@ -172,7 +172,8 @@ if __name__ == "__main__":
 
     if args["test"] and socket.gethostname() != "goedel":
         stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
-        env_fun = my_utils.import_env(env_config["env_name"])
+        env_fun = my_utils.import_env(config["env_name"])
+        config["seed"] = 1
         # env = env_fun(config)  # Default, without normalization
         env = DummyVecEnv([lambda: env_fun(config)])
         #env = VecNormalize.load(stats_path, env)
@@ -180,4 +181,6 @@ if __name__ == "__main__":
         env.norm_reward = False
 
         model = A2C.load("agents/{}".format(args["test_agent_path"]))
-        test_agent(env, model, deterministic=True)
+        N_test = 100
+        total_rew = test_agent(env, model, deterministic=True, N=N_test)
+        print(f"Total test rew: {total_rew / N_test}")

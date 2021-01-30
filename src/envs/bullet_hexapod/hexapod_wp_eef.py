@@ -9,6 +9,7 @@ import pybullet_data
 import torch as T
 from gym import spaces
 from opensimplex import OpenSimplex
+import numpy as np
 
 # INFO: To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]
 
@@ -50,6 +51,10 @@ class HexapodBulletEnv(gym.Env):
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
+        self.step_ctr = 0
+        self.angle = 0
+        self.episode_ctr = 0
+
         self.urdf_name = config["urdf_name"]
         self.robot = self.load_robot()
 
@@ -58,8 +63,7 @@ class HexapodBulletEnv(gym.Env):
         else:
             self.terrain = self.generate_rnd_env()
 
-        self.step_ctr = 0
-        self.angle = 0
+
         self.eef_list = [i * 3 + 2 for i in range(6)]
         self.phases_op = np.array([3.4730, 0.3511, 0.4637, -3.4840, -2.8000, -0.4658])
         self.current_phases = self.phases_op
@@ -216,7 +220,7 @@ class HexapodBulletEnv(gym.Env):
             hm += current_height
 
         if env_name == "perlin":
-            oSim = OpenSimplex(seed=int(time.time()))
+            oSim = OpenSimplex(seed=(self.seed + self.episode_ctr * (self.seed % 100)))
 
             height = self.config["perlin_height"] * self.config["training_difficulty"] # 30-40
 
@@ -487,6 +491,7 @@ class HexapodBulletEnv(gym.Env):
         # Reset episodal vars
         self.step_ctr = 0
         self.angle = 0
+        self.episode_ctr += 1
 
         #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
         #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
