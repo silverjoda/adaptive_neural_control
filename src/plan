@@ -62,8 +62,6 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 Best params:  {'n_steps': 38, 'learning_rate': 0.0004041431413252437, 'gamma': 0.9970081288014816, 'p
 hase_scalar': 0.26881373950773213, 'phase_decay': 0.988248774110033}  Best value:  43.675244140625
 
-# Automate:
-On automate: Try 5 envs with same hyperparams to see what the variance is, also try with larger amount of steps, also try without aux action z scaling
 
 # On RCI cluster:
 ml Python/3.7.4-GCCcore-8.3.0 # To load python

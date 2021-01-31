@@ -61,8 +61,7 @@ class HexapodBulletEnv(gym.Env):
         if config["terrain_name"] == "flat":
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         else:
-            self.terrain = self.generate_rnd_env()
-
+            self.generate_rnd_env()
 
         self.eef_list = [i * 3 + 2 for i in range(6)]
         self.phases_op = np.array([3.4730, 0.3511, 0.4637, -3.4840, -2.8000, -0.4658])
@@ -120,7 +119,10 @@ class HexapodBulletEnv(gym.Env):
 
         self.terrain_hm, _ = self.generate_heightmap(self.config["terrain_name"])
         self.terrain_hm /= 255.
-        return self.make_heightfield(self.terrain_hm)
+
+        self.make_heightfield(self.terrain_hm)
+
+        return
 
     def generate_heightmap(self, env_name):
         current_height = 0
@@ -253,25 +255,26 @@ class HexapodBulletEnv(gym.Env):
             return
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, physicsClientId=self.client_ID)
+
         if height_map is None:
             heightfieldData = np.zeros(self.config["env_width"] * self.config["max_steps"])
-            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"] , self.config["mesh_scale_lat"] , self.config["mesh_scale_vert"]],
+            self.terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"] , self.config["mesh_scale_lat"] , self.config["mesh_scale_vert"]],
                                                   heightfieldTextureScaling=(self.config["env_width"] - 1) / 2,
                                                   heightfieldData=heightfieldData,
                                                   numHeightfieldRows=self.config["max_steps"],
                                                   numHeightfieldColumns=self.config["env_width"], physicsClientId=self.client_ID)
         else:
             heightfieldData = height_map.ravel(order='F')
-            terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"], self.config["mesh_scale_lat"], self.config["mesh_scale_vert"]],
+            self.terrainShape = p.createCollisionShape(shapeType=p.GEOM_HEIGHTFIELD, meshScale=[self.config["mesh_scale_lat"], self.config["mesh_scale_lat"], self.config["mesh_scale_vert"]],
                                                   heightfieldTextureScaling=(self.config["env_width"] - 1) / 2,
                                                   heightfieldData=heightfieldData,
                                                   numHeightfieldRows=height_map.shape[0],
                                                   numHeightfieldColumns=height_map.shape[1],
                                                   physicsClientId=self.client_ID)
-        terrain = p.createMultiBody(0, terrainShape, physicsClientId=self.client_ID)
+        self.terrain = p.createMultiBody(baseMass=0, baseCollisionShapeIndex=self.terrainShape, physicsClientId=self.client_ID)
 
-        p.resetBasePositionAndOrientation(terrain, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
-        return terrain
+        p.resetBasePositionAndOrientation(self.terrain, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
+
 
     def get_obs(self):
         # Torso
@@ -482,8 +485,28 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        if self.config["randomize_env"]:
-            self.robot = self.load_robot()
+        if hasattr(self, 'terrain'):
+            p.removeBody(self.terrain, physicsClientId=self.client_ID)
+        if hasattr(self, 'robot'):
+            p.removeBody(self.robot, physicsClientId=self.client_ID)
+
+        del self.robot
+        del self.terrain
+        del self.target_body
+        self.target = None
+
+        p.resetSimulation()
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        self.robot = self.load_robot()
+        if not self.config["terrain_name"] == "flat":
+            self.generate_rnd_env()
+        else:
+            self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        self.create_targets()
+
+        #if self.config["randomize_env"]:
+        #    self.robot = self.load_robot()
 
         self.current_phases = self.phases_op
         self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset])
@@ -495,10 +518,6 @@ class HexapodBulletEnv(gym.Env):
 
         #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
         #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
-
-        # Change heightmap with small probability
-        if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
-            self.terrain = self.generate_rnd_env()
 
         # Get heightmap height at robot position
         if self.terrain is None or self.config["terrain_name"] == "flat":
@@ -519,7 +538,7 @@ class HexapodBulletEnv(gym.Env):
                                     forces=[self.config["max_joint_force"]] * 18,
                                     physicsClientId=self.client_ID)
 
-        self.update_targets()
+
         self.prev_target_dist = np.sqrt((0 - self.target[0]) ** 2 + (0 - self.target[1]) ** 2)
         tar_angle = np.arctan2(self.target[1] - 0, self.target[0] - 0)
 
@@ -575,4 +594,7 @@ if __name__ == "__main__":
     env_config["w_2"] = False
     env_config["phase_scalar"] = 1
     env = HexapodBulletEnv(env_config)
-    env.test_ikt()
+    #env.test_ikt()
+
+    while True:
+        env.reset()
