@@ -1,4 +1,4 @@
-"env_name" : "hexapod_wp_eef"
+"env_name" : "hexapod_wp_eef_direct"
 "controller_source" : "joystick" # joystick
 "max_steps" : 900 # 700
 "terrain_name" : "perlin"

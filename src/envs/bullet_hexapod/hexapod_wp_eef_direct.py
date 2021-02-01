@@ -358,7 +358,6 @@ class HexapodBulletEnv(gym.Env):
                                                      for i in range(6)],
                                                 currentPositions=[0]*18)
 
-        self.angle += self.config["angle_increment"]
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,

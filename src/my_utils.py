@@ -35,6 +35,8 @@ def import_env(name):
         from src.envs.bullet_hexapod.hexapod_wp import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_eef":
         from src.envs.bullet_hexapod.hexapod_wp_eef import HexapodBulletEnv as env_fun
+    elif name == "hexapod_wp_eef_direct":
+        from src.envs.bullet_hexapod.hexapod_wp_eef_direct import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_eef_es":
         from src.envs.bullet_hexapod.hexapod_wp_eef_es import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_phases":
