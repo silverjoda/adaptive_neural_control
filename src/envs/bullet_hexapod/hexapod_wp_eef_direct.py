@@ -348,29 +348,13 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        current_phases_updated = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
-        self.current_phases = np.clip(current_phases_updated, self.phases_op - np.pi, self.phases_op + np.pi) * \
-                              self.config["phase_decay"] + self.phases_op * (1 - self.config["phase_decay"])
-
-        # current_offsets_updated = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
-        # offsets_arr = np.array([self.left_offset, self.right_offset])
-        # self.left_offset, self.right_offset = np.clip(current_offsets_updated, offsets_arr - np.pi, offsets_arr + np.pi) * self.config["phase_decay"] + \
-        #                                       offsets_arr * (1 - self.config["phase_decay"])
-
-        # This works ok
-        self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(
-           ctrl_raw[6:8]) * np.pi
-
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
                                                 endEffectorLinkIndices=self.eef_list,
                                                 targetPositions=[
-                                                    [np.cos(-self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult,
+                                                    [np.tanh(ctrl_raw[i]) * self.config["x_aux_scalar"],
                                                      self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[i] + self.left_offset * bool(i%2) + self.right_offset * bool((i+1)%2)) * self.z_mult
-                                                     - self.z_offset
-                                                     + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"]]
+                                                     + np.tanh(ctrl_raw[6 + i]) * self.config["z_aux_scalar"] - self.z_offset]
                                                      for i in range(6)],
                                                 currentPositions=[0]*18)
 

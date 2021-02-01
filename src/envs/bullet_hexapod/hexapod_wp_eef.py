@@ -352,6 +352,7 @@ class HexapodBulletEnv(gym.Env):
         self.current_phases = np.clip(current_phases_updated, self.phases_op - np.pi, self.phases_op + np.pi) * \
                               self.config["phase_decay"] + self.phases_op * (1 - self.config["phase_decay"])
 
+
         # current_offsets_updated = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
         # offsets_arr = np.array([self.left_offset, self.right_offset])
         # self.left_offset, self.right_offset = np.clip(current_offsets_updated, offsets_arr - np.pi, offsets_arr + np.pi) * self.config["phase_decay"] + \
