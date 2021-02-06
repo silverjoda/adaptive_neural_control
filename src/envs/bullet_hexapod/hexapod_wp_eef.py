@@ -275,7 +275,6 @@ class HexapodBulletEnv(gym.Env):
 
         p.resetBasePositionAndOrientation(self.terrain, [0, 0, 0], [0, 0, 0, 1], physicsClientId=self.client_ID)
 
-
     def get_obs(self):
         # Torso
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID) # xyz and quat: x,y,z,w
@@ -283,6 +282,7 @@ class HexapodBulletEnv(gym.Env):
 
         contacts = [int(len(p.getContactPoints(self.robot, self.terrain, i * 3 + 2, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1 for i in range(6)]
         ctct_torso = int(len(p.getContactPoints(self.robot, self.terrain, -1, -1, physicsClientId=self.client_ID)) > 0) * 2 - 1
+        #contacts = np.zeros(6)
 
         # Joints
         obs = p.getJointStates(self.robot, range(18), physicsClientId=self.client_ID) # pos, vel, reaction(6), prev_torque
@@ -348,9 +348,9 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        current_phases_updated = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
-        self.current_phases = np.clip(current_phases_updated, self.phases_op - np.pi, self.phases_op + np.pi) * \
-                              self.config["phase_decay"] + self.phases_op * (1 - self.config["phase_decay"])
+        #current_phases_updated = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
+        #self.current_phases = np.clip(current_phases_updated, self.phases_op - np.pi, self.phases_op + np.pi) * \
+        #                      self.config["phase_decay"] + self.phases_op * (1 - self.config["phase_decay"])
 
         # current_offsets_updated = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
         # offsets_arr = np.array([self.left_offset, self.right_offset])
@@ -453,7 +453,7 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
         offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
-        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, current_phases_obs, offset_obs, contacts
+        compiled_obs = torso_quat, torso_vel, [signed_deviation, 0], joint_angles, [0,0,0,0,0,0], [0,0], contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)

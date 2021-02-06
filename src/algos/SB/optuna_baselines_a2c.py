@@ -31,11 +31,9 @@ def objective(trial, config):
     return avg_episode_rew[0] / config["N_test"]
 
 if __name__ == "__main__":
-    # env_fun = my_utils.import_env("quadrotor_stab")
     # algo_config = my_utils.read_config("configs/a2c_quadrotor_config.yaml")
     # env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
 
-    env_fun = my_utils.import_env("hexapod_wp_eef_direct")
     algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef_direct.yaml")
 
