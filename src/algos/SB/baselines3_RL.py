@@ -181,6 +181,6 @@ if __name__ == "__main__":
         env.norm_reward = False
 
         model = A2C.load("agents/{}".format(args["test_agent_path"]))
-        N_test = 30
+        N_test = 1000
         total_rew = test_agent(env, model, deterministic=True, N=N_test)
         print(f"Total test rew: {total_rew / N_test}")

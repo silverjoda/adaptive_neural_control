@@ -32,6 +32,39 @@ class FF_HEX_EEF(nn.Module):
         act = [param.data for param in clipped_params]
         return act
 
+    def sample_action(self, _):
+        with T.no_grad():
+            act = self.forward(None)
+        return act
+
+class FF_HEX_JOINT_PHASES(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(FF_HEX_JOINT_PHASES, self).__init__()
+        self.config = config
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+
+        self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
+
+    def forward(self, x):
+        mid_point_scalar = 0.7
+        range_scalar = 1.0
+        clipped_params = [np.tanh(self.learned_params[0].data) * mid_point_scalar,
+                          np.tanh(self.learned_params[1].data) * range_scalar,
+                          np.tanh(self.learned_params[2].data) * mid_point_scalar,
+                          np.tanh(self.learned_params[3].data) * range_scalar,
+                          np.tanh(self.learned_params[4].data) * mid_point_scalar,
+                          np.tanh(self.learned_params[5].data) * range_scalar,
+                          *[self.learned_params[i].data for i in range(6, 24)],
+                          ]
+        act = [param.data for param in clipped_params]
+        return act
+
+    def sample_action(self, _):
+        with T.no_grad():
+            act = self.forward(None)
+        return act
+
 class VF_AC(nn.Module):
     def __init__(self, obs_dim, config):
         super(VF_AC, self).__init__()

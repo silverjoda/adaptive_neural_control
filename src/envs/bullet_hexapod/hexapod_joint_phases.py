@@ -375,7 +375,6 @@ class HexapodBulletEnv(gym.Env):
 
         self.time_vector = self.time_vector + ctrl_joints * self.time_tick_action_scalar + self.time_tick
         phases = self.phase_amplitude_mult * np.sin(self.time_vector) + ctrl_additive * 0.5
-
         scaled_action = self.norm_to_rads(phases)
 
         for i in range(18):
