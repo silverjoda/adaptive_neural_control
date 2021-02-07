@@ -371,7 +371,6 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        # This works.!
         self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:18]) * np.pi * self.config["phase_scalar"]
 
         self.angle += self.config["angle_increment"]

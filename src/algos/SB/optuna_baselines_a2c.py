@@ -5,10 +5,10 @@ from copy import deepcopy
 def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 2e-4, 7e-4))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.985, 0.999)
-    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.1, 0.3)
-    config["phase_decay"] = trial.suggest_loguniform('phase_decay', 0.85, 0.99)
-    config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.07, 0.14)
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.99, 0.999)
+    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.05, 0.5)
+    #config["phase_decay"] = trial.suggest_loguniform('phase_decay', 0.85, 0.99)
+    #config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.07, 0.14)
 
     # Quad
     # config["n_steps"] = trial.suggest_int('n_steps', 6, 40)
@@ -37,10 +37,10 @@ if __name__ == "__main__":
     # env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
 
     algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
-    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
+    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/joint_phases.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 16000000
+    config["iters"] = 5000000
     config["verbose"] = False
     config["animate"] = False
     #config["default_session_ID"] = "OPT_HEX"

@@ -1,4 +1,4 @@
-"env_name" : "hexapod_joint_phases_es"
+"env_name" : "hexapod_joint_phases"
 "controller_source" : "joystick" # joystick
 "max_steps" : 900 # 700
 "terrain_name" : "flat"
