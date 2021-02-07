@@ -64,10 +64,15 @@ class HexapodBulletEnv(gym.Env):
             self.generate_rnd_env()
 
         # TODO: Fill these in
-        self.phases_op = np.array([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+        self.phases_op = np.array([-3.0877299308776855, -2.2046384811401367, 1.4626171588897705, -1.513541340827942, 0.2126314491033554, 0.5673847794532776, -0.035951633006334305, 1.8852602243423462, -0.9069379568099976, 1.3502177000045776, 2.607222318649292, -2.2803006172180176, -2.0599818229675293, 1.2527934312820435, -1.4386889934539795, -1.5420001745224, -0.1814597100019455, -0.031908463686704636])
         self.current_phases = self.phases_op
         self.coxa_mid, self.coxa_range, self.femur_mid, self.femur_range, self.tibia_mid, self.tibi_range = [
-            0,0,0,0,0,0]
+            0,
+            np.tanh(1.39) * 0.25 + 0.25,
+            np.tanh(-1.08) * 0.5 + 0.5,
+            np.tanh(0.099) * 0.5 + 0.5,
+            np.tanh(0.354) * 0.5 + 0.5,
+            np.tanh(-1.06) * 0.5 + 0.5]
 
         self.create_targets()
 

@@ -140,6 +140,7 @@ if __name__=="__main__":
     if config["test"] and socket.gethostname() != "goedel":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
+        print([par.item() for par in policy.parameters()])
         test_agent(env, policy)
 
 

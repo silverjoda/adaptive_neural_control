@@ -55,7 +55,7 @@ class FF_HEX_JOINT_PHASES(nn.Module):
                           np.tanh(self.learned_params[5].data) * 0.5 + 0.5,
                           *[self.learned_params[i].data for i in range(6, 24)],
                           ]
-        act = [param.data for param in clipped_params]
+        act = [param.item() for param in clipped_params]
         return act
 
     def sample_action(self, _):
