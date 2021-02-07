@@ -327,7 +327,7 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.pop(0)
 
         coxa_mid, coxa_range, femur_mid, femur_range, tibia_mid, tibia_range, *phases = ctrl_raw
-        self.angle += 0.007
+        self.angle += self.config["angle_increment"]
 
         mids_array = [coxa_mid, femur_mid, tibia_mid] * 6
         ranges_array = [coxa_range, femur_range, tibia_range] * 6
@@ -381,7 +381,7 @@ class HexapodBulletEnv(gym.Env):
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1, # 0.1
                  "bobbing": np.sqrt(np.square(zd)) * 0.1, # 0.2
                  "yaw_pen": np.abs(yaw) * 0.1,
-                 "height_pen": np.square(torso_pos[2] - 0.17) * 30
+                 "height_pen": np.square(torso_pos[2] - 0.14) * 30
                  }
 
         #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}

@@ -40,7 +40,7 @@ def import_env(name):
     elif name == "hexapod_wp_eef_es":
         from src.envs.bullet_hexapod.hexapod_wp_eef_es import HexapodBulletEnv as env_fun
     elif name == "hexapod_joint_phases":
-        from src.envs.bullet_hexapod.hexapod_joint_phases import HexapodBulletEnv as env_fun
+        from src.envs.bullet_hexapod.hexapod_wp_joint_phases import HexapodBulletEnv as env_fun
     elif name == "hexapod_joint_phases_es":
         from src.envs.bullet_hexapod.hexapod_joint_phases_es import HexapodBulletEnv as env_fun
     elif name == "hexapod_straight":
