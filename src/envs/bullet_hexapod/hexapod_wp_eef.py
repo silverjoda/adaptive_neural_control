@@ -11,7 +11,6 @@ from gym import spaces
 from opensimplex import OpenSimplex
 import numpy as np
 
-
 # INFO: To mirror quaternion along x-z plane (or y axis) just use q_mirror = [qx, -qy, qz, -qw]
 
 class HexapodBulletEnv(gym.Env):
@@ -400,6 +399,7 @@ class HexapodBulletEnv(gym.Env):
                                                      + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"]]
                                                     for i in range(6)],
                                                 currentPositions=[0] * 18)
+
 
         self.angle += self.config["angle_increment"]
 

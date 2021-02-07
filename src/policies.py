@@ -47,14 +47,12 @@ class FF_HEX_JOINT_PHASES(nn.Module):
         self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
 
     def forward(self, x):
-        mid_point_scalar = 0.7
-        range_scalar = 1.0
-        clipped_params = [np.tanh(self.learned_params[0].data) * mid_point_scalar,
-                          np.tanh(self.learned_params[1].data) * range_scalar,
-                          np.tanh(self.learned_params[2].data) * mid_point_scalar,
-                          np.tanh(self.learned_params[3].data) * range_scalar,
-                          np.tanh(self.learned_params[4].data) * mid_point_scalar,
-                          np.tanh(self.learned_params[5].data) * range_scalar,
+        clipped_params = [np.tanh(self.learned_params[0].data) * 0,
+                          np.tanh(self.learned_params[1].data) * 0.25 + 0.25,
+                          np.tanh(self.learned_params[2].data) * 0.5 + 0.5,
+                          np.tanh(self.learned_params[3].data) * 0.5 + 0.5,
+                          np.tanh(self.learned_params[4].data) * 0.5 + 0.5,
+                          np.tanh(self.learned_params[5].data) * 0.5 + 0.5,
                           *[self.learned_params[i].data for i in range(6, 24)],
                           ]
         act = [param.data for param in clipped_params]

@@ -31,8 +31,8 @@
 "joints_rads_low" : [-0.5, -1.0, 0.4]
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.5
-"target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
-"target_spawn_sigma" : [0.0, 6.0] #[1.0, 4.0]
+"target_spawn_mu" : [3, 0.] # [1.5, 0.]
+"target_spawn_sigma" : [0.0, 0.0] #[1.0, 4.0]
 "angle_increment" : 0.007
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
