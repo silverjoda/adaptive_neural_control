@@ -1,7 +1,7 @@
 "algo_name" : "A2C"
 "policy_name" : "MlpPolicy"
 "default_session_ID" :
-"n_envs" : 6 # 6
+"n_envs" : 8 # 6
 "iters" : 16000000 # More
 "gamma" : 0.995
 "n_steps" : 25
@@ -21,4 +21,4 @@
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
-"dummy_vec_env" : False # True
+"dummy_vec_env" : True # True

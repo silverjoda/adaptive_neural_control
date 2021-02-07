@@ -37,7 +37,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 12 # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 41
+        self.just_obs_dim = 33
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -358,7 +358,6 @@ class HexapodBulletEnv(gym.Env):
                                                      for i in range(6)],
                                                 currentPositions=[0]*18)
 
-
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
                                     jointIndex=i,
@@ -415,6 +414,7 @@ class HexapodBulletEnv(gym.Env):
 
         r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
+
         #print(r_pos["velocity_rew"])
         #r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
@@ -436,7 +436,7 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
         offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
-        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, current_phases_obs, offset_obs, contacts
+        compiled_obs = torso_quat, torso_vel, [signed_deviation, (self.angle % (np.pi * 2) - np.pi)], joint_angles, contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -535,49 +535,48 @@ class HexapodBulletEnv(gym.Env):
 
     def test_ikt(self):
         np.set_printoptions(precision=3)
-        self.reset()
 
         while True:
-            dir_vec = [1., -1.] * 3
-            targets = p.calculateInverseKinematics2(self.robot,
-                                                    endEffectorLinkIndices=self.eef_list,
-                                                    targetPositions=[
-                                                        [np.cos(-self.angle * 2 * np.pi + self.phases_op[
-                                                            i]) * self.x_mult,
-                                                         self.y_offset * dir_vec[i],
-                                                         np.sin(-self.angle * 2 * np.pi + self.phases_op[
-                                                             i] + self.phase_offset) * self.z_mult - self.z_offset]
-                                                         for i in range(6)],
-                                                    currentPositions=[0] * 18)
+            self.reset()
+            act = np.random.randint(-1, 2)
+            for _ in range(20000):
+                if np.random.rand() < 0.01:
+                    act = np.random.rand() * 2 - 1
 
-            for i in range(18):
-                p.setJointMotorControl2(bodyUniqueId=self.robot,
-                                        jointIndex=i,
-                                        controlMode=p.POSITION_CONTROL,
-                                        targetPosition=targets[i],
-                                        force=self.randomized_params["max_joint_force"],
-                                        positionGain=self.randomized_params["actuator_position_gain"],
-                                        velocityGain=self.randomized_params["actuator_velocity_gain"],
-                                        maxVelocity=self.randomized_params["max_actuator_velocity"],
-                                        physicsClientId=self.client_ID)
+                dir_vec = [1., -1.] * 3
+                targets = p.calculateInverseKinematics2(self.robot,
+                                                        endEffectorLinkIndices=self.eef_list,
+                                                        targetPositions=[
+                                                            [0 * self.config["x_aux_scalar"],
+                                                             0.1 * act * dir_vec[i],
+                                                             + np.tanh(act) * 0 + 0.0]
+                                                            for i in range(6)],
+                                                        currentPositions=[0] * 18)
 
-            p.stepSimulation()
-            time.sleep(self.config["sim_step"])
-            self.angle += self.config["angle_increment"]
+                for i in range(18):
+                    p.setJointMotorControl2(bodyUniqueId=self.robot,
+                                            jointIndex=i,
+                                            controlMode=p.POSITION_CONTROL,
+                                            targetPosition=targets[i],
+                                            force=self.randomized_params["max_joint_force"],
+                                            positionGain=self.randomized_params["actuator_position_gain"],
+                                            velocityGain=self.randomized_params["actuator_velocity_gain"],
+                                            maxVelocity=self.randomized_params["max_actuator_velocity"],
+                                            physicsClientId=self.client_ID)
+
+                p.stepSimulation()
+                time.sleep(self.config["sim_step"])
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/eef.yaml") as f:
+    with open("configs/eef_direct.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env_config["w_1"] = True
     env_config["w_2"] = False
     env_config["phase_scalar"] = 1
     env = HexapodBulletEnv(env_config)
-    #env.test_ikt()
-
-    while True:
-        env.reset()
+    env.test_ikt()

@@ -1,6 +1,6 @@
-"env_name" : "hexapod_wp_phases"
+"env_name" : "hexapod_wp"
 "controller_source" : "joystick" # joystick
-"max_steps" : 70 # 90
+"max_steps" : 900 # 90
 "terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
@@ -20,7 +20,7 @@
 "max_actuator_velocity" : 4.0
 "lateral_friction" : 1.2
 "max_joint_force" : 1.5
-"target_vel" : 0.4
+"target_vel" : 0.3
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1

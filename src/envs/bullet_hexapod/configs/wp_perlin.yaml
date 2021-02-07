@@ -1,6 +1,6 @@
-"env_name" : "hexapod_wp_phases"
+"env_name" : "hexapod_wp"
 "controller_source" : "joystick" # joystick
-"max_steps" : 70
+"max_steps" : 25
 "terrain_name" : "perlin"
 "training_mode" : "straight"
 "velocity_control" : False
@@ -11,7 +11,7 @@
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 0.2
-"step_counter" : 0
+"step_counter" : 1
 "latent_input" : 0
 "act_input" : 0
 "obs_input" : 1
@@ -19,8 +19,8 @@
 "randomize_env" : False
 "max_actuator_velocity" : 4.0
 "lateral_friction" : 1.2
-"max_joint_force" : 1.5
-"target_vel" : 0.4
+"max_joint_force" : 1.3
+"target_vel" : 0.3
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1

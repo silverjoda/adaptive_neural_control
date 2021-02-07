@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.just_obs_dim = 27
+        self.just_obs_dim = 32
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * 18 \
                        + self.config["rew_input"] * 1 \
@@ -372,27 +372,31 @@ class HexapodBulletEnv(gym.Env):
                                     physicsClientId=self.client_ID)
 
         # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        leg_ctr = 0
-        obs_sequential = []
-        for i in range(self.config["sim_steps_per_iter"]):
-            if leg_ctr < 6:
-                obs_sequential.extend(
-                    p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-                leg_ctr += 1
-            p.stepSimulation(physicsClientId=self.client_ID)
-            if (self.config["animate"] or render) and True: time.sleep(0.00417)
+        # leg_ctr = 0
+        # obs_sequential = []
+        # for i in range(self.config["sim_steps_per_iter"]):
+        #     if leg_ctr < 6:
+        #         obs_sequential.extend(
+        #             p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
+        #         leg_ctr += 1
+        #     p.stepSimulation(physicsClientId=self.client_ID)
+        #     if (self.config["animate"] or render) and True: time.sleep(0.00417)
+        #
+        # self.step_ctr += 1
+        #
+        # joint_angles_skewed = []
+        # for o in obs_sequential:
+        #     joint_angles_skewed.append(o[0])
 
-        self.step_ctr += 1
-
-        joint_angles_skewed = []
-        for o in obs_sequential:
-            joint_angles_skewed.append(o[0])
+        p.stepSimulation(physicsClientId=self.client_ID)
+        if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
 
+        joint_angles_skewed = joint_angles
         scaled_joint_angles = self.rads_to_norm(joint_angles_skewed)
 
         # Calculate work done by each motor
@@ -407,16 +411,17 @@ class HexapodBulletEnv(gym.Env):
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
 
         # Compute heading reward
-        yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
-        yaw_dev_sign = np.sign(yaw_dev_diff)
-        heading_rew = np.minimum(np.abs(yaw_deviation), 3) * np.clip(yaw_dev_sign * np.square(yaw_dev_diff) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]), -2, 2)
+        # yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
+        # yaw_dev_sign = np.sign(yaw_dev_diff)
+        # heading_rew = np.minimum(np.abs(yaw_deviation), 3) * np.clip(yaw_dev_sign * np.square(yaw_dev_diff) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]), -2, 2)
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
-        velocity_rew = np.minimum((self.prev_target_dist - target_dist) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]),
-                                  self.config["target_vel"]) / self.config["target_vel"]
+        velocity_rew = np.minimum(
+            (self.prev_target_dist - target_dist) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]),
+            self.config["target_vel"]) / self.config["target_vel"]
 
-        if target_dist < self.config["target_proximity_threshold"]:
+        if target_dist < self.config["target_proximity_threshold"] or (np.abs(torso_pos[0]) > self.target[0]):
             reached_target = True
             self.update_targets()
             self.prev_target_dist = np.sqrt(
@@ -424,20 +429,22 @@ class HexapodBulletEnv(gym.Env):
             tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - - torso_pos[0])
             yaw_deviation = np.min(
                 (abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
-            self.prev_yaw_deviation = yaw_deviation
         else:
             reached_target = False
             self.prev_target_dist = target_dist
-            self.prev_yaw_deviation = yaw_deviation
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                 "yaw_pen": np.square(tar_angle - yaw) * 0.0}
+                 "bobbing": np.sqrt(np.square(zd)) * 0.1,
+                 "yaw_pen": np.square(tar_angle - yaw) * 0.10}
 
         r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
-                 "heading_rew" : np.clip(heading_rew * 0.0, -1, 1)}
+                 "height_rew": np.clip(torso_pos[2], 0, 0.00)}
+        # print(r_pos["velocity_rew"])
+        # r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
+
         r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
 
         self.rew_queue.append([r])
@@ -448,9 +455,10 @@ class HexapodBulletEnv(gym.Env):
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
+        signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, relative_target
+        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, [signed_deviation], contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -609,7 +617,7 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/wp_flat.yaml") as f:
+    with open("configs/wp_perlin.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
