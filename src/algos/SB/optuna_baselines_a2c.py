@@ -6,7 +6,7 @@ def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 2e-4, 7e-4))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.99, 0.999)
-    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.1, 0.7)
+    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', 0.2, 1.4)
     #config["phase_decay"] = trial.suggest_loguniform('phase_decay', 0.85, 0.99)
     #config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.07, 0.14)
 

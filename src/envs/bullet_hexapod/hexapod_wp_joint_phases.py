@@ -572,7 +572,7 @@ if __name__ == "__main__":
     env_config["animate"] = True
     env_config["w_1"] = True
     env_config["w_2"] = False
-    env_config["phase_scalar"] = 1
+    env_config["phase_scalar"] = 0.6
     env = HexapodBulletEnv(env_config)
     env.test_phases()
 
