@@ -63,10 +63,8 @@ class HexapodBulletEnv(gym.Env):
         else:
             self.generate_rnd_env()
 
-        # TODO: Fill these in
         self.phases_op = np.array([-3.0877299308776855, -2.2046384811401367, 1.4626171588897705, -1.513541340827942, 0.2126314491033554, 0.5673847794532776, -0.035951633006334305, 1.8852602243423462, -0.9069379568099976, 1.3502177000045776, 2.607222318649292, -2.2803006172180176, -2.0599818229675293, 1.2527934312820435, -1.4386889934539795, -1.5420001745224, -0.1814597100019455, -0.031908463686704636])
-        self.current_phases = self.phases_op
-        self.coxa_mid, self.coxa_range, self.femur_mid, self.femur_range, self.tibia_mid, self.tibi_range = [
+        self.coxa_mid, self.coxa_range, self.femur_mid, self.femur_range, self.tibia_mid, self.tibia_range = [
             0,
             np.tanh(1.39) * 0.25 + 0.25,
             np.tanh(-1.08) * 0.5 + 0.5,
@@ -371,15 +369,18 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:18]) * np.pi * self.config["phase_scalar"]
-
+        current_phases = self.phases_op + np.tanh(ctrl_raw[0:18]) * np.pi * self.config["phase_scalar"]
         self.angle += self.config["angle_increment"]
+
+        mids_array = [self.coxa_mid, self.femur_mid, self.tibia_mid] * 6
+        ranges_array = [self.coxa_range, self.femur_range, self.tibia_range] * 6
+        targets = [np.sin(self.angle * 2 * np.pi + current_phases[i]) * ranges_array[i] + mids_array[i] for i in range(18)]
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
                                     jointIndex=i,
                                     controlMode=p.POSITION_CONTROL,
-                                    targetPosition=self.current_phases[i],
+                                    targetPosition=targets[i],
                                     force=self.randomized_params["max_joint_force"],
                                     positionGain=self.randomized_params["actuator_position_gain"],
                                     velocityGain=self.randomized_params["actuator_velocity_gain"],
@@ -452,7 +453,6 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
         compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
@@ -545,37 +545,20 @@ class HexapodBulletEnv(gym.Env):
 
         return obs
 
-    def test_ikt(self):
+    def test_phases(self):
         np.set_printoptions(precision=3)
         self.reset()
 
+        y_dist = 0.1
+        z_offset = -0.1
+        angle = 0
         while True:
-            dir_vec = [1., -1.] * 3
-            targets = p.calculateInverseKinematics2(self.robot,
-                                                    endEffectorLinkIndices=self.eef_list,
-                                                    targetPositions=[
-                                                        [np.cos(-self.angle * 2 * np.pi + self.phases_op[
-                                                            i]) * self.x_mult,
-                                                         self.y_offset * dir_vec[i],
-                                                         np.sin(-self.angle * 2 * np.pi + self.phases_op[
-                                                             i] + self.phase_offset) * self.z_mult - self.z_offset]
-                                                        for i in range(6)],
-                                                    currentPositions=[0] * 18)
-
             for i in range(18):
-                p.setJointMotorControl2(bodyUniqueId=self.robot,
-                                        jointIndex=i,
-                                        controlMode=p.POSITION_CONTROL,
-                                        targetPosition=targets[i],
-                                        force=self.randomized_params["max_joint_force"],
-                                        positionGain=self.randomized_params["actuator_position_gain"],
-                                        velocityGain=self.randomized_params["actuator_velocity_gain"],
-                                        maxVelocity=self.randomized_params["max_actuator_velocity"],
-                                        physicsClientId=self.client_ID)
+                self.step([0, 1] * 3 + [0] * 18)
 
             p.stepSimulation()
             time.sleep(self.config["sim_step"])
-            self.angle += self.config["angle_increment"]
+            angle += 0.007
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
@@ -584,14 +567,14 @@ class HexapodBulletEnv(gym.Env):
 if __name__ == "__main__":
     import yaml
 
-    with open("configs/eef.yaml") as f:
+    with open("configs/joint_phases.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env_config["w_1"] = True
     env_config["w_2"] = False
     env_config["phase_scalar"] = 1
     env = HexapodBulletEnv(env_config)
-    # env.test_ikt()
+    env.test_phases()
 
-    while True:
-        env.reset()
+    #while True:
+    #    env.reset()

@@ -562,7 +562,7 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/wp_flat.yaml") as f:
+    with open("configs/joint_phases.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
