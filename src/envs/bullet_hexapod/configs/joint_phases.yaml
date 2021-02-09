@@ -17,7 +17,7 @@
 "obs_input" : 1
 "rew_input" : 0
 "randomize_env" : False
-"max_actuator_velocity" : 4.0
+"max_actuator_velocity" : 6.0
 "lateral_friction" : 1.2
 "max_joint_force" : 1.3
 "target_vel" : 0.2
@@ -38,7 +38,9 @@
 "seed" :
 "w_1": False
 "w_2": True
-"phase_scalar": 0.7  # 0.16
+"phase_scalar_coxa": 0.3  # 0.16
+"phase_scalar_femur": 0.5  # 0.16
+"phase_scalar_tibia": 0.7  # 0.16
 "phase_decay": .94 # 0.98
 "z_aux_scalar" : 0.12 # 0.05
-"inclination_pen" : 0.03
+"inclination_pen" : 0.00

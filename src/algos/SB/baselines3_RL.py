@@ -134,7 +134,7 @@ def setup_train(config, setup_dirs=True):
 
     return env, model, callback_list, stats_path
 
-def setup_eval(config, stats_path, seed=1337):
+def setup_eval(config, stats_path, seed=0):
     T.set_num_threads(1)
     env_fun = my_utils.import_env(config["env_name"])
     config_tmp = deepcopy(config)
@@ -173,7 +173,7 @@ if __name__ == "__main__":
     if args["test"] and socket.gethostname() != "goedel":
         stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(config["env_name"])
-        config["seed"] = 1
+        config["seed"] = 2
         # env = env_fun(config)  # Default, without normalization
         env = DummyVecEnv([lambda: env_fun(config)])
         #env = VecNormalize.load(stats_path, env)

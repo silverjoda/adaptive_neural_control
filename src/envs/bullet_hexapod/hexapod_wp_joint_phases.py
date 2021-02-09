@@ -72,6 +72,8 @@ class HexapodBulletEnv(gym.Env):
             np.tanh(0.354) * 0.5 + 0.5,
             np.tanh(-1.06) * 0.5 + 0.5]
 
+        self.phase_scale_array = np.array([self.config["phase_scalar_coxa"], self.config["phase_scalar_femur"], self.config["phase_scalar_tibia"]] * 6)
+
         self.create_targets()
 
         self.obs_queue = [np.zeros(self.just_obs_dim, dtype=np.float32) for _ in
@@ -369,12 +371,13 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        current_phases = self.phases_op + np.tanh(ctrl_raw[0:18]) * np.pi * self.config["phase_scalar"]
+
         self.angle += self.config["angle_increment"]
 
         mids_array = [self.coxa_mid, self.femur_mid, self.tibia_mid] * 6
         ranges_array = [self.coxa_range, self.femur_range, self.tibia_range] * 6
-        targets = [np.sin(self.angle * 2 * np.pi + current_phases[i]) * ranges_array[i] + mids_array[i] for i in range(18)]
+        targets = np.tanh(ctrl_raw[0:18]) * np.pi * self.phase_scale_array \
+                + np.sin(self.angle * 2 * np.pi + self.phases_op) * ranges_array + mids_array
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
@@ -403,6 +406,7 @@ class HexapodBulletEnv(gym.Env):
         # Orientation angle
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
+        signed_deviation = yaw - tar_angle
 
         # Compute heading reward
         # yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
@@ -431,10 +435,8 @@ class HexapodBulletEnv(gym.Env):
                  "bobbing": np.sqrt(np.square(zd)) * 0.1,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.10}
 
-        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
+        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(signed_deviation) * 3), -2, 2),
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
-        # print(r_pos["velocity_rew"])
-        # r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
