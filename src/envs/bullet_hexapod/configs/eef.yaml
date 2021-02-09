@@ -19,13 +19,13 @@
 "randomize_env" : False
 "max_actuator_velocity" : 4.0
 "lateral_friction" : 1.2
-"max_joint_force" : 1.3
+"max_joint_force" : 1.2
 "target_vel" : 0.2
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
-"perlin_height" : 34
+"perlin_height" : 32
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -1.0, 0.4]
@@ -33,7 +33,7 @@
 "target_proximity_threshold" : 0.5
 "target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 6.0] #[1.0, 4.0]
-"angle_increment" : 0.006
+"angle_increment" : 0.008
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
 "w_1": False
