@@ -48,10 +48,10 @@ class FF_HEX_JOINT_PHASES(nn.Module):
 
     def forward(self, x):
         clipped_params = [np.tanh(self.learned_params[0].data) * 0,
-                          np.tanh(self.learned_params[1].data) * 0.25 + 0.25,
-                          np.tanh(self.learned_params[2].data) * 0.5,
+                          np.tanh(self.learned_params[1].data) * 0.17 + 0.17,
+                          np.tanh(self.learned_params[2].data) * 0.6 - 0.3,
                           np.tanh(self.learned_params[3].data) * 0.75 + 0.75,
-                          np.tanh(self.learned_params[4].data) * 0.5,
+                          np.tanh(self.learned_params[4].data) * 0.6 + 0.5,
                           np.tanh(self.learned_params[5].data) * 0.75 + 0.75,
                           *[self.learned_params[i].data for i in range(6, 24)],
                           ]
