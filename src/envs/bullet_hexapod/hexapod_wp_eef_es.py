@@ -286,7 +286,7 @@ class HexapodBulletEnv(gym.Env):
             self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
+        self.randomized_params = {"mass": 0.0 + (np.random.rand() * 1.4 - 0.7) * self.config[
                                 "randomize_env"],
                                 "lateral_friction": 1.2 + (np.random.rand() * 1.2 - 0.6) * self.config[
                                     "randomize_env"],
@@ -328,8 +328,6 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.pop(0)
 
         x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases = ctrl_raw
-
-        #torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
 
         dir_vec = [1., -1.] * 3
         targets = p.calculateInverseKinematics2(self.robot,
@@ -587,12 +585,12 @@ class HexapodBulletEnv(gym.Env):
         while True:
             targets = p.calculateInverseKinematics2(self.robot,
                                                     endEffectorLinkIndices=eef_list,
-                                                    targetPositions=[[np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
-                                                                     [np.cos(-angle * 2 * np.pi) * 0.2, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset]],
+                                                    targetPositions=[[np.cos(-angle * 2 * np.pi) * 0.0, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.0, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.0, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.0, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.0, y_dist, np.sin(-angle * 2 * np.pi) * 0.4 + z_offset],
+                                                                     [np.cos(-angle * 2 * np.pi) * 0.0, -y_dist, np.sin(-angle * 2 * np.pi + np.pi) * 0.4 + z_offset]],
                                                     currentPositions=[0] * 18)
 
             for i in range(18):
@@ -610,6 +608,32 @@ class HexapodBulletEnv(gym.Env):
             time.sleep(self.config["sim_step"])
             angle += 0.004
 
+    def test_raw_joints(self):
+        np.set_printoptions(precision=3)
+        self.reset()
+
+        targets = [0,0,0] * 6
+
+        while True:
+            for i in range(18):
+                p.setJointMotorControl2(bodyUniqueId=self.robot,
+                                        jointIndex=i,
+                                        controlMode=p.POSITION_CONTROL,
+                                        targetPosition=targets[i],
+                                        force=4,
+                                        positionGain=0.1,
+                                        velocityGain=0.1,
+                                        maxVelocity=6,
+                                        physicsClientId=self.client_ID)
+
+            p.stepSimulation()
+            time.sleep(self.config["sim_step"])
+
+
+    def my_ikt(self, target_position):
+        return [0, 0, 0]
+
+
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
@@ -620,4 +644,5 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    env.test_ikt()
+    #env.test_ikt()
+    env.test_raw_joints()

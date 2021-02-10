@@ -4,7 +4,7 @@
 "default_session_ID" :
 "activation_fun" : "T.tanh"
 "log_tb_all" : False
-"cma_std" : 0.5
+"cma_std" : 0.6
 "iters" : 100
 "weight_init_bnd" : 1.
 "policy_hid_dim" : 8
