@@ -17,10 +17,11 @@ class FF_HEX_EEF(nn.Module):
 
 
     def forward(self, x):
-        clipped_params = [np.clip(np.tanh(self.learned_params[0].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # x_mult
-                          np.clip(np.tanh(self.learned_params[1].data) * 0.085 * 0.5 + 0.085, 0.05, 0.12), # y_offset
-                          np.clip(np.tanh(self.learned_params[2].data) * 0.075 * 0.5 + 0.075, 0.075, 0.15), # z_mult
-                          np.clip(np.tanh(self.learned_params[3].data) * 0.1 * 0.5 + 0.1, 0.05, 0.15), # z_offset
+        # x_mult : [0,0.09], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
+        clipped_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.05 + 0.02, # x_mult
+                          (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.05 + 0.1, # y_offset
+                          (0.5 + 0.5 * np.tanh(self.learned_params[2].data)) * 0.03 + 0.02, # z_mult
+                          (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.05) - 0.06, # z_offset
                           self.learned_params[4].data, # phase_offset_l
                           self.learned_params[5].data, # phase_offset_r
                           self.learned_params[6].data,

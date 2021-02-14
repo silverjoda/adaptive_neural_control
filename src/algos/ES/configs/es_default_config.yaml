@@ -1,11 +1,11 @@
 "algo_name" : "ES"
-"policy_type" : "ff_hex_joint_phases"
+"policy_type" : "ff_hex_eef"
 "n_hidden_layers" : 1
 "default_session_ID" :
 "activation_fun" : "T.tanh"
 "log_tb_all" : False
 "cma_std" : 0.6
-"iters" : 200
+"iters" : 20
 "weight_init_bnd" : 1.
 "policy_hid_dim" : 8
 "policy_residual_connection" : True
