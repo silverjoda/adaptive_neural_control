@@ -633,10 +633,37 @@ class HexapodBulletEnv(gym.Env):
     def my_ikt(self, target_position):
         return [0, 0, 0]
 
-
-
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
+
+    def single_leg_ikt(self, eef_xyz):
+        x,y,z = eef_xyz
+
+        assert 0.2 > y > 0.01
+        assert 0.2 > x > -0.2
+        assert 0.2 > z > -0.2
+
+        q1 = 0.2137
+        q2 = 0.785
+
+        C = 0.052
+        F = 0.0657
+        T = 0.132
+
+        psi = np.arcsin(x/y)
+        Cx = C * np.sin(psi)
+        Cy = C * np.cos(psi)
+        R = np.sqrt((x-Cx) + (y-Cy) + (z**2))
+        alpha = np.arcsin(-z/R)
+
+        a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
+        b = np.arccos((F**2 + T**2 - R**2) / (2 * F * T))
+        c = np.arccos((R**2 + T**2 - F**2) / (2 * T * R))
+
+        th1 = alpha - q1 - a
+        th2 = np.pi - q2 - b
+
+        return psi, th1, th2
 
 if __name__ == "__main__":
     import yaml
