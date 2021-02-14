@@ -612,9 +612,20 @@ class HexapodBulletEnv(gym.Env):
         np.set_printoptions(precision=3)
         self.reset()
 
-        targets = [0,0,0] * 6
+        targets = [0, 0, 0] * 6
+        ikt_target = self.single_leg_ikt((0,0.15,0))
+        targets[6:9] = ikt_target
 
+        ctr = 0
         while True:
+            # x_mult : [0,0.9], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
+            psi_offset_vector = [-np.pi/4, -np.pi/4, 0, 0, np.pi/4, np.pi/4]
+
+            for i in range(6):
+                ikt_target = self.single_leg_ikt((0.07 * np.sin(ctr), 0.13, 0.04 * np.cos(ctr) - 0.07), psi_offset=psi_offset_vector[i])
+                targets[3*i:3*i+3] = ikt_target
+            ctr += 0.03
+
             for i in range(18):
                 p.setJointMotorControl2(bodyUniqueId=self.robot,
                                         jointIndex=i,
@@ -629,19 +640,14 @@ class HexapodBulletEnv(gym.Env):
             p.stepSimulation()
             time.sleep(self.config["sim_step"])
 
-
     def my_ikt(self, target_position):
         return [0, 0, 0]
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
-    def single_leg_ikt(self, eef_xyz):
-        x,y,z = eef_xyz
-
-        assert 0.2 > y > 0.01
-        assert 0.2 > x > -0.2
-        assert 0.2 > z > -0.2
+    def single_leg_fkt(self, joints):
+        psi, th1, th2 = joints
 
         q1 = 0.2137
         q2 = 0.785
@@ -650,20 +656,35 @@ class HexapodBulletEnv(gym.Env):
         F = 0.0657
         T = 0.132
 
-        psi = np.arcsin(x/y)
+        eef_x = C * np.sin(psi) + F * np.sin(q1 + th1) + T * np.sin()
+
+    def single_leg_ikt(self, eef_xyz, psi_offset=0):
+        x,y,z = eef_xyz
+
+        assert 0.3 > y > 0.01
+        assert 0.2 > x > -0.2
+        assert 0.2 > z > -0.2
+
+        q1 = 0.2137
+        q2 = 0.785
+
+        C = 0.052
+        F = 0.0675
+        T = 0.132
+
+        psi = (np.arcsin(x/y) + psi_offset)
         Cx = C * np.sin(psi)
         Cy = C * np.cos(psi)
-        R = np.sqrt((x-Cx) + (y-Cy) + (z**2))
+        R = np.sqrt((x-Cx)**2 + (y-Cy)**2 + (z)**2)
         alpha = np.arcsin(-z/R)
 
         a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
         b = np.arccos((F**2 + T**2 - R**2) / (2 * F * T))
-        c = np.arccos((R**2 + T**2 - F**2) / (2 * T * R))
 
         th1 = alpha - q1 - a
         th2 = np.pi - q2 - b
 
-        return psi, th1, th2
+        return -psi, th1, th2
 
 if __name__ == "__main__":
     import yaml
