@@ -343,6 +343,7 @@ class HexapodBulletEnv(gym.Env):
             target_y = y_offset
             target_z = np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset_l * bool(i%2) + phase_offset_r * bool((i+1)%2)) * z_mult + z_offset
             targets.append([target_x, target_y, target_z])
+
         joint_angles = self.my_ikt(targets)
 
         self.angle += 0.006
@@ -678,7 +679,7 @@ class HexapodBulletEnv(gym.Env):
         alpha = np.arcsin(-z/R)
 
         a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
-        b = np.arccos((F**2 + T**2 - R**2) / (2 * F * T))
+        b = np.arccos((F ** 2 + T ** 2 - R ** 2) / (2 * F * T))
 
         th1 = alpha - q1 - a
         th2 = np.pi - q2 - b

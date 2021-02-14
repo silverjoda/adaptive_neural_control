@@ -18,10 +18,10 @@ class FF_HEX_EEF(nn.Module):
 
     def forward(self, x):
         # x_mult : [0,0.09], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
-        clipped_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.05 + 0.02, # x_mult
-                          (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.05 + 0.1, # y_offset
-                          (0.5 + 0.5 * np.tanh(self.learned_params[2].data)) * 0.03 + 0.02, # z_mult
-                          (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.05) - 0.06, # z_offset
+        clipped_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.00 + 0.03, # x_mult
+                          (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.00 + 0.12, # y_offset
+                          (0.5 + 0.5 * np.tanh(self.learned_params[2].data)) * 0.00 + 0.02, # z_mult
+                          (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.00) - 0.10, # z_offset
                           self.learned_params[4].data, # phase_offset_l
                           self.learned_params[5].data, # phase_offset_r
                           self.learned_params[6].data,
@@ -30,6 +30,7 @@ class FF_HEX_EEF(nn.Module):
                           self.learned_params[9].data,
                           self.learned_params[10].data,
                           self.learned_params[11].data]
+        #clipped_params[0:4] = [0.07, 0.13, 0.04, -0.07]
         act = [param.data for param in clipped_params]
         return act
 
