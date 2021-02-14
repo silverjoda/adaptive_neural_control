@@ -344,7 +344,7 @@ class HexapodBulletEnv(gym.Env):
             target_z = np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset_l * bool(i%2) + phase_offset_r * bool((i+1)%2)) * z_mult + z_offset
             targets.append([target_x, target_y, target_z])
 
-        joint_angles = self.my_ikt(targets)
+        joint_angles = self.my_ikt(targets, y_offset)
 
         self.angle += 0.006
 
@@ -615,7 +615,7 @@ class HexapodBulletEnv(gym.Env):
             time.sleep(self.config["sim_step"])
             angle += 0.004
 
-    def test_raw_joints(self):
+    def test_my_ikt(self):
         np.set_printoptions(precision=3)
         self.reset()
 
@@ -623,11 +623,13 @@ class HexapodBulletEnv(gym.Env):
         ikt_target = self.single_leg_ikt((0,0.15,0))
         targets[6:9] = ikt_target
 
+        y_offset = 0.15
+
         ctr = 0
         while True:
             # x_mult : [0,0.9], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
-            positions = [(0.07 * np.sin(ctr), 0.13, 0.04 * np.cos(ctr) - 0.07) for _ in range(6)]
-            targets = self.my_ikt(positions)
+            positions = [(0.06 * np.sin(ctr), y_offset, 0.03 * np.cos(ctr) - 0.09) for _ in range(6)]
+            targets = self.my_ikt(positions, y_offset)
 
             ctr += 0.03
 
@@ -648,21 +650,22 @@ class HexapodBulletEnv(gym.Env):
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
-    def my_ikt(self, target_positions):
-        psi_offset_vector = [-np.pi / 4, -np.pi / 4, 0, 0, np.pi / 4, np.pi / 4]
+    def my_ikt(self, target_positions, y_offset):
+        rotation_angles = [np.pi/4,np.pi/4,0,0,-np.pi/4,-np.pi/4]
         joint_angles = []
         for i, tp in enumerate(target_positions):
-            joint_angles.extend(self.single_leg_ikt(tp, psi_offset_vector[i]))
+            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
+            joint_angles.extend(self.single_leg_ikt(tp_rotated))
         return joint_angles
 
-    def single_leg_ikt(self, eef_xyz, psi_offset=0):
+    def rotate_eef_pos(self, eef_xyz, angle, y_offset):
+        return [eef_xyz[0] * np.cos(angle), eef_xyz[0] * np.sin(angle) + y_offset, eef_xyz[2]]
+
+    def single_leg_ikt(self, eef_xyz):
         x,y,z = eef_xyz
 
-        #np.clip(y, 0.1, 0.2)
-        #np.clip(x, -0.2, 0.2)
-        #np.clip(z, -0.2, 0.2)
         assert -0.15 < x < 0.15
-        assert 0.1 < y < 0.2
+        assert 0.05 < y < 0.3
         assert -0.2 < z < 0.2
 
         q1 = 0.2137
@@ -672,7 +675,7 @@ class HexapodBulletEnv(gym.Env):
         F = 0.0675
         T = 0.132
 
-        psi = (np.arcsin(x/y) + psi_offset)
+        psi = (np.arcsin(x/y))
         Cx = C * np.sin(psi)
         Cy = C * np.cos(psi)
         R = np.sqrt((x-Cx)**2 + (y-Cy)**2 + (z)**2)
@@ -692,5 +695,4 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    #env.test_ikt()
-    env.test_raw_joints()
+    env.test_my_ikt()
