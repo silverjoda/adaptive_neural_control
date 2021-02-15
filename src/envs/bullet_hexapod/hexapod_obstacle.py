@@ -130,20 +130,6 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "flat" or env_name is None:
             hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
 
-        if env_name == "tiles":
-            sf = 3
-            hm = np.random.randint(0, 20 * self.config["training_difficulty"], # 15
-                                   size=(self.config["env_length"] // sf, self.config["env_width"] // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
-            hm_pad = np.zeros((self.config["env_length"], self.config["env_width"]))
-            hm_pad[:hm.shape[0], :hm.shape[1]] = hm
-            hm = hm_pad + current_height
-
-        if env_name == "pipe":
-            pipe_form = np.square(np.linspace(-1.2, 1.2, self.config["env_width"]))
-            pipe_form = np.clip(pipe_form, 0, 1)
-            hm = 255 * np.ones((self.config["env_width"], self.config["env_length"])) * pipe_form[np.newaxis, :].T
-            hm += current_height
-
         if env_name == "stairs_up":
             hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
             stair_height = 14 * self.config["training_difficulty"]
@@ -158,101 +144,10 @@ class HexapodBulletEnv(gym.Env):
 
             hm[n_steps * stair_width + initial_offset:, :] = current_height
 
-        if env_name == "ramp_up":
-            max_height = 200
-            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
-            initial_offset = self.config["env_length"] // 2 - self.config["env_length"] // 8
-            hm[initial_offset:initial_offset + self.config["env_length"] // 4, :] = np.tile(np.linspace(current_height, current_height + max_height, self.config["env_length"] // 4)[:, np.newaxis], (1, self.config["env_width"]))
-            current_height += max_height
-            hm[initial_offset + self.config["env_length"] // 4:, :] = current_height
-
-        if env_name == "stairs_down":
-            stair_height = 14 * self.config["training_difficulty"]
-            stair_width = 8
-
-            initial_offset = self.config["env_length"] // 2
-            n_steps = min(math.floor(self.config["env_length"] / stair_width) - 1, 10)
-
-            current_height = n_steps * stair_height
-
-            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
-
-            for i in range(n_steps):
-                hm[initial_offset + i * stair_width: initial_offset + i * stair_width + stair_width, :] = current_height
-                current_height -= stair_height
-
-            hm[n_steps * stair_width + initial_offset:, :] = current_height
-
-        if env_name == "verts":
-            wdiv = 4
-            ldiv = 14
-            hm = np.random.randint(0, 75,
-                                   size=(self.config["env_width"] // wdiv, self.config["env_length"] // ldiv),
-                                   dtype=np.uint8).repeat(wdiv, axis=0).repeat(ldiv, axis=1)
-            hm[:, :50] = 0
-            hm[hm < 50] = 0
-            hm = 75 - hm
-
-        if env_name == "triangles":
-            cw = 10
-            # Make even dimensions
-            M = math.ceil(self.config["env_width"])
-            N = math.ceil(self.config["env_length"])
-            hm = np.zeros((M, N), dtype=np.float32)
-            M_2 = math.ceil(M / 2)
-
-            # Amount of 'tiles'
-            Mt = 2
-            Nt = int(self.config["env_length"] / 10.)
-            obstacle_height = 50
-            grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
-            template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
-            template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height
-
-            for i in range(Nt):
-                if np.random.choice([True, False]):
-                    hm[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
-                else:
-                    hm[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
-
-                if np.random.choice([True, False]):
-                    hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
-                else:
-                    hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
-
-            hm += current_height
-
-        if env_name == "perlin":
-            oSim = OpenSimplex(seed=int(time.time()))
-
-            height = self.config["perlin_height"] * self.config["training_difficulty"] # 30-40
-
-            M = math.ceil(self.config["env_width"])
-            N = math.ceil(self.config["env_length"])
-            hm = np.zeros((N, M), dtype=np.float32)
-
-            scale_x = 15
-            scale_y = 15
-            octaves = 4  # np.random.randint(1, 5)
-            persistence = 1
-            lacunarity = 2
-
-            for i in range(N):
-                for j in range(M):
-                    for o in range(octaves):
-                        sx = scale_x * (1 / (lacunarity ** o))
-                        sy = scale_y * (1 / (lacunarity ** o))
-                        amp = persistence ** o
-                        hm[i][j] += oSim.noise2d(i / sx, j / sy) * amp
-
-            wmin, wmax = hm.min(), hm.max()
-            hm = (hm - wmin) / (wmax - wmin) * height
-            hm += current_height
-
         if env_name == "obstacle":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = self.config["perlin_height"] * self.config["training_difficulty"] # 30-40
+            height = self.config["obstacle_height"] * self.config["training_difficulty"] # 30-40
 
             M = math.ceil(self.config["env_width"])
             N = math.ceil(self.config["env_length"])
@@ -260,11 +155,11 @@ class HexapodBulletEnv(gym.Env):
 
             scale_x = 15
             scale_y = 15
-            octaves = 4  # np.random.randint(1, 5)
+            octaves = 4 # np.random.randint(1, 5)
             persistence = 1
             lacunarity = 2
 
-            for i in range(N):
+            for i in range(N/2 - 5, N/2 + 5):
                 for j in range(M):
                     for o in range(octaves):
                         sx = scale_x * (1 / (lacunarity ** o))
@@ -644,7 +539,7 @@ class HexapodBulletEnv(gym.Env):
 
 if __name__ == "__main__":
     import yaml
-    with open("configs/wp_flat.yaml") as f:
+    with open("configs/wp_obstacle.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
