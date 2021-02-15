@@ -249,6 +249,34 @@ class HexapodBulletEnv(gym.Env):
             hm = (hm - wmin) / (wmax - wmin) * height
             hm += current_height
 
+        if env_name == "obstacle":
+            oSim = OpenSimplex(seed=int(time.time()))
+
+            height = self.config["perlin_height"] * self.config["training_difficulty"] # 30-40
+
+            M = math.ceil(self.config["env_width"])
+            N = math.ceil(self.config["env_length"])
+            hm = np.zeros((N, M), dtype=np.float32)
+
+            scale_x = 15
+            scale_y = 15
+            octaves = 4  # np.random.randint(1, 5)
+            persistence = 1
+            lacunarity = 2
+
+            for i in range(N):
+                for j in range(M):
+                    for o in range(octaves):
+                        sx = scale_x * (1 / (lacunarity ** o))
+                        sy = scale_y * (1 / (lacunarity ** o))
+                        amp = persistence ** o
+                        hm[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+
+            wmin, wmax = hm.min(), hm.max()
+            hm = (hm - wmin) / (wmax - wmin) * height
+            hm += current_height
+
+
         return hm, current_height
 
     def make_heightfield(self, height_map=None):

@@ -63,17 +63,18 @@ class HexapodBulletEnv(gym.Env):
         else:
             self.generate_rnd_env()
 
-        self.eef_list = [i * 3 + 2 for i in range(6)]
-        self.phases_op = np.array([3.4730, 0.3511, 0.4637, -3.4840, -2.8000, -0.4658])
+        #  [-2.215341329574585, -0.9972156882286072, 1.1871812343597412, 1.335096001625061, 0.33068275451660156, 0.41586756706237793, ]
+        self.phases_op = np.array([0.010952126234769821, 2.5668561458587646, -1.7436176538467407, 0.7150714993476868, 2.0461928844451904, -0.8317734599113464])
         self.current_phases = self.phases_op
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset = [
-            np.tanh(0.2) * 0.075 * 0.5 + 0.075, # 0.71
-            np.tanh(-0.6724) * 0.085 * 0.5 + 0.085,
-            np.tanh(-0.8629) * 0.075 * 0.5 + 0.075,
-            np.tanh(-1.0894) * 0.1 * 0.5 + 0.1,
-            0.0725]
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset_l, self.phase_offset_r = [
+            0.06,
+            0.15,
+            0.03,
+            -0.09,
+            0.33068275451660156,
+            0.41586756706237793]
 
-        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset])
+        self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r])
         self.create_targets()
 
         self.obs_queue = [np.zeros(self.just_obs_dim, dtype=np.float32) for _ in
@@ -371,35 +372,21 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        #current_phases_updated = self.current_phases + np.tanh(ctrl_raw[0:6]) * self.config["phase_scalar"]
-        #self.current_phases = np.clip(current_phases_updated, self.phases_op - np.pi, self.phases_op + np.pi) * \
-        #                      self.config["phase_decay"] + self.phases_op * (1 - self.config["phase_decay"])
-
-        # current_offsets_updated = np.array([self.left_offset, self.right_offset]) + np.tanh(ctrl_raw[6:8]) * self.config["phase_scalar"]
-        # offsets_arr = np.array([self.left_offset, self.right_offset])
-        # self.left_offset, self.right_offset = np.clip(current_offsets_updated, offsets_arr - np.pi, offsets_arr + np.pi) * self.config["phase_decay"] + \
-        #                                       offsets_arr * (1 - self.config["phase_decay"])
-
         # This works.!
         self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset]) + np.tanh(
-            ctrl_raw[6:8]) * np.pi
+        self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r]) + np.tanh(
+            ctrl_raw[6:8]) * np.pi * self.config["phase_offset_scalar"]
 
-        dir_vec = [1., -1.] * 3
-        targets = p.calculateInverseKinematics2(self.robot,
-                                                endEffectorLinkIndices=self.eef_list,
-                                                targetPositions=[
-                                                    [np.cos(
-                                                        -self.angle * 2 * np.pi + self.current_phases[i]) * self.x_mult,
-                                                     self.y_offset * dir_vec[i],
-                                                     np.sin(-self.angle * 2 * np.pi + self.current_phases[
-                                                         i] + self.left_offset * bool(i % 2) + self.right_offset * bool(
-                                                         (i + 1) % 2)) * self.z_mult
-                                                     - self.z_offset
-                                                     + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"]]
-                                                    for i in range(6)],
-                                                currentPositions=[0] * 18)
+        targets = []
+        for i in range(6):
+            target_x = np.cos(-self.angle * 2 * np.pi + self.phases_op[i]) * self.x_mult
+            target_y = self.y_offset
+            target_z = np.sin(
+                -self.angle * 2 * np.pi + self.phases_op[i] + self.left_offset * bool(i % 2) + self.right_offset * bool(
+                    (i + 1) % 2)) * self.z_mult + self.z_offset
+            targets.append([target_x, target_y, target_z])
 
+        joint_angles = self.my_ikt(targets, self.y_offset)
 
         self.angle += self.config["angle_increment"]
 
@@ -407,7 +394,7 @@ class HexapodBulletEnv(gym.Env):
             p.setJointMotorControl2(bodyUniqueId=self.robot,
                                     jointIndex=i,
                                     controlMode=p.POSITION_CONTROL,
-                                    targetPosition=targets[i],
+                                    targetPosition=joint_angles[i],
                                     force=self.randomized_params["max_joint_force"],
                                     positionGain=self.randomized_params["actuator_position_gain"],
                                     velocityGain=self.randomized_params["actuator_velocity_gain"],
@@ -541,7 +528,7 @@ class HexapodBulletEnv(gym.Env):
         #    self.robot = self.load_robot()
 
         self.current_phases = self.phases_op
-        self.left_offset, self.right_offset = np.array([self.phase_offset, self.phase_offset])
+        self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r])
 
         # Reset episodal vars
         self.step_ctr = 0
@@ -618,6 +605,44 @@ class HexapodBulletEnv(gym.Env):
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
+    def my_ikt(self, target_positions, y_offset):
+        rotation_angles = [np.pi / 4, np.pi / 4, 0, 0, -np.pi / 4, -np.pi / 4]
+        joint_angles = []
+        for i, tp in enumerate(target_positions):
+            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
+            joint_angles.extend(self.single_leg_ikt(tp_rotated))
+        return joint_angles
+
+    def rotate_eef_pos(self, eef_xyz, angle, y_offset):
+        return [eef_xyz[0] * np.cos(angle), eef_xyz[0] * np.sin(angle) + y_offset, eef_xyz[2]]
+
+    def single_leg_ikt(self, eef_xyz):
+        x,y,z = eef_xyz
+
+        assert -0.15 < x < 0.15
+        assert 0.05 < y < 0.3
+        assert -0.2 < z < 0.2
+
+        q1 = 0.2137
+        q2 = 0.785
+
+        C = 0.052
+        F = 0.0675
+        T = 0.132
+
+        psi = (np.arcsin(x/y))
+        Cx = C * np.sin(psi)
+        Cy = C * np.cos(psi)
+        R = np.sqrt((x-Cx)**2 + (y-Cy)**2 + (z)**2)
+        alpha = np.arcsin(-z/R)
+
+        a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
+        b = np.arccos((F ** 2 + T ** 2 - R ** 2) / (2 * F * T))
+
+        th1 = alpha - q1 - a
+        th2 = np.pi - q2 - b
+
+        return -psi, th1, th2
 
 if __name__ == "__main__":
     import yaml
