@@ -240,15 +240,15 @@ class HexapodBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
                                 "randomize_env"],
-                                "lateral_friction": 1.2 + (np.random.rand() * 1.2 - 0.6) * self.config[
+                                "lateral_friction": 1.8 + (np.random.rand() * 1.2 - 0.6) * self.config[
                                     "randomize_env"],
-                                "max_joint_force": 1.5 + (np.random.rand() * 1.0 - 0.5) * self.config[
+                                "max_joint_force": 1.7 + (np.random.rand() * 1.0 - 0.5) * self.config[
                                     "randomize_env"],
-                                "actuator_position_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
+                                "actuator_position_gain": 0.7 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "actuator_velocity_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
+                                "actuator_velocity_gain": 0.7 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "max_actuator_velocity": 4.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                "max_actuator_velocity": 6.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
                                       "randomize_env"],
                                 }
 

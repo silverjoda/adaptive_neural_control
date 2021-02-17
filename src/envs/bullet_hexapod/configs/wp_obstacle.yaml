@@ -28,9 +28,9 @@
 "perlin_height" : 27
 "obstacle_height" : 40
 "training_difficulty" : 0.4
-"training_difficulty_increment" : 0.0001
-"joints_rads_low" : [-0.6, -3.0, -3.0]
-"joints_rads_high" : [0.6, 3.0, 3.0]
+"training_difficulty_increment" : 0.00001
+"joints_rads_low" : [-0.6, -3.0, -1.0]
+"joints_rads_high" : [0.6, 2.0, 4.0]
 "target_proximity_threshold" : 0.3
 "target_spawn_mu" : [1.0, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 0.0] #[1.0, 4.0]
