@@ -159,13 +159,13 @@ class HexapodBulletEnv(gym.Env):
             persistence = 1
             lacunarity = 2
 
-            for i in range(N/2 - 5, N/2 + 5):
+            for i in range(int(N/2) + 3, int(N/2) + 7):
                 for j in range(M):
                     for o in range(octaves):
                         sx = scale_x * (1 / (lacunarity ** o))
                         sy = scale_y * (1 / (lacunarity ** o))
                         amp = persistence ** o
-                        hm[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+                        hm[i][j] += abs(oSim.noise2d(i / sx, j / sy) * amp)
 
             wmin, wmax = hm.min(), hm.max()
             hm = (hm - wmin) / (wmax - wmin) * height
@@ -356,10 +356,10 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                 "bobbing": np.sqrt(np.square(zd)) * 0.1,
-                 "yaw_pen": np.square(tar_angle - yaw) * 0.10}
+                 "bobbing": np.sqrt(np.square(zd)) * 0.0,
+                 "yaw_pen": np.square(tar_angle - yaw) * 0.00}
 
-        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
+        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2),
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
         # print(r_pos["velocity_rew"])
         # r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
@@ -419,6 +419,8 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
+
+        self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
 
         self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
         self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
