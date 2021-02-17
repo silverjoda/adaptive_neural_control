@@ -27,7 +27,7 @@
 "mesh_scale_vert" : 2
 "perlin_height" : 27
 "obstacle_height" : 40
-"training_difficulty" : 0.3
+"training_difficulty" : 0.6
 "training_difficulty_increment" : 0.00001
 "joints_rads_low" : [-0.6, -1.5, -0.2]
 "joints_rads_high" : [0.6, 0.2, 1.5]
