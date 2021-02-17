@@ -372,7 +372,6 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-        # This works.!
         self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
         self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r]) + np.tanh(
             ctrl_raw[6:8]) * np.pi * self.config["phase_offset_scalar"]
@@ -383,7 +382,7 @@ class HexapodBulletEnv(gym.Env):
             target_y = self.y_offset
             target_z = np.clip(np.sin(
                 -self.angle * 2 * np.pi + self.phases_op[i] + self.left_offset * bool(i % 2) + self.right_offset * bool(
-                    (i + 1) % 2)) * self.z_mult + self.z_offset + np.tanh(ctrl_raw[8 + i] * self.config["z_aux_scalar"]), -1.3, 0.0)
+                    (i + 1) % 2)) * self.z_mult + self.z_offset + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"], -0.12, -0.03)
             targets.append([target_x, target_y, target_z])
 
         joint_angles = self.my_ikt(targets, self.y_offset)
@@ -443,7 +442,7 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                 "bobbing": np.square(zd) * 0.1 + np.square(thd) * 0.1 + np.square(phid) * 0.1,
+                 "bobbing": np.square(zd) * 0.07 + np.square(thd) * 0.01 + np.square(phid) * 0.01,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.10}
 
         r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(signed_deviation) * 3), -2, 2),
