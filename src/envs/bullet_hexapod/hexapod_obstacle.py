@@ -359,7 +359,7 @@ class HexapodBulletEnv(gym.Env):
                  "bobbing": np.sqrt(np.square(zd)) * 0.0,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.00}
 
-        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2),
+        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2) * 10,
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
         # print(r_pos["velocity_rew"])
         # r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
