@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.just_obs_dim = 32
+        self.just_obs_dim = 62
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * 18 \
                        + self.config["rew_input"] * 1 \
@@ -380,7 +380,7 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, [signed_deviation], contacts
+        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, [signed_deviation], joint_torques, joint_velocities
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)

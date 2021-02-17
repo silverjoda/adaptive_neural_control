@@ -1,4 +1,4 @@
-"env_name" : "hexapod_wp"
+"env_name" : "hexapod_obstacle"
 "controller_source" : "joystick" # joystick
 "max_steps" : 900
 "terrain_name" : "obstacle"

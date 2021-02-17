@@ -37,7 +37,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 14  # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 32
+        self.just_obs_dim = 50
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -471,7 +471,7 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
         offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
-        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, contacts
+        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, joint_velocities, contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)

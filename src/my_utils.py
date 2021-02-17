@@ -45,6 +45,8 @@ def import_env(name):
         from src.envs.bullet_hexapod.hexapod_wp_joint_phases_es import HexapodBulletEnv as env_fun
     elif name == "hexapod_straight":
         from src.envs.bullet_hexapod.hexapod_straight import HexapodBulletEnv as env_fun
+    elif name == "hexapod_obstacle":
+        from src.envs.bullet_hexapod.hexapod_obstacle import HexapodBulletEnv as env_fun
     elif name == "quadrotor_stab":
         from src.envs.bullet_quadrotor.quadrotor_stab import QuadrotorBulletEnv as env_fun
     elif name == "quadrotor_vel":
