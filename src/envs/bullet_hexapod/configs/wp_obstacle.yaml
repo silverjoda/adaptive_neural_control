@@ -1,12 +1,12 @@
 "env_name" : "hexapod_obstacle"
 "controller_source" : "joystick" # joystick
-"max_steps" : 900
+"max_steps" : 500
 "terrain_name" : "obstacle"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.3
-"sim_step" : 0.00417
+"sim_step" : 0.01
 "action_scaler" : 1
 "env_width" : 60
 "env_length" : 100
@@ -17,9 +17,9 @@
 "obs_input" : 1
 "rew_input" : 0
 "randomize_env" : False
-"max_actuator_velocity" : 2.5
+"max_actuator_velocity" : 20.5
 "lateral_friction" : 1.2
-"max_joint_force" : 1.5
+"max_joint_force" : 6.0
 "target_vel" : 0.2
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
