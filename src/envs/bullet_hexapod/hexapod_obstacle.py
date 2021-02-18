@@ -238,19 +238,22 @@ class HexapodBulletEnv(gym.Env):
             self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": 1.0 + (np.random.rand() * 1.4 - 0.7) * self.config[
-                                "randomize_env"],
-                                "lateral_friction": 3.0 + (np.random.rand() * 1.2 - 0.6) * self.config[
-                                    "randomize_env"],
-                                "max_joint_force": 10.0 + (np.random.rand() * 1.0 - 0.5) * self.config[
-                                    "randomize_env"],
-                                "actuator_position_gain": 2.7 + (np.random.rand() * 0.4 - 0.2) * self.config[
+        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
+            "randomize_env"],
+                                  "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 1.2 - 0.6) *
+                                                      self.config[
+                                                          "randomize_env"],
+                                  "max_joint_force": self.config["max_joint_force"] + (np.random.rand() * 1.0 - 0.5) *
+                                                     self.config[
+                                                         "randomize_env"],
+                                  "actuator_position_gain": self.config["actuator_position_gain"] + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "actuator_velocity_gain": 2.7 + (np.random.rand() * 0.4 - 0.2) * self.config[
+                                  "actuator_velocity_gain": self.config["actuator_velocity_gain"] + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "max_actuator_velocity": 10.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
-                                      "randomize_env"],
-                                }
+                                  "max_actuator_velocity": self.config["max_actuator_velocity"] + (
+                                              np.random.rand() * 4.0 - 2.0) * self.config[
+                                                               "randomize_env"],
+                                  }
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append(

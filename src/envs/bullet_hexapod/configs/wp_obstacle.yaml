@@ -5,7 +5,6 @@
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
-"forced_target_velocity" : 0.3
 "sim_step" : 0.01
 "action_scaler" : 1
 "env_width" : 60
@@ -17,11 +16,12 @@
 "obs_input" : 1
 "rew_input" : 0
 "randomize_env" : False
-"max_actuator_velocity" : 20.5
-"lateral_friction" : 1.2
-"max_joint_force" : 6.0
+"max_actuator_velocity" : 8
+"lateral_friction" : 2.0
+"max_joint_force" : 3.0
+"actuator_position_gain" : 0.7
+"actuator_velocity_gain" : 0.7
 "target_vel" : 0.2
-"target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
@@ -29,7 +29,7 @@
 "obstacle_height" : 40
 "training_difficulty" : 0.6
 "training_difficulty_increment" : 0.00001
-"joints_rads_low" : [-0.6, -1.5, -0.2]
+"joints_rads_low" : [-0.6, -1.0, -0.2]
 "joints_rads_high" : [0.6, 0.2, 1.5]
 "target_proximity_threshold" : 0.3
 "target_spawn_mu" : [1.0, 0.] # [1.5, 0.]
