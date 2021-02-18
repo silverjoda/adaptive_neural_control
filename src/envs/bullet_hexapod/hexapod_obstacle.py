@@ -430,8 +430,8 @@ class HexapodBulletEnv(gym.Env):
         self.joints_rads_high = np.array([self.joints_rads_high[0], np.minimum(self.joints_rads_high[1] * 1.001, 1), np.minimum(self.joints_rads_high[2] * 1.001, 2)] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
-        self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
+        #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
+        #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
 
         if self.config["velocity_control"]:
             self.target_vel_nn_input = np.random.rand() * 2 - 1

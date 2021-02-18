@@ -501,8 +501,8 @@ class HexapodBulletEnv(gym.Env):
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
 
-        self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
-        self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
+        #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
+        #self.config["target_spawn_sigma"][0] = np.minimum(4., self.config["target_spawn_sigma"][0] + 0.00005)
 
         if self.config["velocity_control"]:
             self.target_vel_nn_input = np.random.rand() * 2 - 1
