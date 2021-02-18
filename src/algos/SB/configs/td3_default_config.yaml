@@ -1,8 +1,8 @@
 "algo_name" : "TD3"
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
-"n_envs" : 6
-"iters" : 1000000
+"n_envs" : 1
+"iters" : 100000
 "gamma" : 0.99
 "learning_rate" : "lambda x : x * 0.001"
 "buffer_size" : 200000
@@ -10,12 +10,10 @@
 "batch_size" : 128
 "tau" : 0.005
 "policy_delay" : 2
-"action_noise" : None
 "target_policy_noise" : 0.2
 "target_noise_clip" : 0.5
 "policy_hid_dim" : 128
 "verbose" : 1
-"policy_kwargs" : {layers : [128, 128]}
 "tensorboard_log" : True
 "ou_sigma" : 0.5
 "ou_theta" : 0.07

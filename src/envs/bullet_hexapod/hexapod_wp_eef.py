@@ -466,7 +466,6 @@ class HexapodBulletEnv(gym.Env):
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
-
         # Assemble agent observation
         current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
         offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
@@ -474,7 +473,6 @@ class HexapodBulletEnv(gym.Env):
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
-
 
         aux_obs = []
         if self.config["obs_input"]:

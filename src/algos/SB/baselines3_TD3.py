@@ -86,8 +86,9 @@ def make_model(config, env):
 
 def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=True):
     total_rew = 0
-    obs = env.reset()
+
     for _ in range(N):
+        obs = env.reset()
         episode_rew = 0
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
@@ -144,7 +145,7 @@ if __name__ == "__main__":
         env, model, checkpoint_callback, stats_path = setup_train(config)
 
         t1 = time.time()
-        model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
+        model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback, log_interval=1)
         t2 = time.time()
 
         # Make tb run script inside tb dir
@@ -155,7 +156,6 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
-        env.save(stats_path)
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
