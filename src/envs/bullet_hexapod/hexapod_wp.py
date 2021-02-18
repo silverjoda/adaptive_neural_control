@@ -390,6 +390,8 @@ class HexapodBulletEnv(gym.Env):
         p.stepSimulation(physicsClientId=self.client_ID)
         if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
+        self.step_ctr += 1
+
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
         xd, yd, zd = torso_vel
@@ -485,6 +487,8 @@ class HexapodBulletEnv(gym.Env):
         if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 6 or abs(torso_pos[2]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
+
+
 
         return env_obs, r, done, {}
 
