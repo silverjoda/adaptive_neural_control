@@ -184,3 +184,6 @@ if __name__ == "__main__":
         N_test = 1000
         total_rew = test_agent(env, model, deterministic=True, N=N_test)
         print(f"Total test rew: {total_rew / N_test}")
+
+        # TODO: Get the A2C RNN ready
+        # TODO: After, get SAC ready for comparison with TD3

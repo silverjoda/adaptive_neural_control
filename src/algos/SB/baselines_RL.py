@@ -1,6 +1,7 @@
 from stable_baselines import PPO2, A2C, TD3, SAC
 from stable_baselines.common.vec_env import SubprocVecEnv, VecNormalize, DummyVecEnv
 from stable_baselines.common.callbacks import CheckpointCallback, EvalCallback
+from stable_baselines.common.policies import LstmPolicy
 import src.my_utils as my_utils
 import time
 import random
@@ -12,6 +13,12 @@ import os
 from pprint import pprint
 from shutil import copyfile
 import numpy as np
+
+class CustomLSTMPolicy(LstmPolicy):
+    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, n_lstm=64, reuse=False, **_kwargs):
+        super().__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, n_lstm, reuse,
+                         net_arch=[128, 'lstm', dict(vf=[128, 64], pi=[128])],
+                         layer_norm=True, feature_extraction="mlp", **_kwargs)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -39,24 +46,6 @@ def read_config(path):
 
 def make_model(config, env, action_noise_fun):
     model = None
-    if config["algo_name"] == "TD3":
-        model = TD3('MlpPolicy',
-                    env=env,
-                    gamma=config["gamma"],
-                    learning_rate=config["learning_rate"],
-                    buffer_size=config["buffer_size"],
-                    learning_starts=config["learning_starts"],
-                    train_freq=config["train_freq"],
-                    gradient_steps=config["gradient_steps"],
-                    batch_size=config["batch_size"],
-                    tau=config["tau"],
-                    policy_delay=config["policy_delay"],
-                    action_noise=action_noise_fun,
-                    target_policy_noise=config["target_policy_noise"],
-                    target_noise_clip=config["target_noise_clip"],
-                    verbose=config["verbose"],
-                    tensorboard_log="./tb/{}/".format(config["session_ID"]),
-                    policy_kwargs=config["policy_kwargs"])
 
     if config["algo_name"] == "A2C" and config["policy_name"] == "MlpPolicy":
         model = A2C(config["policy_name"],
@@ -66,7 +55,7 @@ def make_model(config, env, action_noise_fun):
             vf_coef=config["vf_coef"],
             ent_coef = config["ent_coef"],
             max_grad_norm=config["max_grad_norm"],
-            learning_rate=eval(config["learning_rate"]),
+            learning_rate=config["sb2_learning_rate"],
             alpha=config["alpha"],
             epsilon=config["epsilon"],
             lr_schedule=config["lr_schedule"],
@@ -76,14 +65,14 @@ def make_model(config, env, action_noise_fun):
             policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
 
     if config["algo_name"] == "A2C" and config["policy_name"] == "MlpLstmPolicy":
-        model = A2C(config["policy_name"],
+        model = A2C(CustomLSTMPolicy,
             env=env,
             gamma=config["gamma"],
             n_steps=config["n_steps"],
             vf_coef=config["vf_coef"],
             ent_coef = config["ent_coef"],
             max_grad_norm=config["max_grad_norm"],
-            learning_rate=config["learning_rate"],
+            learning_rate=config["sb2_learning_rate"],
             alpha=config["alpha"],
             epsilon=config["epsilon"],
             lr_schedule=config["lr_schedule"],
@@ -107,8 +96,6 @@ def load_model(config):
     assert model is not None, "Alg name not found, cannot load model, exiting. "
     return model
 
-def make_action_noise_fun(config):
-    return None
 
 def test_agent(env, model, deterministic=True, N=100, print_rew=True):
     total_rew = 0
