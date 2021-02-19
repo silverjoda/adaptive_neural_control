@@ -1,7 +1,7 @@
 "env_name" : "hexapod_wp_eef"
 "controller_source" : "joystick" # joystick
 "max_steps" : 900
-"terrain_name" : "flat"
+"terrain_name" : "perlin"
 "training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
@@ -25,14 +25,14 @@
 "sim_steps_per_iter" :  24
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
-"perlin_height" : 30
+"perlin_height" : 28
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -1.0, 0.4]
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.5
 "target_spawn_mu" : [2.5, 0.] # [1.5, 0.]
-"target_spawn_sigma" : [0.0, 6.0] # [1.0, 4.0]
+"target_spawn_sigma" : [0.0, 3.0] # [1.0, 4.0]
 "angle_increment" : 0.006
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :

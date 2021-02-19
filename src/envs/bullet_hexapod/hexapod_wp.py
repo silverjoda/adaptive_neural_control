@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.just_obs_dim = 32
+        self.just_obs_dim = 50
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * 18 \
                        + self.config["rew_input"] * 1 \
@@ -317,15 +317,15 @@ class HexapodBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
                                 "randomize_env"],
-                                "lateral_friction": 1.2 + (np.random.rand() * 1.2 - 0.6) * self.config[
+                                "lateral_friction": 1.5 + (np.random.rand() * 1.2 - 0.6) * self.config[
                                     "randomize_env"],
-                                "max_joint_force": 1.5 + (np.random.rand() * 1.0 - 0.5) * self.config[
+                                "max_joint_force": 1.2 + (np.random.rand() * 1.0 - 0.5) * self.config[
                                     "randomize_env"],
                                 "actuator_position_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
                                 "actuator_velocity_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "max_actuator_velocity": 4.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                "max_actuator_velocity": 6.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
                                       "randomize_env"],
                                 }
 
@@ -410,6 +410,7 @@ class HexapodBulletEnv(gym.Env):
         # Orientation angle
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
+        signed_deviation = yaw - tar_angle
 
         # Compute heading reward
         # yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
@@ -435,11 +436,12 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                 "bobbing": np.sqrt(np.square(zd)) * 0.1,
+                 "bobbing": np.square(zd) * 0.07 + np.square(thd) * 0.01 + np.square(phid) * 0.01,
                  "yaw_pen": np.square(tar_angle - yaw) * 0.10}
 
-        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2),
+        r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(signed_deviation) * 3), -2, 2),
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
+
         # print(r_pos["velocity_rew"])
         # r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
@@ -459,7 +461,7 @@ class HexapodBulletEnv(gym.Env):
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, [signed_deviation], contacts
+        compiled_obs = torso_quat, torso_vel, scaled_joint_angles, joint_velocities, [signed_deviation], contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         self.obs_queue.append(compiled_obs_flat)
         self.obs_queue.pop(0)
@@ -487,8 +489,6 @@ class HexapodBulletEnv(gym.Env):
         if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 6 or abs(torso_pos[2]) > 2.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
-
-
 
         return env_obs, r, done, {}
 
