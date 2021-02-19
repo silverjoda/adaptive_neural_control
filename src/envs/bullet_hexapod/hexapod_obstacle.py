@@ -313,8 +313,9 @@ class HexapodBulletEnv(gym.Env):
         # for o in obs_sequential:
         #     joint_angles_skewed.append(o[0])
 
-        p.stepSimulation(physicsClientId=self.client_ID)
-        if (self.config["animate"] or render) and True: time.sleep(0.00417)
+        for i in range(self.config["sim_steps_per_iter"]):
+            p.stepSimulation(physicsClientId=self.client_ID)
+            if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
         self.step_ctr += 1
 
@@ -376,9 +377,6 @@ class HexapodBulletEnv(gym.Env):
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
-
-        if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
-            print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]

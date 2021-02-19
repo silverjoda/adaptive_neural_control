@@ -23,6 +23,7 @@ class HexapodBulletEnv(gym.Env):
         
         if self.seed is not None:
             self.set_seed(self.seed, self.seed)
+            print(f"Setting from given seed: {self.seed}")
         else:
             rnd_seed = int((time.time() % 1) * 10000000)
             self.set_seed(rnd_seed, rnd_seed + 1)

@@ -31,7 +31,9 @@ def to_tensor(x, add_batchdim=False):
     return x
 
 def import_env(name):
-    if name == "hexapod_wp":
+    if name == "hexapod":
+        from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
+    elif name == "hexapod_wp":
         from src.envs.bullet_hexapod.hexapod_wp import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_eef":
         from src.envs.bullet_hexapod.hexapod_wp_eef import HexapodBulletEnv as env_fun

@@ -1,4 +1,4 @@
-from stable_baselines3 import TD3
+from stable_baselines3 import SAC
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 import src.my_utils as my_utils
@@ -15,21 +15,6 @@ from copy import deepcopy
 import numpy as np
 import torch as T
 
-# class TensorboardCallback(BaseCallback):
-#     def __init__(self, verbose=0):
-#         super(TensorboardCallback, self).__init__(verbose)
-#
-#     def _on_step(self) -> bool:
-#         pass
-#
-#     def _on_rollout_end(self) -> None:
-#         # Log scalar value (here a random variable)
-#         max_returns = np.max(self.locals['rollout_buffer'].returns, axis=0).mean()
-#         mean_advantages = self.locals['rollout_buffer'].advantages.mean()
-#         self.logger.record('train/mean_max_returns', max_returns)
-#         self.logger.record('train/mean_advantages', mean_advantages)
-#
-#         return None
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -67,13 +52,12 @@ def make_model(config, env):
 
     ou_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(env.action_space.shape[0]), sigma=config["ou_sigma"] *  np.ones(env.action_space.shape[0]), theta=config["ou_theta"], dt=config["ou_dt"], initial_noise=None)
 
-    model = TD3(policy=policy,
+    model = SAC(policy=policy,
                 env=env,
                 buffer_size=config["buffer_size"],
                 learning_starts=config["learning_starts"],
                 action_noise=ou_noise,
-                target_policy_noise=config["target_policy_noise"],
-                target_noise_clip=config["target_noise_clip"],
+                ent_coef='auto',
                 gamma=config["gamma"],
                 tau=config["tau"],
                 learning_rate=eval(config["learning_rate"]),
@@ -176,7 +160,7 @@ if __name__ == "__main__":
         env.training = False
         env.norm_reward = False
 
-        model = TD3.load("agents/{}".format(args["test_agent_path"]))
+        model = SAC.load("agents/{}".format(args["test_agent_path"]))
         N_test = 1000
         total_rew = test_agent(env, model, deterministic=True, N=N_test)
         print(f"Total test rew: {total_rew / N_test}")
