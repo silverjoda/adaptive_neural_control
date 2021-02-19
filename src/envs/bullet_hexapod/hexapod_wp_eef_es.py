@@ -291,7 +291,7 @@ class HexapodBulletEnv(gym.Env):
                                 "randomize_env"],
                                 "lateral_friction": 1.2 + (np.random.rand() * 1.2 - 0.6) * self.config[
                                     "randomize_env"],
-                                "max_joint_force": 1.5 + (np.random.rand() * 1.0 - 0.5) * self.config[
+                                "max_joint_force": 1.2 + (np.random.rand() * 1.0 - 0.5) * self.config[
                                     "randomize_env"],
                                 "actuator_position_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
@@ -425,8 +425,8 @@ class HexapodBulletEnv(gym.Env):
                  "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
         #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}
-        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2) * 0,
-                 "turn_rew": - psid * 1.0,
+        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2) * 1,
+                 "turn_rew": - psid * 0.0,
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
@@ -617,8 +617,7 @@ class HexapodBulletEnv(gym.Env):
 
             step_ctr += 1
 
-            _,_,_,_, joint_angles, _,_,_,_ = self.get_obs()
-
+            _,_,torso_vel,_, joint_angles, _,_,_,_ = self.get_obs()
 
             if step_ctr % 5 == 0:
                 leg_pts.append(self.single_leg_dkt(joint_angles[9:12]))

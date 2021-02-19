@@ -105,6 +105,37 @@ def test_agent(env, policy):
                 break
     env.close()
 
+def test_agent_dkt(env, policy):
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    obs = env.reset()
+    cum_rew = 0
+    step_ctr = 0
+    leg_pts = []
+    while True:
+        action = policy.sample_action(obs)
+        obs, reward, done, info = env.step(action)
+        cum_rew += reward
+
+        step_ctr += 1
+
+        _, _, torso_vel, _, joint_angles, _, _, _, _ = env.get_obs()
+
+        if step_ctr % 5 == 0 and step_ctr > 400:
+            leg_pts.append(env.single_leg_dkt(joint_angles[6:9]))
+
+        if step_ctr == 570:
+            break
+
+    x = [leg_pt[0] for leg_pt in leg_pts]
+    z = [leg_pt[2] for leg_pt in leg_pts]
+    colors = np.random.rand(len(leg_pts))
+    plt.scatter(x, z, c=colors, alpha=0.5)
+    plt.show()
+
+    env.close()
+
 if __name__=="__main__":
     args = parse_args()
     algo_config = read_config(args["algo_config"])

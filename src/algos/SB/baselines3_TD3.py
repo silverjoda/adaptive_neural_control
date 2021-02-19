@@ -1,5 +1,5 @@
 from stable_baselines3 import TD3
-from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback, CallbackList
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 import src.my_utils as my_utils
 import time
@@ -126,7 +126,15 @@ def setup_train(config, setup_dirs=True):
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 
-    return env, model, checkpoint_callback, stats_path
+    # Separate evaluation env
+    eval_env = env_fun(config)
+    # Use deterministic actions for evaluation
+    eval_callback = EvalCallback(eval_env,
+                                 eval_freq=10000,
+                                 deterministic=True, render=False)
+    callback_list = CallbackList([checkpoint_callback, eval_callback])
+
+    return env, model, callback_list, stats_path
 
 def setup_eval(config, stats_path, seed=0):
     T.set_num_threads(1)

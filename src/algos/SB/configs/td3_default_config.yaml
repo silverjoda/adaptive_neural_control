@@ -16,5 +16,5 @@
 "verbose" : 1
 "tensorboard_log" : True
 "ou_sigma" : 0.5
-"ou_theta" : 0.07
+"ou_theta" : 0.05
 "ou_dt" : 0.1

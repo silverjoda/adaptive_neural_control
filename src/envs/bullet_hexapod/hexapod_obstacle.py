@@ -425,9 +425,12 @@ class HexapodBulletEnv(gym.Env):
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
 
+        #"joints_rads_low": [-0.6, -1.0, -0.2]
+        #"joints_rads_high": [0.6, 0.2, 1.5]
+
         self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
-        self.joints_rads_low = np.array([self.joints_rads_low[0], np.maximum(self.joints_rads_low[1] * 1.001, -2), np.maximum(self.joints_rads_low[2] * 1.001, -1)] * 6)
-        self.joints_rads_high = np.array([self.joints_rads_high[0], np.minimum(self.joints_rads_high[1] * 1.001, 1), np.minimum(self.joints_rads_high[2] * 1.001, 2)] * 6)
+        self.joints_rads_low = np.array([self.joints_rads_low[0], np.maximum(self.joints_rads_low[1] - 0.0003, -2), np.maximum(self.joints_rads_low[2] - 0.0003, -1)] * 6)
+        self.joints_rads_high = np.array([self.joints_rads_high[0], np.minimum(self.joints_rads_high[1] + 0.0003, 1), np.minimum(self.joints_rads_high[2] + 0.0003, 2)] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
