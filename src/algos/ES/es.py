@@ -13,6 +13,8 @@ import torch
 import torch as T
 import yaml
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
+import optuna
+import numpy as np
 
 import src.my_utils as my_utils
 import src.policies as policies
@@ -37,6 +39,25 @@ def f_wrapper(env, policy):
 
         return -reward
     return f
+
+def f_optuna(trial, env, policy):
+    reward = 0
+    done = False
+    obs = env.reset()
+
+    w_dummy = [0,0,0,0]
+    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(8)]
+    w = np.array(w_dummy + w_suggested)
+
+    vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
+
+    while not done:
+        with torch.no_grad():
+            act = policy.sample_action(obs)
+        obs, rew, done, _ = env.step(act)
+        reward += rew
+
+    return -reward
 
 def train(env, policy, config):
     w = parameters_to_vector(policy.parameters()).detach().numpy()
@@ -66,6 +87,25 @@ def train(env, policy, config):
     print("Saved agent, {}".format(sdir))
 
     return es.result.fbest
+
+
+def train_optuna(env, policy, config):
+    w = parameters_to_vector(policy.parameters()).detach().numpy()
+
+    study = optuna.create_study(direction='maximize')
+    sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        f'agents/{config["session_ID"]}_ES_policy.p')
+
+    print(f'N_params: {len(w)}')
+
+    study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=100, show_progress_bar=True)
+
+    vector_to_parameters(torch.from_numpy(study.best_params.values()).float(), policy.parameters())
+    T.save(policy.state_dict(), sdir)
+    print("Saved agent, {}".format(sdir))
+
+    return study.best_value
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -163,6 +203,7 @@ if __name__=="__main__":
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()
         train(env, policy, config)
+        #train_optuna(env, policy, config)
         t2 = time.time()
 
         print("Training time: {}".format(t2 - t1))
