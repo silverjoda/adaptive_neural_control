@@ -411,7 +411,7 @@ class HexapodBulletEnv(gym.Env):
         thd, phid, psid = torso_angular_vel
 
         # Calculate yaw
-        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
+        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat, physicsClientId=self.client_ID)
 
         # Orientation angle
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
@@ -511,7 +511,7 @@ class HexapodBulletEnv(gym.Env):
         del self.target_body
         self.target = None
 
-        p.resetSimulation()
+        p.resetSimulation(physicsClientId=self.client_ID)
         p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
         p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
         self.robot = self.load_robot()
@@ -521,7 +521,7 @@ class HexapodBulletEnv(gym.Env):
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         self.create_targets()
 
-        #print(p.getNumJoints(self.robot))
+        #sprint(p.getNumJoints(self.robot))
 
         # if self.config["randomize_env"]:
         #    self.robot = self.load_robot()
