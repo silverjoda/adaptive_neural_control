@@ -521,6 +521,8 @@ class HexapodBulletEnv(gym.Env):
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         self.create_targets()
 
+        #print(p.getNumJoints(self.robot))
+
         # if self.config["randomize_env"]:
         #    self.robot = self.load_robot()
 

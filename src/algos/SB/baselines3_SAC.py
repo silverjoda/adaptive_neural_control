@@ -1,6 +1,6 @@
-from stable_baselines3 import A2C
-from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv, VecNormalize
-from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback, CallbackList
+from stable_baselines3 import TD3
+from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
+from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 import src.my_utils as my_utils
 import time
 import random
@@ -15,21 +15,21 @@ from copy import deepcopy
 import numpy as np
 import torch as T
 
-class TensorboardCallback(BaseCallback):
-    def __init__(self, verbose=0):
-        super(TensorboardCallback, self).__init__(verbose)
-
-    def _on_step(self) -> bool:
-        pass
-
-    def _on_rollout_end(self) -> None:
-        # Log scalar value (here a random variable)
-        max_returns = np.max(self.locals['rollout_buffer'].returns, axis=0).mean()
-        mean_advantages = self.locals['rollout_buffer'].advantages.mean()
-        self.logger.record('train/mean_max_returns', max_returns)
-        self.logger.record('train/mean_advantages', mean_advantages)
-
-        return None
+# class TensorboardCallback(BaseCallback):
+#     def __init__(self, verbose=0):
+#         super(TensorboardCallback, self).__init__(verbose)
+#
+#     def _on_step(self) -> bool:
+#         pass
+#
+#     def _on_rollout_end(self) -> None:
+#         # Log scalar value (here a random variable)
+#         max_returns = np.max(self.locals['rollout_buffer'].returns, axis=0).mean()
+#         mean_advantages = self.locals['rollout_buffer'].advantages.mean()
+#         self.logger.record('train/mean_max_returns', max_returns)
+#         self.logger.record('train/mean_advantages', mean_advantages)
+#
+#         return None
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Pass in parameters. ')
@@ -65,16 +65,19 @@ def make_model(config, env):
     if config["tensorboard_log"]:
         tb_log = "./tb/{}/".format(config["session_ID"])
 
-    model = A2C(policy=policy,
+    ou_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(env.action_space.shape[0]), sigma=config["ou_sigma"] *  np.ones(env.action_space.shape[0]), theta=config["ou_theta"], dt=config["ou_dt"], initial_noise=None)
+
+    model = TD3(policy=policy,
                 env=env,
+                buffer_size=config["buffer_size"],
+                learning_starts=config["learning_starts"],
+                action_noise=ou_noise,
+                target_policy_noise=config["target_policy_noise"],
+                target_noise_clip=config["target_noise_clip"],
                 gamma=config["gamma"],
-                n_steps=config["n_steps"],
-                vf_coef=config["vf_coef"],
-                ent_coef = config["ent_coef"],
-                max_grad_norm=config["max_grad_norm"],
+                tau=config["tau"],
                 learning_rate=eval(config["learning_rate"]),
                 verbose=config["verbose"],
-                use_sde=config["use_sde"],
                 tensorboard_log=tb_log,
                 device="cpu",
                 policy_kwargs=dict(net_arch=[int(config["policy_hid_dim"]), int(config["policy_hid_dim"])]))
@@ -83,8 +86,9 @@ def make_model(config, env):
 
 def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=True):
     total_rew = 0
-    obs = env.reset()
+
     for _ in range(N):
+        obs = env.reset()
         episode_rew = 0
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
@@ -115,22 +119,22 @@ def setup_train(config, setup_dirs=True):
 
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
-    if config["dummy_vec_env"]:
-        vec_env = DummyVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])])
-    else:
-        vec_env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
-    env = VecNormalize(vec_env,
-                       gamma=config["gamma"],
-                       norm_obs=config["norm_obs"],
-                       norm_reward=config["norm_reward"])
+    env = env_fun(config)
     model = make_model(config, env)
 
     checkpoint_callback = CheckpointCallback(save_freq=300000,
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 
-    log_rew_callback = TensorboardCallback(verbose=1)
-    callback_list = CallbackList([checkpoint_callback, log_rew_callback])
+    # Separate evaluation env
+    config_eval = deepcopy(config)
+    config_eval["animate"] = False
+    eval_env = env_fun(config_eval)
+    # Use deterministic actions for evaluation
+    eval_callback = EvalCallback(eval_env,
+                                 eval_freq=10000,
+                                 deterministic=True, render=False)
+    callback_list = CallbackList([checkpoint_callback, eval_callback])
 
     return env, model, callback_list, stats_path
 
@@ -139,12 +143,7 @@ def setup_eval(config, stats_path, seed=0):
     env_fun = my_utils.import_env(config["env_name"])
     config_tmp = deepcopy(config)
     config_tmp["seed"] = seed
-    env = VecNormalize(DummyVecEnv([lambda: env_fun(config_tmp)]),
-                       gamma=config["gamma"],
-                       norm_obs=config["norm_obs"],
-                       norm_reward=config["norm_reward"])
-    VecNormalize.load(stats_path, env)
-    return env
+    return env_fun(config_tmp)
 
 if __name__ == "__main__":
     args = parse_args()
@@ -156,7 +155,7 @@ if __name__ == "__main__":
         env, model, checkpoint_callback, stats_path = setup_train(config)
 
         t1 = time.time()
-        model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback)
+        model.learn(total_timesteps=algo_config["iters"], callback=checkpoint_callback, log_interval=1)
         t2 = time.time()
 
         # Make tb run script inside tb dir
@@ -167,20 +166,17 @@ if __name__ == "__main__":
         pprint(config)
 
         model.save("agents/{}_SB_policy".format(config["session_ID"]))
-        env.save(stats_path)
         env.close()
 
     if args["test"] and socket.gethostname() != "goedel":
-        stats_path = "agents/{}_vecnorm.pkl".format(args["test_agent_path"][:3])
         env_fun = my_utils.import_env(config["env_name"])
         config["seed"] = 2
-        # env = env_fun(config)  # Default, without normalization
-        env = DummyVecEnv([lambda: env_fun(config)])
-        #env = VecNormalize.load(stats_path, env)
+
+        env = env_fun(config)
         env.training = False
         env.norm_reward = False
 
-        model = A2C.load("agents/{}".format(args["test_agent_path"]))
+        model = TD3.load("agents/{}".format(args["test_agent_path"]))
         N_test = 1000
         total_rew = test_agent(env, model, deterministic=True, N=N_test)
         print(f"Total test rew: {total_rew / N_test}")
