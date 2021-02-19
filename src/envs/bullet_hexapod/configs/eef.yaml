@@ -1,6 +1,6 @@
-"env_name" : "hexapod_wp_eef_es"
+"env_name" : "hexapod_wp_eef"
 "controller_source" : "joystick" # joystick
-"max_steps" : 700
+"max_steps" : 900
 "terrain_name" : "flat"
 "training_mode" : "straight"
 "velocity_control" : False
@@ -18,8 +18,8 @@
 "rew_input" : 0
 "randomize_env" : False
 "max_actuator_velocity" : 6.0
-"lateral_friction" : 1.2
-"max_joint_force" : 1.3
+"lateral_friction" : 1.5
+"max_joint_force" : 1.2
 "target_vel" : 0.2
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  24
@@ -32,7 +32,7 @@
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.5
 "target_spawn_mu" : [2.5, 0.] # [1.5, 0.]
-"target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
+"target_spawn_sigma" : [0.0, 6.0] # [1.0, 4.0]
 "angle_increment" : 0.006
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :

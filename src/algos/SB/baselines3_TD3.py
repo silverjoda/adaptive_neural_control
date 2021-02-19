@@ -127,7 +127,9 @@ def setup_train(config, setup_dirs=True):
                                              name_prefix=config["session_ID"], verbose=1)
 
     # Separate evaluation env
-    eval_env = env_fun(config)
+    config_eval = deepcopy(config)
+    config_eval["animate"] = False
+    eval_env = env_fun(config_eval)
     # Use deterministic actions for evaluation
     eval_callback = EvalCallback(eval_env,
                                  eval_freq=10000,

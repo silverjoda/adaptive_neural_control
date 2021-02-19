@@ -2,19 +2,19 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 1
-"iters" : 2000000
+"iters" : 5000000
 "gamma" : 0.99
 "learning_rate" : "lambda x : x * 0.001"
 "buffer_size" : 200000
-"learning_starts" : 10000
+"learning_starts" : 30000
 "batch_size" : 128
 "tau" : 0.005
 "policy_delay" : 2
-"target_policy_noise" : 0.2
-"target_noise_clip" : 0.5
+"target_policy_noise" : 0.1
+"target_noise_clip" : 0.1
 "policy_hid_dim" : 128
 "verbose" : 1
 "tensorboard_log" : True
-"ou_sigma" : 0.5
-"ou_theta" : 0.05
+"ou_sigma" : 0.9
+"ou_theta" : 0.1
 "ou_dt" : 0.1
