@@ -329,6 +329,8 @@ class HexapodBulletEnv(gym.Env):
         self.act_queue.pop(0)
 
         x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases = ctrl_raw
+        print(ctrl_raw)
+        exit()
 
         dir_vec = [1., -1.] * 3
         # targets = p.calculateInverseKinematics2(self.robot,
