@@ -36,8 +36,8 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 12 # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, phase_0 ... phase_5
-        self.just_obs_dim = 9
+        self.act_dim = 20 # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, phase_0 ... phase_5
+        self.just_obs_dim = 1
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
                        + self.config["rew_input"] * 1 \
@@ -325,19 +325,8 @@ class HexapodBulletEnv(gym.Env):
         return self.robot
 
     def step(self, ctrl_raw, render=False):
-        self.act_queue.append(ctrl_raw)
-        self.act_queue.pop(0)
-
         x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases = ctrl_raw
 
-        dir_vec = [1., -1.] * 3
-        # targets = p.calculateInverseKinematics2(self.robot,
-        #                                         endEffectorLinkIndices=self.eef_list,
-        #                                         targetPositions=[
-        #                                             [np.cos(-self.angle * 2 * np.pi + phases[i]) * x_mult, y_offset * dir_vec[i],
-        #                                              np.sin(-self.angle * 2 * np.pi + phases[i] + phase_offset_l * bool(i%2) + phase_offset_r * bool((i+1)%2)) * z_mult - z_offset]
-        #                                             for i in range(6)],
-        #                                         currentPositions=[0] * 18)
         targets = []
         for i in range(6):
             target_x = np.cos(-self.angle * 2 * np.pi + phases[i]) * x_mult
@@ -360,36 +349,19 @@ class HexapodBulletEnv(gym.Env):
                                     maxVelocity=self.randomized_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
-        # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        # leg_ctr = 0
-        # obs_sequential = []
-        # for i in range(self.config["sim_steps_per_iter"]):
-        #     if leg_ctr < 6:
-        #         obs_sequential.extend(
-        #             p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-        #         leg_ctr += 1
-        #     p.stepSimulation(physicsClientId=self.client_ID)
-        #     if (self.config["animate"] or render) and True: time.sleep(0.00417)
+
 
         p.stepSimulation(physicsClientId=self.client_ID)
         if self.config["animate"]: time.sleep(self.config["sim_step"])
 
         self.step_ctr += 1
 
-        # joint_angles_skewed = []
-        # for o in obs_sequential:
-        #     joint_angles_skewed.append(o[0])
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
 
-        #scaled_joint_angles = self.rads_to_norm(joint_angles_skewed)
-
-        # Calculate work done by each motor
-        #joint_work_done_arr = np.array(joint_torques) * np.array(joint_velocities)
-        #total_work_pen = np.mean(np.square(joint_work_done_arr))
 
         # Calculate yaw
         roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
@@ -398,10 +370,6 @@ class HexapodBulletEnv(gym.Env):
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
 
-        # Compute heading reward
-        #yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
-        #yaw_dev_sign = np.sign(yaw_dev_diff)
-        #heading_rew = np.minimum(np.abs(yaw_deviation), 3) * np.clip(yaw_dev_sign * np.square(yaw_dev_diff) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]), -2, 2)
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
@@ -442,33 +410,20 @@ class HexapodBulletEnv(gym.Env):
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
+        # Orientation angle
+        tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
+        yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
+        signed_deviation = yaw - tar_angle
+
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, relative_target
-        compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
-        self.obs_queue.append(compiled_obs_flat)
-        self.obs_queue.pop(0)
-
-        aux_obs = []
-        if self.config["obs_input"]:
-            [aux_obs.extend(c) for c in self.obs_queue]
-        if self.config["act_input"]:
-            [aux_obs.extend(c) for c in self.act_queue]
-        if self.config["rew_input"] > 0:
-            [aux_obs.extend(c) for c in self.rew_queue]
-        if self.config["latent_input"]:
-            aux_obs.extend(self.randomized_params_list_norm)
-        if self.config["step_counter"]:
-            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
-
-        env_obs = np.array(aux_obs).astype(np.float32)
-
+        env_obs = np.array([signed_deviation]).astype(np.float32)
         done = self.step_ctr > self.config["max_steps"] or reached_target
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
             done = True
 
-        if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 6 or abs(torso_pos[2]) > 2.5:
+        if abs(torso_pos[0]) > 6 or abs(torso_pos[1]) > 6 or abs(torso_pos[2]) > 1.5:
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 

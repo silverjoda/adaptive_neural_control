@@ -46,7 +46,7 @@ def f_optuna(trial, env, policy):
     obs = env.reset()
 
     w_dummy = [0,0,0,0]
-    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(8)]
+    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(16)]
     w = np.array(w_dummy + w_suggested)
 
     vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
@@ -57,7 +57,7 @@ def f_optuna(trial, env, policy):
         obs, rew, done, _ = env.step(act)
         reward += rew
 
-    return -reward
+    return reward
 
 def train(env, policy, config):
     w = parameters_to_vector(policy.parameters()).detach().numpy()
@@ -98,11 +98,11 @@ def train_optuna(env, policy, config):
 
     print(f'N_params: {len(w)}')
 
-    study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=100, show_progress_bar=True)
+    study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=config["optuna_trials"], show_progress_bar=True)
 
-    vector_to_parameters(torch.from_numpy(study.best_params.values()).float(), policy.parameters())
+    vector_to_parameters(torch.from_numpy(np.array([0,0,0,0] + list(study.best_params.values()))).float(), policy.parameters())
     T.save(policy.state_dict(), sdir)
-    print("Saved agent, {}".format(sdir))
+    print("Saved agent, {}, with best value: {}".format(sdir, study.best_value))
 
     return study.best_value
 
@@ -202,8 +202,14 @@ if __name__=="__main__":
 
     if config["train"] or socket.gethostname() == "goedel":
         t1 = time.time()
-        train(env, policy, config)
-        #train_optuna(env, policy, config)
+        if config["algo"] == "cma":
+            train(env, policy, config)
+        elif config["algo"] == "optuna":
+            train_optuna(env, policy, config)
+        else:
+            print("Algorithm not implemented")
+            exit()
+
         t2 = time.time()
 
         print("Training time: {}".format(t2 - t1))

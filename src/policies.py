@@ -15,10 +15,10 @@ class FF_HEX_EEF(nn.Module):
         # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases
         self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
 
-
     def forward(self, x):
+        yaw = x[0]
         # x_mult : [0,0.09], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
-        clipped_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.00 + 0.06, # x_mult
+        static_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.00 + 0.06, # x_mult
                           (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.00 + 0.15, # y_offset
                           (0.5 + 0.5 * np.tanh(self.learned_params[2].data)) * 0.00 + 0.03, # z_mult
                           (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.00) - 0.09, # z_offset
@@ -30,13 +30,57 @@ class FF_HEX_EEF(nn.Module):
                           self.learned_params[9].data,
                           self.learned_params[10].data,
                           self.learned_params[11].data]
-        #clipped_params[0:4] = [0.07, 0.13, 0.04, -0.07]
-        act = [param.data for param in clipped_params]
+
+        for i in range(8):
+            static_params[i + 4] = self.learned_params[i + 4].data + self.learned_params[i + 12].data * yaw
+        act = [param.data for param in static_params]
         return act
 
-    def sample_action(self, _):
+    def sample_action(self, x):
         with T.no_grad():
-            act = self.forward(None)
+            act = self.forward(x)
+        return act
+
+class FF_HEX_EEF_ADVANCED(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(FF_HEX_EEF_ADVANCED, self).__init__()
+        self.config = config
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+        # [tensor(0.7135), tensor(-0.6724), tensor(-0.8629), tensor(-1.0894), tensor(0.0725), tensor(3.4730), tensor(0.3511), tensor(0.4637), tensor(-3.4840), tensor(-2.8000), tensor(-0.4658)]
+        # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, *phases
+        self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
+
+    def forward(self, x):
+        yaw = x[0]
+        angle = x[1]
+        contacts = x[2:8]
+        angle_cyc = np.sin(angle * 2 * np.pi)
+        # x_mult : [0,0.09], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
+        static_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.00 + 0.06, # x_mult
+                          (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.00 + 0.15, # y_offset
+                          (0.5 + 0.5 * np.tanh(self.learned_params[2].data)) * 0.00 + 0.03, # z_mult
+                          (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.00) - 0.09, # z_offset
+                          self.learned_params[4].data, # phase_offset_l
+                          self.learned_params[5].data, # phase_offset_r
+                          self.learned_params[6].data,
+                          self.learned_params[7].data,
+                          self.learned_params[8].data,
+                          self.learned_params[9].data,
+                          self.learned_params[10].data,
+                          self.learned_params[11].data]
+
+        for i in range(8):
+            static_params[i + 4] += self.learned_params[i + 12].data * yaw
+        act_z = []
+        for i in range(6):
+            act_z.append(self.learned_params[i + 20].data * np.sin(angle * 2 * np.pi + static_params[i + 6]) * contacts[i])
+        act = [param.data for param in static_params]
+        return act + act_z
+
+    def sample_action(self, x):
+        with T.no_grad():
+            act = self.forward(x)
         return act
 
 class FF_HEX_JOINT_PHASES(nn.Module):

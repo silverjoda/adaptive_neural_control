@@ -345,9 +345,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
-        velocity_rew = np.minimum(
-            (self.prev_target_dist - target_dist) / (self.config["sim_step"] * self.config["sim_steps_per_iter"]),
-            self.config["target_vel"]) / self.config["target_vel"]
+        velocity_rew = np.minimum(xd * 2, self.config["target_vel"])
 
         if target_dist < self.config["target_proximity_threshold"] or (np.abs(torso_pos[0]) > self.target[0]):
             reached_target = True
@@ -361,19 +359,7 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * self.config["inclination_pen"],
-                 "bobbing": np.sqrt(np.square(zd)) * 0.0,
-                 "yaw_pen": np.square(tar_angle - yaw) * 0.00}
-
-        r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2) * 10,
-                 "height_rew": np.clip(torso_pos[2], 0, 0.00)}
-        # print(r_pos["velocity_rew"])
-        # r_pos = {"velocity_rew": np.clip(velocity_rew, -2, 2), "height_rew": np.clip(torso_pos[2], 0, 0.00)}
-
-        r_pos_sum = sum(r_pos.values())
-        r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
-
-        r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
+        r = velocity_rew
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
@@ -427,8 +413,13 @@ class HexapodBulletEnv(gym.Env):
         #"joints_rads_high": [0.6, 0.2, 1.5]
 
         self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
-        self.joints_rads_low = np.array([self.joints_rads_low[0], np.maximum(self.joints_rads_low[1] - 0.0003, -2), np.maximum(self.joints_rads_low[2] - 0.0003, -1)] * 6)
-        self.joints_rads_high = np.array([self.joints_rads_high[0], np.minimum(self.joints_rads_high[1] + 0.0003, 1), np.minimum(self.joints_rads_high[2] + 0.0003, 2)] * 6)
+        td = self.config["training_difficulty"]
+        jrl = self.config["joints_rads_low"]
+        jrl_t = self.config["joints_rads_low_target"]
+        jrh = self.config["joints_rads_high"]
+        jrh_t = self.config["joints_rads_high_target"]
+        self.joints_rads_low = np.array([jrl[0], jrl[1] * (1 - td) + jrl_t[1] * (td), jrl[2] * (1 - td) + jrl_t[2] * (td)] * 6)
+        self.joints_rads_high = np.array([jrh[0], jrh[1] * (1 - td) + jrh_t[1] * (td), jrh[2] * (1 - td) + jrh_t[2] * (td)] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         #self.config["target_spawn_mu"][0] = np.maximum(0., self.config["target_spawn_mu"][0] - 0.00005)
