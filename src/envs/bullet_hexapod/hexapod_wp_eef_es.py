@@ -289,7 +289,7 @@ class HexapodBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": 1.6 + (np.random.rand() * 1.4 - 0.7) * self.config[
                                 "randomize_env"],
-                                "lateral_friction": 1.2 + (np.random.rand() * 1.2 - 0.6) * self.config[
+                                "lateral_friction": 1.4 + (np.random.rand() * 1.2 - 0.6) * self.config[
                                     "randomize_env"],
                                 "max_joint_force": 1.2 + (np.random.rand() * 1.0 - 0.5) * self.config[
                                     "randomize_env"],
@@ -297,7 +297,7 @@ class HexapodBulletEnv(gym.Env):
                                       "randomize_env"],
                                 "actuator_velocity_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
                                       "randomize_env"],
-                                "max_actuator_velocity": 4.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
+                                "max_actuator_velocity": 5.0 + (np.random.rand() * 4.0 - 2.0) * self.config[
                                       "randomize_env"],
                                 }
 
@@ -350,7 +350,6 @@ class HexapodBulletEnv(gym.Env):
                                     physicsClientId=self.client_ID)
 
 
-
         p.stepSimulation(physicsClientId=self.client_ID)
         if self.config["animate"]: time.sleep(self.config["sim_step"])
 
@@ -369,7 +368,6 @@ class HexapodBulletEnv(gym.Env):
         # Orientation angle
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
-
 
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)

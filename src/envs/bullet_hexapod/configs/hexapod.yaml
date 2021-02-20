@@ -7,6 +7,7 @@
 "env_length" : 100
 "env_change_prob" : 1.0
 "perlin_height" : 60
+"obstacle_height" : 40
 "mass" : 1.6
 "lateral_friction" : 1.6
 "max_joint_force" : 2.0
@@ -17,6 +18,8 @@
 "sim_steps_per_iter" :  12
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
+"training_difficulty" : 0.8
+"velocities_and_torques" : False
 "joints_rads_low" : [-0.5, -1.2, 0.2]
 "joints_rads_high" : [0.5, 0.2, 1.6]
 "target_proximity_threshold" : 0.3

@@ -34,7 +34,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.obs_dim = 50
+        self.obs_dim = 33 + 36 * self.config["velocities_and_torques"]
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-2, high=2, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -128,6 +128,33 @@ class HexapodBulletEnv(gym.Env):
                         sy = scale_y * (1 / (lacunarity ** o))
                         amp = persistence ** o
                         hm[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+
+            wmin, wmax = hm.min(), hm.max()
+            hm = (hm - wmin) / (wmax - wmin) * height
+            hm += current_height
+
+        if env_name == "obstacle":
+            oSim = OpenSimplex(seed=int(time.time()))
+
+            height = self.config["obstacle_height"] * self.config["training_difficulty"] # 30-40
+
+            M = math.ceil(self.config["env_width"])
+            N = math.ceil(self.config["env_length"])
+            hm = np.zeros((N, M), dtype=np.float32)
+
+            scale_x = 15
+            scale_y = 15
+            octaves = 4 # np.random.randint(1, 5)
+            persistence = 1
+            lacunarity = 2
+
+            for i in range(int(N/2) + 3, int(N/2) + 7):
+                for j in range(M):
+                    for o in range(octaves):
+                        sx = scale_x * (1 / (lacunarity ** o))
+                        sy = scale_y * (1 / (lacunarity ** o))
+                        amp = persistence ** o
+                        hm[i][j] += abs(oSim.noise2d(i / sx, j / sy) * amp)
 
             wmin, wmax = hm.min(), hm.max()
             hm = (hm - wmin) / (wmax - wmin) * height
@@ -283,7 +310,11 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, scaled_joint_angles, joint_velocities, [signed_deviation], contacts
+        time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
+        if self.obs_dim > 32:
+            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, scaled_joint_angles, contacts, joint_torques, joint_velocities
+        else:
+            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, scaled_joint_angles, contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 

@@ -71,3 +71,7 @@ pip install --user optuna
 pip install --user stable_baselines3
 pip install --user opensimplex
 pip install --user pybullet
+
+
+# Schedule
+1: a2c eef  3: td3 perlin ntv 4: td3 perlin 5: td3 obstacle ntv 6: td3 obstacle 7: a2c perlin ntv 8: a2c obstacle ntv

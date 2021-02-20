@@ -37,12 +37,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Environment parameters
         self.act_dim = 14  # x_mult, y_offset, z_mult, z_offset, phase_offset, phase_0 ... phase_5
-        self.just_obs_dim = 50
-        self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
-                       + self.config["act_input"] * self.act_dim \
-                       + self.config["rew_input"] * 1 \
-                       + self.config["latent_input"] * 6 \
-                       + self.config["step_counter"] * 1
+        self.obs_dim = 33
 
         self.observation_space = spaces.Box(low=-3, high=3, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -77,11 +72,6 @@ class HexapodBulletEnv(gym.Env):
         self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r])
         self.create_targets()
 
-        self.obs_queue = [np.zeros(self.just_obs_dim, dtype=np.float32) for _ in
-                          range(np.maximum(1, self.config["obs_input"]))]
-        self.act_queue = [np.zeros(self.act_dim, dtype=np.float32) for _ in
-                          range(np.maximum(1, self.config["act_input"]))]
-        self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]))]
 
     def set_seed(self, np_seed, T_seed):
         np.random.seed(np_seed)
@@ -369,9 +359,6 @@ class HexapodBulletEnv(gym.Env):
         return self.robot
 
     def step(self, ctrl_raw, render=False):
-        self.act_queue.append(ctrl_raw)
-        self.act_queue.pop(0)
-
         self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
         self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r]) + np.tanh(
             ctrl_raw[6:8]) * np.pi * self.config["phase_offset_scalar"]
@@ -400,8 +387,9 @@ class HexapodBulletEnv(gym.Env):
                                     maxVelocity=self.randomized_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
-        p.stepSimulation(physicsClientId=self.client_ID)
-        if self.config["animate"]: time.sleep(self.config["sim_step"])
+        for i in range(self.config["sim_steps_per_iter"]):
+            p.stepSimulation(physicsClientId=self.client_ID)
+            if (self.config["animate"] or render) and True: time.sleep(0.00417)
 
         self.step_ctr += 1
 
@@ -456,37 +444,17 @@ class HexapodBulletEnv(gym.Env):
 
         r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
 
-        self.rew_queue.append([r])
-        self.rew_queue.pop(0)
 
         if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
             print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos,
                                                                                               r_neg))
 
-        # Calculate relative positions of targets
-        relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
 
         # Assemble agent observation
-        current_phases_obs = (self.current_phases % (np.pi * 2) - np.pi) / np.pi
-        offset_obs = (np.array([self.left_offset, self.right_offset]) % (np.pi * 2) - np.pi) / np.pi
-        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, joint_velocities, contacts
+        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, contacts, [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
-        self.obs_queue.append(compiled_obs_flat)
-        self.obs_queue.pop(0)
 
-        aux_obs = []
-        if self.config["obs_input"]:
-            [aux_obs.extend(c) for c in self.obs_queue]
-        if self.config["act_input"]:
-            [aux_obs.extend(c) for c in self.act_queue]
-        if self.config["rew_input"] > 0:
-            [aux_obs.extend(c) for c in self.rew_queue]
-        if self.config["latent_input"]:
-            aux_obs.extend(self.randomized_params_list_norm)
-        if self.config["step_counter"]:
-            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
-
-        env_obs = np.array(aux_obs).astype(np.float32)
+        env_obs = np.array(compiled_obs_flat).astype(np.float32)
 
         done = self.step_ctr > self.config["max_steps"] or reached_target
 
@@ -569,37 +537,20 @@ class HexapodBulletEnv(gym.Env):
 
         return obs
 
-    def test_ikt(self):
+    def test_phases(self):
         np.set_printoptions(precision=3)
         self.reset()
 
+        y_dist = 0.1
+        z_offset = -0.1
+        angle = 0
         while True:
-            dir_vec = [1., -1.] * 3
-            targets = p.calculateInverseKinematics2(self.robot,
-                                                    endEffectorLinkIndices=self.eef_list,
-                                                    targetPositions=[
-                                                        [np.cos(-self.angle * 2 * np.pi + self.phases_op[
-                                                            i]) * self.x_mult,
-                                                         self.y_offset * dir_vec[i],
-                                                         np.sin(-self.angle * 2 * np.pi + self.phases_op[
-                                                             i] + self.phase_offset) * self.z_mult - self.z_offset]
-                                                        for i in range(6)],
-                                                    currentPositions=[0] * 18)
-
             for i in range(18):
-                p.setJointMotorControl2(bodyUniqueId=self.robot,
-                                        jointIndex=i,
-                                        controlMode=p.POSITION_CONTROL,
-                                        targetPosition=targets[i],
-                                        force=self.randomized_params["max_joint_force"],
-                                        positionGain=self.randomized_params["actuator_position_gain"],
-                                        velocityGain=self.randomized_params["actuator_velocity_gain"],
-                                        maxVelocity=self.randomized_params["max_actuator_velocity"],
-                                        physicsClientId=self.client_ID)
+                self.step([0, 1] * 3 + [0] * 18)
 
             p.stepSimulation()
             time.sleep(self.config["sim_step"])
-            self.angle += self.config["angle_increment"]
+            angle += 0.007
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
@@ -653,7 +604,7 @@ if __name__ == "__main__":
     env_config["w_2"] = False
     env_config["phase_scalar"] = 1
     env = HexapodBulletEnv(env_config)
-    # env.test_ikt()
+    env.test_phases()
 
-    while True:
-        env.reset()
+    # while True:
+    #     env.reset()

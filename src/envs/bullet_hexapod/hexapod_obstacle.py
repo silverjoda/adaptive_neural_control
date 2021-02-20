@@ -35,12 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.just_obs_dim = 26
-        self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
-                       + self.config["act_input"] * 18 \
-                       + self.config["rew_input"] * 1 \
-                       + self.config["latent_input"] * 6 \
-                       + self.config["step_counter"] * 1
+        self.obs_dim = 33 + 36 * self.config["velocities_and_torques"]
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -81,10 +76,6 @@ class HexapodBulletEnv(gym.Env):
         self.target_vel_nn_input = 0
 
         self.create_targets()
-
-        self.obs_queue = [np.zeros(self.just_obs_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["obs_input"]))]
-        self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]))]
-        self.rew_queue = [np.zeros(1,dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]))]
 
 
     def set_seed(self, np_seed, T_seed):
@@ -279,9 +270,6 @@ class HexapodBulletEnv(gym.Env):
         return self.robot
 
     def step(self, ctrl_raw, render=False):
-        self.act_queue.append(ctrl_raw)
-        self.act_queue.pop(0)
-
         ctrl_clipped = np.tanh(np.array(ctrl_raw) * self.config["action_scaler"])
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
@@ -295,23 +283,6 @@ class HexapodBulletEnv(gym.Env):
                                     velocityGain=self.randomized_params["actuator_velocity_gain"],
                                     maxVelocity=self.randomized_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
-
-        # Read out joint angles sequentially (to simulate servo daisy chain delay)
-        # leg_ctr = 0
-        # obs_sequential = []
-        # for i in range(self.config["sim_steps_per_iter"]):
-        #     if leg_ctr < 6:
-        #         obs_sequential.extend(
-        #             p.getJointStates(self.robot, range(leg_ctr * 3, (leg_ctr + 1) * 3), physicsClientId=self.client_ID))
-        #         leg_ctr += 1
-        #     p.stepSimulation(physicsClientId=self.client_ID)
-        #     if (self.config["animate"] or render) and True: time.sleep(0.00417)
-        #
-        # self.step_ctr += 1
-        #
-        # joint_angles_skewed = []
-        # for o in obs_sequential:
-        #     joint_angles_skewed.append(o[0])
 
         for i in range(self.config["sim_steps_per_iter"]):
             p.stepSimulation(physicsClientId=self.client_ID)
@@ -361,33 +332,19 @@ class HexapodBulletEnv(gym.Env):
 
         r = velocity_rew
 
-        self.rew_queue.append([r])
-        self.rew_queue.pop(0)
-
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
         signed_deviation = yaw - tar_angle
 
         # Assemble agent observation
-        #compiled_obs = scaled_joint_angles, torso_quat, torso_vel, [signed_deviation], joint_torques, joint_velocities
-        compiled_obs = scaled_joint_angles, torso_quat, torso_vel, [signed_deviation]
+        time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
+        if self.obs_dim > 32:
+            compiled_obs = torso_quat, torso_vel, [
+                signed_deviation], time_feature, scaled_joint_angles, contacts, joint_torques, joint_velocities
+        else:
+            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, scaled_joint_angles, contacts
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
-        self.obs_queue.append(compiled_obs_flat)
-        self.obs_queue.pop(0)
-
-        aux_obs = []
-        if self.config["obs_input"]:
-            [aux_obs.extend(c) for c in self.obs_queue]
-        if self.config["act_input"]:
-            [aux_obs.extend(c) for c in self.act_queue]
-        if self.config["rew_input"] > 0:
-            [aux_obs.extend(c) for c in self.rew_queue]
-        if self.config["latent_input"]:
-            aux_obs.extend(self.randomized_params_list_norm)
-        if self.config["step_counter"]:
-            aux_obs.extend([(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1])
-
-        env_obs = np.array(aux_obs).astype(np.float32)
+        env_obs = np.array(compiled_obs_flat).astype(np.float32)
 
         done = self.step_ctr > self.config["max_steps"] or reached_target
 
