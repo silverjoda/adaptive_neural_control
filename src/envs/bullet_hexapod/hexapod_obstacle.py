@@ -338,7 +338,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Assemble agent observation
         time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
-        if self.obs_dim > 32:
+        if self.obs_dim > 33:
             compiled_obs = torso_quat, torso_vel, [
                 signed_deviation], time_feature, scaled_joint_angles, contacts, joint_torques, joint_velocities
         else:
