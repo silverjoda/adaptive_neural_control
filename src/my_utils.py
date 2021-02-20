@@ -74,6 +74,8 @@ def make_policy(env, config):
         return policies.MLP_ES(env.obs_dim, env.act_dim, config)
     elif config["policy_type"] == "ff_hex_eef":
         return policies.FF_HEX_EEF(env.obs_dim, env.act_dim, config)
+    elif config["policy_type"] == "ff_hex_eef_adv":
+        return policies.FF_HEX_EEF_ADVANCED(env.obs_dim, env.act_dim, config)
     elif config["policy_type"] == "ff_hex_joint_phases":
         return policies.FF_HEX_JOINT_PHASES(env.obs_dim, env.act_dim, config)
     else:

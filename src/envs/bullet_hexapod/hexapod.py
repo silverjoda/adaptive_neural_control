@@ -270,9 +270,6 @@ class HexapodBulletEnv(gym.Env):
 
         r = (self.prev_target_dist - target_dist) * 100
 
-        # TODO: Add velocity reward again
-        # TODO: Test obstacle with this actuator param config
-
         if target_dist < self.config["target_proximity_threshold"] or (np.abs(torso_pos[0]) > self.target[0]):
             reached_target = True
             self.update_targets()
@@ -303,14 +300,30 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
+        if hasattr(self, 'terrain'):
+            p.removeBody(self.terrain, physicsClientId=self.client_ID)
+        if hasattr(self, 'robot'):
+            p.removeBody(self.robot, physicsClientId=self.client_ID)
+
+        del self.robot
+        del self.terrain
+        del self.target_body
+        self.target = None
+
+        p.resetSimulation(physicsClientId=self.client_ID)
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        self.robot = self.load_robot()
+        if not self.config["terrain_name"] == "flat":
+            self.terrain = self.generate_rnd_env()
+        else:
+            self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        self.create_targets()
+
         # Reset episodal vars
         self.step_ctr = 0
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
-
-        # Change heightmap with small probability
-        if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
-            self.terrain = self.generate_rnd_env()
 
         # Get heightmap height at robot position
         if self.terrain is None or self.config["terrain_name"] == "flat":

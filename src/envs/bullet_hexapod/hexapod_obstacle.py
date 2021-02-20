@@ -133,7 +133,7 @@ class HexapodBulletEnv(gym.Env):
         if env_name == "stairs_up":
             hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
             stair_height = 14 * self.config["training_difficulty"]
-            stair_width = 8
+            stair_width = 3
 
             initial_offset = self.config["env_length"] // 2 - self.config["env_length"] // 14
             n_steps = min(math.floor(self.config["env_length"] / stair_width) - 1, 10)
@@ -401,8 +401,25 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        if self.config["randomize_env"]:
-            self.robot = self.load_robot()
+        if hasattr(self, 'terrain'):
+            p.removeBody(self.terrain, physicsClientId=self.client_ID)
+        if hasattr(self, 'robot'):
+            p.removeBody(self.robot, physicsClientId=self.client_ID)
+
+        del self.robot
+        del self.terrain
+        del self.target_body
+        self.target = None
+
+        p.resetSimulation(physicsClientId=self.client_ID)
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        self.robot = self.load_robot()
+        if not self.config["terrain_name"] == "flat":
+            self.terrain = self.generate_rnd_env()
+        else:
+            self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        self.create_targets()
 
         # Reset episodal vars
         self.step_ctr = 0
@@ -413,6 +430,7 @@ class HexapodBulletEnv(gym.Env):
         #"joints_rads_high": [0.6, 0.2, 1.5]
 
         self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
+        print(self.config["training_difficulty"])
         td = self.config["training_difficulty"]
         jrl = self.config["joints_rads_low"]
         jrl_t = self.config["joints_rads_low_target"]
@@ -432,10 +450,6 @@ class HexapodBulletEnv(gym.Env):
         if self.config["force_target_velocity"]:
             self.config["target_vel"] = self.config["forced_target_velocity"]
             self.target_vel_nn_input = 2 * ((self.config["target_vel"] - min(self.config["target_vel_range"])) / (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"]))) - 1
-
-        # Change heightmap with small probability
-        if np.random.rand() < self.config["env_change_prob"] and not self.config["terrain_name"] == "flat":
-            self.terrain = self.generate_rnd_env()
 
         # Get heightmap height at robot position
         if self.terrain is None or self.config["terrain_name"] == "flat":

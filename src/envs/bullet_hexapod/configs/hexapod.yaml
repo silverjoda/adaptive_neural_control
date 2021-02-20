@@ -5,7 +5,7 @@
 "sim_step" : 0.00417
 "env_width" : 60
 "env_length" : 100
-"env_change_prob" : 0.0
+"env_change_prob" : 1.0
 "perlin_height" : 70
 "mass" : 1.6
 "lateral_friction" : 1.6
