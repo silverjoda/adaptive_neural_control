@@ -2,10 +2,10 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 1
-"iters" : 1000000
+"iters" : 400000
 "gamma" : 0.99
 "learning_rate" : "lambda x : x * 0.001"
-"buffer_size" : 200000
+"buffer_size" : 100000
 "learning_starts" : 30000
 "batch_size" : 256
 "tau" : 0.005

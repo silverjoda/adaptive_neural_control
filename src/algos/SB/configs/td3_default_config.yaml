@@ -2,7 +2,7 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 1
-"iters" : 200000
+"iters" : 400000
 "gamma" : 0.99
 "learning_rate" : "lambda x : x * 0.001"
 "buffer_size" : 100000
@@ -18,3 +18,6 @@
 "ou_sigma" : 0.9
 "ou_theta" : 0.1
 "ou_dt" : 0.1
+
+
+# After successful run we decreased buffer size from 200k to 100k I think.

@@ -106,7 +106,7 @@ def setup_train(config, setup_dirs=True):
     env = env_fun(config)
     model = make_model(config, env)
 
-    checkpoint_callback = CheckpointCallback(save_freq=300000,
+    checkpoint_callback = CheckpointCallback(save_freq=100000,
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 

@@ -6,7 +6,7 @@
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 1.0
-"perlin_height" : 70
+"perlin_height" : 60
 "mass" : 1.6
 "lateral_friction" : 1.6
 "max_joint_force" : 2.0
