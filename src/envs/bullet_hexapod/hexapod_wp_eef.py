@@ -449,9 +449,9 @@ class HexapodBulletEnv(gym.Env):
             print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos,
                                                                                               r_neg))
 
-
         # Assemble agent observation
-        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, contacts, [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
+        time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
+        compiled_obs = torso_quat, torso_vel, [signed_deviation], joint_angles, contacts, time_feature
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
 
         env_obs = np.array(compiled_obs_flat).astype(np.float32)

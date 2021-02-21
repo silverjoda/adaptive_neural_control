@@ -57,7 +57,7 @@ def make_model(config, env):
                 buffer_size=config["buffer_size"],
                 learning_starts=config["learning_starts"],
                 action_noise=ou_noise,
-                ent_coef='auto',
+                ent_coef=config["ent_coef"],
                 gamma=config["gamma"],
                 tau=config["tau"],
                 learning_rate=eval(config["learning_rate"]),

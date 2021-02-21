@@ -18,3 +18,4 @@
 "ou_sigma" : 0.9
 "ou_theta" : 0.1
 "ou_dt" : 0.1
+"ent_coef" : 0.001
