@@ -1,4 +1,4 @@
-"env_name" : "hexapod_wp_eef_es"
+"env_name" : "hexapod_wp_eef"
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
 "terrain_name" : "perlin"
@@ -32,7 +32,7 @@
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.5
 "target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
-"target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
+"target_spawn_sigma" : [0.0, 4.0] # [1.0, 4.0]
 "angle_increment" : 0.06
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
