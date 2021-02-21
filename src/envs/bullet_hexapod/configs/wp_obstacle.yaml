@@ -18,7 +18,7 @@
 "randomize_env" : False
 "max_actuator_velocity" : 3
 "lateral_friction" : 2.0
-"max_joint_force" : 1.6
+"max_joint_force" : 1.5
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
 "target_vel" : 0.6
@@ -27,13 +27,13 @@
 "mesh_scale_vert" : 2
 "perlin_height" : 70
 "obstacle_height" : 34
-"training_difficulty" : 0.5
-"training_difficulty_increment" : 0.0005
+"training_difficulty" : 0.9
+"training_difficulty_increment" : 0.003 # 0.0005
 "velocities_and_torques" : False
 "joints_rads_low" : [-0.6, -1.0, -0.2]
-"joints_rads_high" : [0.6, 0.7, 1.5]
-"joints_rads_low_target" : [-0.6, -1.6, -0.6]
-"joints_rads_high_target" : [0.6, 1.2, 1.8]
+"joints_rads_high" : [0.6, 0.5, 1.5]
+"joints_rads_low_target" : [-0.6, -1.4, -0.4]
+"joints_rads_high_target" : [0.6, 0.7, 1.8]
 "target_proximity_threshold" : 0.3
 "target_spawn_mu" : [1.2, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
