@@ -16,9 +16,9 @@
 "obs_input" : 1
 "rew_input" : 0
 "randomize_env" : False
-"max_actuator_velocity" : 6
+"max_actuator_velocity" : 3
 "lateral_friction" : 2.0
-"max_joint_force" : 2.6
+"max_joint_force" : 1.6
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
 "target_vel" : 0.6

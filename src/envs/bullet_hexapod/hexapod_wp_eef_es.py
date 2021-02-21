@@ -36,7 +36,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 20 # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, phase_0 ... phase_5
+        self.act_dim = 12 # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, phase_0 ... phase_5
         self.just_obs_dim = 1
         self.obs_dim = self.config["obs_input"] * self.just_obs_dim \
                        + self.config["act_input"] * self.act_dim \
@@ -336,7 +336,7 @@ class HexapodBulletEnv(gym.Env):
 
         joint_angles = self.my_ikt(targets, y_offset)
 
-        self.angle += 0.006
+        self.angle += self.config["angle_increment"]
 
         for i in range(18):
             p.setJointMotorControl2(bodyUniqueId=self.robot,

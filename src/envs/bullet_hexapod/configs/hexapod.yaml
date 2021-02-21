@@ -10,10 +10,10 @@
 "obstacle_height" : 40
 "mass" : 1.6
 "lateral_friction" : 1.6
-"max_joint_force" : 2.0
+"max_joint_force" : 1.5
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
-"max_actuator_velocity" : 6
+"max_actuator_velocity" : 3
 "target_vel" : 0.2
 "sim_steps_per_iter" : 12
 "mesh_scale_lat" : 0.1

@@ -46,7 +46,7 @@ def f_optuna(trial, env, policy):
     obs = env.reset()
 
     w_dummy = [0,0,0,0]
-    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(16)]
+    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(8)]
     w = np.array(w_dummy + w_suggested)
 
     vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())

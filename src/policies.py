@@ -16,7 +16,6 @@ class FF_HEX_EEF(nn.Module):
         self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
 
     def forward(self, x):
-        yaw = x[0]
         # x_mult : [0,0.09], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
         static_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.00 + 0.06, # x_mult
                           (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.00 + 0.15, # y_offset
@@ -31,8 +30,6 @@ class FF_HEX_EEF(nn.Module):
                           self.learned_params[10].data,
                           self.learned_params[11].data]
 
-        for i in range(8):
-            static_params[i + 4] = self.learned_params[i + 4].data + self.learned_params[i + 12].data * yaw
         act = [param.data for param in static_params]
         return act
 
