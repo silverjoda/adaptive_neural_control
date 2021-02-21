@@ -75,3 +75,5 @@ pip install --user pybullet
 
 # Schedule
 1: a2c eef  3: td3 perlin ntv 4: td3 perlin 5: td3 obstacle ntv 6: td3 obstacle 7: sac perlin ntv 8: sac obstacle ntv
+
+# TODO: !!! INCREASE HEXAPOD BELLY SIZE IN SIM. REAL ONE IS MUCH LOWER
