@@ -1,4 +1,4 @@
-"algo_name" : "TD3"
+"algo_name" : "SAC"
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 1
@@ -18,4 +18,4 @@
 "ou_sigma" : 0.9
 "ou_theta" : 0.1
 "ou_dt" : 0.1
-"ent_coef" : 0.001
+"ent_coef" : 0.00001

@@ -229,7 +229,7 @@ class HexapodBulletEnv(gym.Env):
             self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
+        self.randomized_params = {"mass": self.config["mass"] + (np.random.rand() * 1.4 - 0.7) * self.config[
             "randomize_env"],
                                   "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 1.2 - 0.6) *
                                                       self.config[
