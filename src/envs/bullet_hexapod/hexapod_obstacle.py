@@ -387,15 +387,15 @@ class HexapodBulletEnv(gym.Env):
         #"joints_rads_high": [0.6, 0.2, 1.5]
 
         self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
-        print(self.config["training_difficulty"])
-        td = self.config["training_difficulty"]
-        jrl = self.config["joints_rads_low"]
-        jrl_t = self.config["joints_rads_low_target"]
-        jrh = self.config["joints_rads_high"]
-        jrh_t = self.config["joints_rads_high_target"]
-        self.joints_rads_low = np.array([jrl[0], jrl[1] * (1 - td) + jrl_t[1] * (td), jrl[2] * (1 - td) + jrl_t[2] * (td)] * 6)
-        self.joints_rads_high = np.array([jrh[0], jrh[1] * (1 - td) + jrh_t[1] * (td), jrh[2] * (1 - td) + jrh_t[2] * (td)] * 6)
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+        #print(self.config["training_difficulty"])
+        #td = self.config["training_difficulty"]
+        #jrl = self.config["joints_rads_low"]
+        #jrl_t = self.config["joints_rads_low_target"]
+        #jrh = self.config["joints_rads_high"]
+        #jrh_t = self.config["joints_rads_high_target"]
+        #self.joints_rads_low = np.array([jrl[0], jrl[1] * (1 - td) + jrl_t[1] * (td), jrl[2] * (1 - td) + jrl_t[2] * (td)] * 6)
+        #self.joints_rads_high = np.array([jrh[0], jrh[1] * (1 - td) + jrh_t[1] * (td), jrh[2] * (1 - td) + jrh_t[2] * (td)] * 6)
+        #self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         if self.config["velocity_control"]:
             self.target_vel_nn_input = np.random.rand() * 2 - 1

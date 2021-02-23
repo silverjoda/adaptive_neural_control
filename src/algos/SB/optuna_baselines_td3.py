@@ -1,6 +1,5 @@
 import optuna
-from baselines3_RL import *
-from copy import deepcopy
+from baselines3_TD3 import *
 
 def objective(trial, config):
     # Hexapod
@@ -13,8 +12,9 @@ def objective(trial, config):
            trial.suggest_uniform('jr_diff_femur', 1, 3),
            trial.suggest_uniform('jr_diff_tibia', 1, 3)]
 
-    config["joints_rads_low"] = jrl * 6
-    config["joints_rads_diff"] = [jrl[i]+jr_diff[i] for i in range(3)] * 6
+    config["joints_rads_low"] = jrl
+    config["joints_rads_diff"] = [jrl[i]+jr_diff[i] for i in range(3)]
+    config["joints_rads_high"] = [jrl[i]+jr_diff[i] for i in range(3)]
 
     # Quad
     # config["n_steps"] = trial.suggest_int('n_steps', 6, 40)

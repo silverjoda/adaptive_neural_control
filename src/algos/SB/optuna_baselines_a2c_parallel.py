@@ -56,12 +56,12 @@ if __name__ == "__main__":
 
     time.sleep(np.random.rand())
 
-    env_fun = my_utils.import_env("hexapod_wp_eef")
-    algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
-    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
+    env_fun = my_utils.import_env("hexapod_obstacle")
+    algo_config = my_utils.read_config("configs/td3_hexapod_config.yaml")
+    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 16000000
+    config["iters"] = 300000
     config["verbose"] = False
     config["animate"] = False
     #config["default_session_ID"] = "OPT_HEX"
