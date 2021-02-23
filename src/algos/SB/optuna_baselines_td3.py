@@ -24,7 +24,6 @@ def objective(trial, config):
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
-    env.save(stats_path)
 
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
@@ -36,7 +35,7 @@ def objective(trial, config):
     del eval_env
     del model
 
-    return avg_episode_rew[0] / config["N_test"]
+    return avg_episode_rew / config["N_test"]
 
 if __name__ == "__main__":
     algo_config = my_utils.read_config("configs/td3_default_config.yaml")
