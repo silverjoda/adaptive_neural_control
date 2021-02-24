@@ -123,22 +123,21 @@ class QuadrotorBulletEnv(gym.Env):
             pass
             #p.removeBody(self.robot)
         else:
-            pass
             self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
                                physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": 0.8 + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
-                                 "boom": 0.15 + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_alpha": 0.1 + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
-                                 "motor_force_multiplier": 8 + (np.random.rand() * 4 - 1.5) * self.config["randomize_env"],
+        self.randomized_params = {"mass": self.config["default_mass"] + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
+                                 "boom": self.config["default_boom_length"] + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
+                                 "motor_spinup_speed": self.config["default_motor_spinup_speed"] + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
+                                 "motor_force_multiplier": self.config["default_motor_force_multiplier"] + (np.random.rand() * 4 - 1.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": self.config["input_transport_delay"] + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
                                  "output_transport_delay": self.config["output_transport_delay"] + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"]}
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
-        self.randomized_params_list_norm.append((self.randomized_params["motor_alpha"] - 0.05) * (1. / 0.02))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_spinup_speed"] - 0.05) * (1. / 0.02))
         self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 1.5))
         self.randomized_params_list_norm.extend((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
         self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
@@ -184,9 +183,8 @@ class QuadrotorBulletEnv(gym.Env):
         ctrl_clipped = np.clip(ctrl, 0, 1)
         bot = np.minimum(self.current_motor_velocity_vec, ctrl_clipped)
         top = np.maximum(self.current_motor_velocity_vec, ctrl_clipped)
-        raw = self.current_motor_velocity_vec + self.randomized_params["motor_alpha"] * np.sign(ctrl - self.current_motor_velocity_vec)
+        raw = self.current_motor_velocity_vec + self.randomized_params["motor_spinup_speed"] * np.sign(ctrl - self.current_motor_velocity_vec)
         self.current_motor_velocity_vec = np.clip(raw, bot, top)
-
 
     def render(self, close=False, mode=None):
         if self.config["animate"]:
@@ -273,7 +271,7 @@ class QuadrotorBulletEnv(gym.Env):
 
     def step(self, ctrl_raw):
         if self.prev_act is not None:
-            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * 0.01
+            raw_act_smoothness_pen = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * self.config["raw_act_smoothness_pen"]
         else:
             raw_act_smoothness_pen = 0
         self.prev_act = ctrl_raw
@@ -324,7 +322,7 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.mean(np.abs(pos_delta)) * 1.0
+        p_position = np.mean(np.abs(pos_delta)) * 3.0
         p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 1.0, -3, 3)
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
@@ -362,7 +360,6 @@ class QuadrotorBulletEnv(gym.Env):
             if self.config["step_counter"] > 0:
                 def step_ctr_to_obs(step_ctr):
                     return (float(step_ctr) / self.config["max_steps"]) * 2 - 1
-
                 t_obs.extend([step_ctr_to_obs(np.maximum(self.step_ctr - i - 1, 0))])
             aux_obs.extend(t_obs)
 
@@ -399,9 +396,6 @@ class QuadrotorBulletEnv(gym.Env):
         p.resetBaseVelocity(self.robot,linearVelocity=rnd_starting_lin_velocity, angularVelocity=rnd_starting_rot_velocity, physicsClientId=self.client_ID)
         obs, _, _, _ = self.step(np.zeros(self.act_dim) + 0.1)
         return obs
-
-    def get_original_reward(self):
-        return 0
 
     def demo(self):
         for i in range(100):

@@ -3,7 +3,7 @@
 "target_vel_source" : "still" # still/rnd/joystick
 "rnd_init" : True
 "max_steps" : 500
-"step_counter" : 0
+"step_counter" : 1
 "latent_input" : 0
 "act_input" : 0
 "obs_input" : 1
@@ -17,6 +17,10 @@
 "target_pos" : [0, 0, 2.0]
 "disturbance_intensity" : 5 # 10 for effect
 "disturbance_frequency" : 0.00 # 0.005
+"default_mass" : 0.8
+"default_boom_length" : 0.15
+"default_motor_spinup_speed" : 0.1
+"default_motor_force_multiplier" : 8
 "urdf_name" : quadrotor.urdf
 "seed" :
 "joystick_mapping" : [3,4,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [] for Logitech
@@ -30,3 +34,4 @@
 "i_pitch" : -0.00
 "input_transport_delay" : 0
 "output_transport_delay" : 0
+"raw_act_smoothness_pen" : 0.001

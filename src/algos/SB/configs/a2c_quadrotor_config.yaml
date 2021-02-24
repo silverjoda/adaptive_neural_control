@@ -4,7 +4,7 @@
 "n_envs" : 6
 "iters" : 36000000
 "n_steps_per_checkpoint" : 1000000
-"gamma" : 0.987
+"gamma" : 0.99
 "n_steps" : 20
 "vf_coef" : 0.5
 "ent_coef" : 0.00000
@@ -23,4 +23,4 @@
 "norm_obs" : False
 "norm_reward" : False
 "use_sde" : False
-"dummy_vec_env" : True
+"dummy_vec_env" : False
