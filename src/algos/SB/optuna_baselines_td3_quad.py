@@ -1,11 +1,12 @@
 import optuna
 from baselines3_TD3 import *
 
+
 def objective(trial, config):
     # Quad
-    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 3e-3))
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.1, 0.8)
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.97, 0.999)
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 7e-4, 3e-3))
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.1, 0.4)
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.97, 0.99)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
@@ -13,6 +14,15 @@ def objective(trial, config):
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
     avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)
+    avg_episode_rew /= config["N_test"]
+
+    try:
+        best_value = trial.study.best_value
+    except:
+        best_value = -1e5
+    if avg_episode_rew > best_value:
+        model.save("agents/QUAD_TD3_OPTUNA_policy")
+        print("Saved best policy")
 
     env.close()
     eval_env.close()
@@ -20,7 +30,7 @@ def objective(trial, config):
     del eval_env
     del model
 
-    return avg_episode_rew / config["N_test"]
+    return avg_episode_rew
 
 if __name__ == "__main__":
     algo_config = my_utils.read_config("configs/td3_quadrotor_config.yaml")
