@@ -1,4 +1,4 @@
-"env_name" : "hexapod_wp_eef_es"
+"env_name" : "hexapod_wp_eef"
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
 "terrain_name" : "perlin"
@@ -28,7 +28,7 @@
 "sim_steps_per_iter" :  12
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
-"perlin_height" : 20
+"perlin_height" : 15
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -1.0, 0.4]

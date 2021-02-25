@@ -6,8 +6,8 @@ def objective(trial, config):
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 5e-3))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.999)
     config["phase_scalar"] = trial.suggest_uniform('phase_scalar', .1, .5)
-    config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.02, 0.07)
-    config["x_mult_scalar"] = trial.suggest_uniform('x_mult_scalar', 0.01, 0.03)
+    config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.00, 0.04)
+    config["x_mult_scalar"] = trial.suggest_uniform('x_mult_scalar', 0.00, 0.02)
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.1, 0.8)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)

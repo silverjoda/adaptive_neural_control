@@ -59,7 +59,7 @@ if __name__ == "__main__":
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
     config["N_test"] = 30
-    N_trials = 70
+    N_trials = 100
 
     t1 = time.time()
     study = optuna.create_study(direction='maximize', study_name="hexapod_opt_study", storage='sqlite:///hexapod_opt.db', load_if_exists=True)

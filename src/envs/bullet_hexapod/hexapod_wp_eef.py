@@ -359,7 +359,7 @@ class HexapodBulletEnv(gym.Env):
         for i in range(6):
             target_x = np.cos(-self.angle * 2 * np.pi + self.phases_op[i]) * x_mult_arr[i]
             target_y = self.y_offset
-            target_z = np.clip(np.sin(-self.angle * 2 * np.pi + self.phases_op[i]) * self.z_mult + self.z_offset + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"], -0.14, -0.03)
+            target_z = np.clip(np.sin(-self.angle * 2 * np.pi + self.phases_op[i]) * self.z_mult + self.z_offset + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"], -0.13, -0.04)
             targets.append([target_x, target_y, target_z])
 
         joint_angles = self.my_ikt(targets, self.y_offset)
@@ -533,14 +533,12 @@ class HexapodBulletEnv(gym.Env):
 
         y_dist = 0.1
         z_offset = -0.1
-        angle = 0
+
         while True:
-            for i in range(18):
-                self.step([0, 1] * 3 + [0] * 18)
+            self.step([0] * self.act_dim)
 
             p.stepSimulation()
             time.sleep(self.config["sim_step"])
-            angle += 0.007
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
