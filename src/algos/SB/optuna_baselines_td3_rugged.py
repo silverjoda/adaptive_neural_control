@@ -41,7 +41,7 @@ def objective(trial, config):
 
 if __name__ == "__main__":
     algo_config = my_utils.read_config("configs/td3_default_config.yaml")
-    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
+    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/hexapod.yaml")
 
     config = {**algo_config, **env_config}
     config["iters"] = 300000
@@ -51,10 +51,10 @@ if __name__ == "__main__":
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
     config["N_test"] = 30
-    N_trials = 70
+    N_trials = 100
 
     t1 = time.time()
-    study = optuna.create_study(direction='maximize', study_name="hexapod_opt_study", storage='sqlite:///hexapod_opt.db', load_if_exists=True)
+    study = optuna.create_study(direction='maximize', study_name="hexapod_rugged_opt_study", storage='sqlite:///hexapod_rugged_opt.db', load_if_exists=True)
     #study = optuna.create_study(direction='maximize')
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
     t2 = time.time()
