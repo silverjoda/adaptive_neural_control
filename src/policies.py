@@ -18,9 +18,9 @@ class FF_HEX_EEF(nn.Module):
     def forward(self, x):
         # x_mult : [0,0.09], y_offset : [0.10 : 0.17], z_mult : ?, z_offset: [-0.06, -0.12]
         static_params = [(0.5 + 0.5 * np.tanh(self.learned_params[0].data)) * 0.00 + 0.06, # x_mult
-                          (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.00 + 0.15, # y_offset
+                          (0.5 + 0.5 * np.tanh(self.learned_params[1].data)) * 0.00 + 0.12, # y_offset
                           (0.5 + 0.5 * np.tanh(self.learned_params[2].data)) * 0.00 + 0.03, # z_mult
-                          (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.00) - 0.09, # z_offset
+                          (0.5 + 0.5 * np.tanh(self.learned_params[3].data)) * (- 0.00) - 0.12, # z_offset
                           self.learned_params[4].data, # phase_offset_l
                           self.learned_params[5].data, # phase_offset_r
                           self.learned_params[6].data,

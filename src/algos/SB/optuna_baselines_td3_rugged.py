@@ -5,7 +5,8 @@ def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 5e-3))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.999)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.5, 1.5)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.5, 1.2)
+
     jrl = [-0.6,
            trial.suggest_uniform('jrl_femur', -2.2, -0.8),
            trial.suggest_uniform('jrl_tibia', -0.8, 0.6)]

@@ -58,14 +58,14 @@ class HexapodBulletEnv(gym.Env):
         else:
             self.generate_rnd_env()
 
-        #  [-2.215341329574585, -0.9972156882286072, 1.1871812343597412, 1.335096001625061, 0.33068275451660156, 0.41586756706237793, ]
-        self.phases_op = np.array([0.010952126234769821, 2.5668561458587646, -1.7436176538467407, 0.7150714993476868, 2.0461928844451904, -0.8317734599113464])
+
+        self.phases_op = np.array([-0.45378223061561584, 2.0218961238861084, 2.984712839126587, -1.3525876998901367, -1.7097233533859253, 1.027929663658142])
         self.current_phases = self.phases_op
         self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset_l, self.phase_offset_r = [
             0.06,
-            0.15,
+            0.12,
             0.03,
-            -0.09,
+            -0.12,
             0.33068275451660156,
             0.41586756706237793]
 
@@ -319,34 +319,27 @@ class HexapodBulletEnv(gym.Env):
             self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name),
                                     physicsClientId=self.client_ID)
 
-        # Randomize robot params
-        self.randomized_params = {"mass": 1.5 + (np.random.rand() * 1.4 - 0.7) * self.config[
-            "randomize_env"],
-                                  "lateral_friction": self.config["lateral_friction"]  + (np.random.rand() * 1.2 - 0.6) * self.config[
-                                      "randomize_env"],
-                                  "max_joint_force": self.config["max_joint_force"] + (np.random.rand() * 1.0 - 0.5) * self.config[
-                                      "randomize_env"],
-                                  "actuator_position_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
-                                      "randomize_env"],
-                                  "actuator_velocity_gain": 0.3 + (np.random.rand() * 0.4 - 0.2) * self.config[
-                                      "randomize_env"],
-                                  "max_actuator_velocity": self.config["max_actuator_velocity"] + (np.random.rand() * 4.0 - 2.0) * self.config[
-                                      "randomize_env"],
-                                  }
-
-        self.randomized_params_list_norm = []
-        self.randomized_params_list_norm.append(
-            (self.randomized_params["mass"] - 1.5) * (1. / 0.7))
-        self.randomized_params_list_norm.append(
-            (self.randomized_params["lateral_friction"] - 1.2) * (1. / 0.6))
-        self.randomized_params_list_norm.append(
-            (self.randomized_params["max_joint_force"] - 1.0) * (1. / 0.5))
-        self.randomized_params_list_norm.append(
-            (self.randomized_params["actuator_position_gain"] - 0.3) * (1. / 0.2))
-        self.randomized_params_list_norm.append(
-            (self.randomized_params["actuator_velocity_gain"] - 0.3) * (1. / 0.2))
-        self.randomized_params_list_norm.append(
-            (self.randomized_params["max_actuator_velocity"] - 4.0) * (1. / 2.0))
+            # Randomize robot params
+            self.randomized_params = {"mass": self.config["mass"] + (np.random.rand() * 1.4 - 0.7) * self.config[
+                "randomize_env"],
+                                      "lateral_friction": self.config["lateral_friction"] + (
+                                                  np.random.rand() * 1.2 - 0.6) *
+                                                          self.config[
+                                                              "randomize_env"],
+                                      "max_joint_force": self.config["max_joint_force"] + (
+                                                  np.random.rand() * 1.0 - 0.5) *
+                                                         self.config[
+                                                             "randomize_env"],
+                                      "actuator_position_gain": self.config["actuator_position_gain"] + (
+                                                  np.random.rand() * 0.4 - 0.2) * self.config[
+                                                                    "randomize_env"],
+                                      "actuator_velocity_gain": self.config["actuator_velocity_gain"] + (
+                                                  np.random.rand() * 0.4 - 0.2) * self.config[
+                                                                    "randomize_env"],
+                                      "max_actuator_velocity": self.config["max_actuator_velocity"] + (
+                                              np.random.rand() * 4.0 - 2.0) * self.config[
+                                                                   "randomize_env"],
+                                      }
 
         p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"],
                          physicsClientId=self.client_ID)
@@ -360,16 +353,13 @@ class HexapodBulletEnv(gym.Env):
 
     def step(self, ctrl_raw, render=False):
         self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
-        self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r]) + np.tanh(
-            ctrl_raw[6:8]) * np.pi * self.config["phase_offset_scalar"]
+        x_mult_arr = [self.x_mult + np.tanh(ctrl_raw[7]) * self.config["x_mult_scalar"], self.x_mult + np.tanh(ctrl_raw[8]) * self.config["x_mult_scalar"]] * 3
 
         targets = []
         for i in range(6):
-            target_x = np.cos(-self.angle * 2 * np.pi + self.phases_op[i]) * self.x_mult
+            target_x = np.cos(-self.angle * 2 * np.pi + self.phases_op[i]) * x_mult_arr[i]
             target_y = self.y_offset
-            target_z = np.clip(np.sin(
-                -self.angle * 2 * np.pi + self.phases_op[i] + self.left_offset * bool(i % 2) + self.right_offset * bool(
-                    (i + 1) % 2)) * self.z_mult + self.z_offset + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"], -0.12, -0.03)
+            target_z = np.clip(np.sin(-self.angle * 2 * np.pi + self.phases_op[i]) * self.z_mult + self.z_offset + np.tanh(ctrl_raw[8 + i]) * self.config["z_aux_scalar"], -0.14, -0.03)
             targets.append([target_x, target_y, target_z])
 
         joint_angles = self.my_ikt(targets, self.y_offset)

@@ -5,23 +5,10 @@ def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 5e-3))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.999)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.5, 1.5)
-    jrl = [-0.6,
-           trial.suggest_uniform('jrl_femur', -2.2, -0.8),
-           trial.suggest_uniform('jrl_tibia', -0.8, 0.6)]
-    jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1, 3),
-           trial.suggest_uniform('jr_diff_tibia', 1, 3)]
-
-    config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = [jrl[i]+jr_diff[i] for i in range(3)]
-    config["joints_rads_high"] = [jrl[i]+jr_diff[i] for i in range(3)]
-
-    # Quad
-    # config["n_steps"] = trial.suggest_int('n_steps', 6, 40)
-    # config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 7e-4))
-    # config["gamma"] = trial.suggest_loguniform('gamma', 0.985, 0.999)
-    # config["policy_hid_dim"] = trial.suggest_int("policy_hid_dim", 48, 256)
+    config["phase_scalar"] = trial.suggest_uniform('phase_scalar', .1, .5)
+    config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.02, 0.07)
+    config["x_mult_scalar"] = trial.suggest_uniform('x_mult_scalar', 0.01, 0.03)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.1, 0.8)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
@@ -40,20 +27,19 @@ def objective(trial, config):
 
 if __name__ == "__main__":
     algo_config = my_utils.read_config("configs/td3_default_config.yaml")
-    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
+    env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 300000
+    config["iters"] = 200000
     config["verbose"] = False
     config["animate"] = False
-    #config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
     config["N_test"] = 30
-    N_trials = 70
+    N_trials = 100
 
     t1 = time.time()
-    study = optuna.create_study(direction='maximize', study_name="hexapod_opt_study", storage='sqlite:///hexapod_opt.db', load_if_exists=True)
+    study = optuna.create_study(direction='maximize', study_name="hexapod_eef_opt_study", storage='sqlite:///hexapod_eef_opt.db', load_if_exists=True)
     #study = optuna.create_study(direction='maximize')
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
     t2 = time.time()

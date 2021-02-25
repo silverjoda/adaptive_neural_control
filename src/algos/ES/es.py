@@ -201,6 +201,9 @@ if __name__=="__main__":
     policy = my_utils.make_policy(env, config)
 
     if config["train"] or socket.gethostname() == "goedel":
+        if config["preload"]:
+            policy.load_state_dict(T.load(config["test_agent_path"]))
+
         t1 = time.time()
         if config["algo"] == "cma":
             train(env, policy, config)
