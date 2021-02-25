@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.obs_dim = 27 + 36 * self.config["velocities_and_torques"]
+        self.obs_dim = 28 + 36 * self.config["velocities_and_torques"]
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -309,6 +309,13 @@ class HexapodBulletEnv(gym.Env):
         tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
         yaw_deviation = np.min((abs((yaw % 6.283) - (tar_angle % 6.283)), abs(yaw - tar_angle)))
 
+        # Avg vel
+        self.xd_queue.append(xd)
+        if len(self.xd_queue) > 15:
+            del self.xd_queue[0]
+        avg_vel = sum(self.xd_queue) / len(self.xd_queue)
+        avg_vel = avg_vel / 0.15 - 1
+
         # Compute heading reward
         # yaw_dev_diff = abs(self.prev_yaw_deviation) - abs(yaw_deviation)
         # yaw_dev_sign = np.sign(yaw_dev_diff)
@@ -339,9 +346,9 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
         if self.obs_dim > 33:
-            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, scaled_joint_angles, joint_torques, joint_velocities
+            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, avg_vel, scaled_joint_angles, joint_torques, joint_velocities
         else:
-            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, scaled_joint_angles
+            compiled_obs = torso_quat, torso_vel, [signed_deviation], time_feature, avg_vel, scaled_joint_angles
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 

@@ -3,26 +3,19 @@ from baselines3_TD3 import *
 
 def objective(trial, config):
     # Hexapod
-    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 5e-3))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.999)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.5, 1.2)
-
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 7e-4, 3e-3))
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.97, 0.99)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.5, 1.5)
     jrl = [-0.6,
-           trial.suggest_uniform('jrl_femur', -2.2, -0.8),
-           trial.suggest_uniform('jrl_tibia', -0.8, 0.6)]
+           trial.suggest_uniform('jrl_femur', -1.5, -0.8),
+           trial.suggest_uniform('jrl_tibia', -0.8, -0.2)]
     jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1, 3),
-           trial.suggest_uniform('jr_diff_tibia', 1, 3)]
+               trial.suggest_uniform('jr_diff_femur', 1, 1.6),
+               trial.suggest_uniform('jr_diff_tibia', 1.2, 2.0)]
 
     config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = [jrl[i]+jr_diff[i] for i in range(3)]
-    config["joints_rads_high"] = [jrl[i]+jr_diff[i] for i in range(3)]
-
-    # Quad
-    # config["n_steps"] = trial.suggest_int('n_steps', 6, 40)
-    # config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 7e-4))
-    # config["gamma"] = trial.suggest_loguniform('gamma', 0.985, 0.999)
-    # config["policy_hid_dim"] = trial.suggest_int("policy_hid_dim", 48, 256)
+    config["joints_rads_diff"] = [jrl[i] + jr_diff[i] for i in range(3)]
+    config["joints_rads_high"] = [jrl[i] + jr_diff[i] for i in range(3)]
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])

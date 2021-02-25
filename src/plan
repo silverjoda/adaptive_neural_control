@@ -73,10 +73,12 @@ pip install --user opensimplex
 pip install --user pybullet
 
 
-# Schedule
+# Hexapod obstacle opt:
 Trial 29 finished with value: 26.258925827542328 and parameters: {'learni
 ng_rate': 0.0010052679531365916, 'gamma': 0.9823908063318992, 'jrl_femur': -1.092492788530148, 'jrl_t
 ibia': -0.5469003117736665, 'jr_diff_femur': 1.3506032840506972, 'jr_diff_tibia': 1.552178893714674}.
- Best is trial 29 with value: 26.258925827542328. #
+
+# Quad opt:
+Trial 97 finished with value: 323.91413818539365 and parameters: {'learning_rate': 0.0012294349411285863, 'ou_sigma': 0.2352080103675635, 'gamma': 0.98211589599389}.
 
 # Add progress feature to obstacle
