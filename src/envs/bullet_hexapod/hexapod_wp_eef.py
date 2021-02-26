@@ -60,16 +60,12 @@ class HexapodBulletEnv(gym.Env):
 
 
         self.phases_op = np.array([-0.45378223061561584, 2.0218961238861084, 2.984712839126587, -1.3525876998901367, -1.7097233533859253, 1.027929663658142])
-        self.current_phases = self.phases_op
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.phase_offset_l, self.phase_offset_r = [
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset= [
             0.06,
             0.12,
             0.03,
-            -0.12,
-            0.33068275451660156,
-            0.41586756706237793]
+            -0.12]
 
-        self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r])
         self.create_targets()
 
 
@@ -352,7 +348,7 @@ class HexapodBulletEnv(gym.Env):
         return self.robot
 
     def step(self, ctrl_raw, render=False):
-        self.current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
+        #current_phases = self.phases_op + np.tanh(ctrl_raw[0:6]) * np.pi * self.config["phase_scalar"]
         x_mult_arr = [self.x_mult + np.tanh(ctrl_raw[7]) * self.config["x_mult_scalar"], self.x_mult + np.tanh(ctrl_raw[8]) * self.config["x_mult_scalar"]] * 3
 
         targets = []
@@ -483,9 +479,6 @@ class HexapodBulletEnv(gym.Env):
 
         # if self.config["randomize_env"]:
         #    self.robot = self.load_robot()
-
-        self.current_phases = self.phases_op
-        self.left_offset, self.right_offset = np.array([self.phase_offset_l, self.phase_offset_r])
 
         # Reset episodal vars
         self.step_ctr = 0
