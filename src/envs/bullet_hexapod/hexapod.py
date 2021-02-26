@@ -295,8 +295,8 @@ class HexapodBulletEnv(gym.Env):
         # Check if the agent has reached a target
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
 
-        r = (self.prev_target_dist - target_dist) * 100
-        #
+        r = (self.prev_target_dist - target_dist) * 50 - abs(zd) * 0.2 - abs(phid) * 0.02 - abs(thd) * 0.02
+
         if target_dist < self.config["target_proximity_threshold"] or (np.abs(torso_pos[0]) > self.target[0]):
             reached_target = True
             self.update_targets()
