@@ -19,16 +19,16 @@
 "disturbance_frequency" : 0.00 # 0.005
 "default_mass" : 0.8
 "default_boom_length" : 0.15
-"default_motor_spinup_speed" : 0.1
+"default_motor_inertia_coeff" : 0.90
 "default_motor_force_multiplier" : 8
 "urdf_name" : quadrotor.urdf
 "seed" :
-"joystick_mapping" : [2,3,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [2,3,0,1]s for Logitech
+"joystick_mapping" : [3,4,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [2,3,0,1] for Logitech
 "p_roll" : 0.2
 "p_pitch" : 0.2
-"p_yaw" : 0.2
-"d_roll" : 3.0
-"d_pitch" : 3.0
+"p_yaw" : 0.4
+"d_roll" : 7.0
+"d_pitch" : 7.0
 "d_yaw" : 0.1
 "i_roll" : -0.00
 "i_pitch" : -0.00

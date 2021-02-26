@@ -129,7 +129,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Randomize robot params
         self.randomized_params = {"mass": self.config["default_mass"] + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": self.config["default_boom_length"] + (np.random.rand() * 0.3 - 0.1) * self.config["randomize_env"],
-                                 "motor_spinup_speed": self.config["default_motor_spinup_speed"] + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
+                                 "motor_inertia_coeff": self.config["default_motor_inertia_coeff"] + (np.random.rand() * 0.04 - 0.02) * self.config["randomize_env"],
                                  "motor_force_multiplier": self.config["default_motor_force_multiplier"] + (np.random.rand() * 4 - 1.5) * self.config["randomize_env"],
                                  "motor_power_variance_vector": np.ones(4) - np.random.rand(4) * 0.10 * self.config["randomize_env"],
                                  "input_transport_delay": self.config["input_transport_delay"] + 1 * np.random.choice([0,1,2], p=[0.4, 0.5, 0.1]) * self.config["randomize_env"],
@@ -137,7 +137,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         self.randomized_params_list_norm = []
         self.randomized_params_list_norm.append((self.randomized_params["mass"] - 0.7) * (1. / 0.3))
-        self.randomized_params_list_norm.append((self.randomized_params["motor_spinup_speed"] - 0.05) * (1. / 0.02))
+        self.randomized_params_list_norm.append((self.randomized_params["motor_inertia_coeff"] - 0.05) * (1. / 0.02))
         self.randomized_params_list_norm.append((self.randomized_params["motor_force_multiplier"] - 8) * (1. / 1.5))
         self.randomized_params_list_norm.extend((self.randomized_params["motor_power_variance_vector"] - 0.95) * (1. / 0.05))
         self.randomized_params_list_norm.append(self.randomized_params["input_transport_delay"] - 1)
@@ -178,13 +178,9 @@ class QuadrotorBulletEnv(gym.Env):
         return obs
 
     def update_motor_vel(self, ctrl):
-        #self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.randomized_params["motor_inertia_coeff"] +
-         #                                         np.array(ctrl) * (1 - self.randomized_params["motor_inertia_coeff"]), 0, 1)
-        ctrl_clipped = np.clip(ctrl, 0, 1)
-        bot = np.minimum(self.current_motor_velocity_vec, ctrl_clipped)
-        top = np.maximum(self.current_motor_velocity_vec, ctrl_clipped)
-        raw = self.current_motor_velocity_vec + self.randomized_params["motor_spinup_speed"] * np.sign(ctrl - self.current_motor_velocity_vec)
-        self.current_motor_velocity_vec = np.clip(raw, bot, top)
+        self.current_motor_velocity_vec = np.clip(self.current_motor_velocity_vec * self.randomized_params["motor_inertia_coeff"] +
+                                                  np.array(ctrl) * (1 - self.randomized_params["motor_inertia_coeff"]), 0, 1)
+
 
     def render(self, close=False, mode=None):
         if self.config["animate"]:
@@ -243,8 +239,8 @@ class QuadrotorBulletEnv(gym.Env):
         self.e_pitch_accum = self.e_pitch_accum * decay_fac + e_pitch
 
         # Desired correction action
-        roll_act = e_roll * self.config["p_roll"]  + (e_roll - self.e_roll_prev) * self.config["d_roll"] + self.e_roll_accum * self.config["i_roll"]
-        pitch_act = e_pitch * self.config["p_pitch"] + (e_pitch - self.e_pitch_prev) * self.config["d_pitch"] + self.e_pitch_accum * self.config["i_pitch"]
+        roll_act = e_roll * self.config["p_roll"]  + (e_roll - self.e_roll_prev) * self.config["d_roll"] #+ self.e_roll_accum * self.config["i_roll"]
+        pitch_act = e_pitch * self.config["p_pitch"] + (e_pitch - self.e_pitch_prev) * self.config["d_pitch"] #+ self.e_pitch_accum * self.config["i_pitch"]
         yaw_act = e_yaw * self.config["p_yaw"] + (e_yaw - self.e_yaw_prev) * self.config["d_yaw"]
 
         self.e_roll_prev = e_roll
@@ -337,7 +333,7 @@ class QuadrotorBulletEnv(gym.Env):
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
-        done = (self.step_ctr > self.config["max_steps"]) or (abs(pos_delta) > 1.7).any() or abs(roll) > 2. or abs(pitch) > 2.
+        done = (self.step_ctr > self.config["max_steps"]) or (abs(pos_delta) > 3.0).any() or abs(roll) > 2. or abs(pitch) > 2.
 
         compiled_obs = pos_delta, torso_quat, torso_vel, torso_angular_vel
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
@@ -412,10 +408,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.config["policy_type"] = "mlp"
 
         # Load neural network policy
-        from stable_baselines import A2C
+        from stable_baselines import TD3
         src_file = os.path.split(os.path.split(os.path.join(os.path.dirname(os.path.realpath(__file__))))[0])[0]
         try:
-            model = A2C.load(os.path.join(src_file, "algos/SB/agents/xxx_SB_policy.zip"))
+            model = TD3.load(os.path.join(src_file, "algos/SB/agents/xxx_SB_policy.zip"))
         except:
             model = None
             print("Failed to load nn. ")
@@ -423,7 +419,6 @@ class QuadrotorBulletEnv(gym.Env):
         obs = self.reset()
         while True:
             velocity_target = self.get_velocity_target()
-            #print(velocity_target)
 
             if self.config["controller_source"] == "nn":
                 if model == None:
