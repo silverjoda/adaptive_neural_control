@@ -89,7 +89,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
-        self.observation_space = spaces.Box(low=-5.0, high=5.0, shape=(self.obs_dim,))
+        self.observation_space = spaces.Box(low=-3.0, high=3.0, shape=(self.obs_dim,))
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         self.rnd_target_vel_source = my_utils.SimplexNoise(4, 15)
@@ -333,7 +333,9 @@ class QuadrotorBulletEnv(gym.Env):
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
-        done = (self.step_ctr > self.config["max_steps"]) or (abs(pos_delta) > 3.0).any() or abs(roll) > 2. or abs(pitch) > 2.
+        done = (self.step_ctr > self.config["max_steps"]) \
+               or (abs(pos_delta) > 5.0).any() \
+               or ((pos_delta[2] < 0.3) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
 
         compiled_obs = pos_delta, torso_quat, torso_vel, torso_angular_vel
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
@@ -377,10 +379,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.prev_act = None
 
         if self.config["rnd_init"]:
-            rnd_starting_pos_delta = np.random.rand(3) * 1. - .5
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .4 - 0.2, np.random.rand(1) * .4 - 0.2, np.random.rand(1) * 1 - .5], physicsClientId=self.client_ID)
-            rnd_starting_lin_velocity = np.random.rand(3) * .4 - .2
-            rnd_starting_rot_velocity = np.random.rand(3) * .2 - .1
+            rnd_starting_pos_delta = np.random.rand(3) * 2. - .1
+            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .1 - 0.5, np.random.rand(1) * .1 - 0.5, np.random.rand(1) * 2 - .1], physicsClientId=self.client_ID)
+            rnd_starting_lin_velocity = np.random.rand(3) * 1.2 - .6
+            rnd_starting_rot_velocity = np.random.rand(3) * .8 - .4
         else:
             rnd_starting_pos_delta = np.zeros(3)
             rnd_starting_orientation = np.array([0,0,0,1])
