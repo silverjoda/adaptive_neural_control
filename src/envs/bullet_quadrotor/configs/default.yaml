@@ -1,6 +1,6 @@
 "env_name" : "quadrotor_stab"
-"controller_source" : "nn" # nn/pid
-"target_vel_source" : "still" # still/rnd/joystick
+"controller_source" : "pid" # nn/pid
+"target_vel_source" : "joystick" # still/rnd/joystick
 "rnd_init" : True
 "max_steps" : 500
 "step_counter" : 1
@@ -23,7 +23,7 @@
 "default_motor_force_multiplier" : 8
 "urdf_name" : quadrotor.urdf
 "seed" :
-"joystick_mapping" : [3,4,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [] for Logitech
+"joystick_mapping" : [2,3,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [2,3,0,1]s for Logitech
 "p_roll" : 0.2
 "p_pitch" : 0.2
 "p_yaw" : 0.2

@@ -49,18 +49,7 @@ Linearly decaying the learning rate may slightly improve performance but is of s
 # -----------
 
 
-# TODO: Make easy version of buggy env and check if SB and ES works on it. Then tune AC
-# TODO: Reverse engineer A2C from SB3
-# TODO: Keep working on AC!! We need a good working algo (parallel as well)
-# TODO: Try hexapod version with MLP + IKT
-# Find good hyperparams for both a2c and ac
-# Study stable baselines3 policy modification through custom policy
-# Start implementing adaptation algorithms. Start with temporal conv policy. (also add env augmentation for past obs)
-# Put to train quadcopter and buggy envs with randomization
 
-# TODO: Hexa works on flat with turning perfectly. Now try on perlin, with additional NN inputs (correction from NN)
-Best params:  {'n_steps': 38, 'learning_rate': 0.0004041431413252437, 'gamma': 0.9970081288014816, 'p
-hase_scalar': 0.26881373950773213, 'phase_decay': 0.988248774110033}  Best value:  43.675244140625
 
 # On RCI cluster:
 ml Python/3.7.4-GCCcore-8.3.0 # To load python
@@ -88,3 +77,8 @@ Trial 21 finished with value: 261.1324298132091 and parameters:
 {'learning_rate': 0.0022925056627022995, 'gamma': 0.9739139749550563, 'ou_sigma': 0.624467854316413, 'jrl_femur': -1.1045008457243952, 'jrl_tibia': -0.36821960835910844, 'jr_diff_femur': 1.018553462419685, 'jr_diff_tibia': 1.7157228930637012}.
 
 # Add progress feature to obstacle
+
+# QUAD TODO:
+Make testing in sim with joystick (position driven)
+Tune env to learn proper stable policy and learn policy again with transport delays (check christmas git to see what is different in version which used to work)
+Make data gathering script
