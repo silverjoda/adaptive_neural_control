@@ -1,14 +1,14 @@
 "env_name" : "hexapod"
 "controller_source" : "joystick" # joystick
 "max_steps" : 160
-"terrain_name" : "flat"
+"terrain_name" : "perlin"
 "sim_step" : 0.00417
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 1.0
 "perlin_height" : 30
 "obstacle_height" : 40
-"mass" : 1.6
+"mass" : 2.0
 "lateral_friction" : 1.6
 "max_joint_force" : 1.5
 "actuator_position_gain" : 0.5

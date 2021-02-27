@@ -196,11 +196,11 @@ class QuadrotorBulletEnv(gym.Env):
         if self.current_disturbance is None: return
         if self.current_disturbance["effect"] == "translation":
             p.applyExternalForce(self.robot, linkIndex=-1, forceObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"],
-                                 posObj=[0, 0, 0], flags=p.LINK_FRAME, physicsClientId=self.client_ID)
+                                 posObj=[0, 0, 0], flags=p.LINK_FRAME)
         else:
             p.applyExternalTorque(self.robot, linkIndex=-1,
                                  torqueObj=self.current_disturbance["vector"] * self.config["disturbance_intensity"] * 0.15,
-                                 flags=p.LINK_FRAME, physicsClientId=self.client_ID)
+                                 flags=p.LINK_FRAME)
         if self.current_disturbance is not None:
             self.current_disturbance["remaining_life"] -= 1
             if self.current_disturbance["remaining_life"] <= 0:
@@ -318,10 +318,18 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.mean(np.abs(pos_delta)) * 3.0
-        p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 1.0, -3, 3)
-        #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        p_position = np.mean(np.abs(pos_delta)) * 1.0
+        p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 0.5, -3, 3)
         r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
+
+        #p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
+        #p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
+        # p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        #r = 1.0 - p_position - p_rp
+
+        crashed = (abs(pos_delta) > 5.0).any() or ((torso_pos[2] < 0.5) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
+        if crashed:
+            r -= 100
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)
@@ -333,9 +341,7 @@ class QuadrotorBulletEnv(gym.Env):
         if torso_pos[2] < 0.3:
             velocity_target[0] = 0.3 - torso_pos[2]
 
-        done = (self.step_ctr > self.config["max_steps"]) \
-               or (abs(pos_delta) > 5.0).any() \
-               or ((pos_delta[2] < 0.3) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
+        done = (self.step_ctr > self.config["max_steps"]) or crashed
 
         compiled_obs = pos_delta, torso_quat, torso_vel, torso_angular_vel
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
@@ -379,10 +385,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.prev_act = None
 
         if self.config["rnd_init"]:
-            rnd_starting_pos_delta = np.random.rand(3) * 2. - .1
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * .1 - 0.5, np.random.rand(1) * .1 - 0.5, np.random.rand(1) * 2 - .1], physicsClientId=self.client_ID)
-            rnd_starting_lin_velocity = np.random.rand(3) * 1.2 - .6
-            rnd_starting_rot_velocity = np.random.rand(3) * .8 - .4
+            rnd_starting_pos_delta = np.random.rand(3) * 2. - 1.
+            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * 1. - 0.5, np.random.rand(1) * 1. - 0.5, np.random.rand(1) * 2 - .1], physicsClientId=self.client_ID)
+            rnd_starting_lin_velocity = np.random.rand(3) * 0.8 - .4
+            rnd_starting_rot_velocity = np.random.rand(3) * .4 - .2
         else:
             rnd_starting_pos_delta = np.zeros(3)
             rnd_starting_orientation = np.array([0,0,0,1])

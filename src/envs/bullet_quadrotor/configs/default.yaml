@@ -20,7 +20,7 @@
 "default_mass" : 0.8
 "default_boom_length" : 0.15
 "default_motor_inertia_coeff" : 0.8
-"default_motor_force_multiplier" : 8
+"default_motor_force_multiplier" : 6
 "urdf_name" : quadrotor.urdf
 "seed" :
 "joystick_mapping" : [3,4,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [2,3,0,1] for Logitech
