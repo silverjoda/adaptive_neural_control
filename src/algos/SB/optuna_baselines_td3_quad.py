@@ -7,6 +7,7 @@ def objective(trial, config):
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 7e-4, 3e-3))
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.1, 0.4)
     config["gamma"] = trial.suggest_loguniform('gamma', 0.97, 0.99)
+    config["batchsize"] = trial.suggest_int('batchsize', 32, 512)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])

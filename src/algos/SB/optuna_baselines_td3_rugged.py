@@ -6,6 +6,7 @@ def objective(trial, config):
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 7e-4, 3e-3))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.95, 0.99)
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.4, 1.5)
+    config["batchsize"] = trial.suggest_int('batchsize', 32, 512)
     jrl = [-0.6,
            trial.suggest_uniform('jrl_femur', -1.5, -0.5),
            trial.suggest_uniform('jrl_tibia', 0.0, 1.0)]

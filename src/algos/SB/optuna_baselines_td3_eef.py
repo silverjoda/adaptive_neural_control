@@ -9,6 +9,7 @@ def objective(trial, config):
     config["z_aux_scalar"] = trial.suggest_uniform('z_aux_scalar', 0.00, 0.04)
     config["x_mult_scalar"] = trial.suggest_uniform('x_mult_scalar', 0.00, 0.02)
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.1, 0.8)
+    config["batchsize"] = trial.suggest_int('batchsize', 32, 512)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
