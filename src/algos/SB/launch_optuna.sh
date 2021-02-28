@@ -13,9 +13,10 @@ script_name="$2"
 
 tmux send-keys "python ${script_name}" C-m;	
 for ((n=0; n < (x-1); n++));
-do 
+do
+  sleep 7;
 	tmux splitw -v;
 	tmux send-keys "python ${script_name}" C-m;	
 done
 
-tmux attach-session -t $session
+#tmux attach-session -t $session

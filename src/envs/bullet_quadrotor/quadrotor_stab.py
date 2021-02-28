@@ -327,7 +327,7 @@ class QuadrotorBulletEnv(gym.Env):
         #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
         r = 1.0 - p_position - p_rp
 
-        crashed = (abs(pos_delta) > 5.0).any() or ((torso_pos[2] < 0.5) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
+        crashed = (abs(pos_delta) > 5.0).any() or ((torso_pos[2] < 0.3) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
         # if crashed:
         #     r -= 100
 
@@ -385,10 +385,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.prev_act = None
 
         if self.config["rnd_init"]:
-            rnd_starting_pos_delta = np.random.rand(3) * 2. - 1.
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * 1. - 0.5, np.random.rand(1) * 1. - 0.5, np.random.rand(1) * 2 - .1], physicsClientId=self.client_ID)
-            rnd_starting_lin_velocity = np.random.rand(3) * 0.8 - .4
-            rnd_starting_rot_velocity = np.random.rand(3) * .4 - .2
+            rnd_starting_pos_delta = np.random.rand(3) * 3. - 1.5
+            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * 2 - 1, np.random.rand(1) * 2 - 1, np.random.rand(1) * 2 - .1], physicsClientId=self.client_ID)
+            rnd_starting_lin_velocity = np.random.rand(3) * 2 - 1
+            rnd_starting_rot_velocity = np.random.rand(3) * 1 - .5
         else:
             rnd_starting_pos_delta = np.zeros(3)
             rnd_starting_orientation = np.array([0,0,0,1])
