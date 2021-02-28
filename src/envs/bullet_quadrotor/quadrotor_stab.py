@@ -438,6 +438,31 @@ class QuadrotorBulletEnv(gym.Env):
             obs, r, done, _ = self.step(act)
             if done: obs = self.reset()
 
+    def deploy_trained_model(self):
+        # Load neural network policy
+        from stable_baselines3 import TD3
+        src_file = os.path.split(os.path.split(os.path.join(os.path.dirname(os.path.realpath(__file__))))[0])[0]
+
+        try:
+            model = TD3.load(os.path.join(src_file, "algos/SB/agents/QUAD_TD3_OPTUNA_policy"))
+        except:
+            model = None
+            print("Failed to load nn. ")
+
+        obs = self.reset()
+        while True:
+            velocity_target = self.get_velocity_target()
+
+            if self.config["controller_source"] == "nn":
+                if model == None:
+                    act = np.random.rand(self.act_dim) * 2 - 1
+                else:
+                    act, _states = model.predict(obs, deterministic=True)
+            else:
+                act = self.calculate_stabilization_action(obs[3:7], obs[10:13], velocity_target)
+            obs, r, done, _ = self.step(act)
+            if done: obs = self.reset()
+
     def gather_data(self, policy=None, n_iterations=20000):
         # Initialize data lists
         data_position = []
@@ -515,6 +540,8 @@ if __name__ == "__main__":
     with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
+    #algo_config = my_utils.read_config("configs/td3_default_config.yaml")
+    #env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
     env = QuadrotorBulletEnv(env_config)
-    env.demo_joystick()
+    env.deploy_trained_model()
     #env.gather_data()
