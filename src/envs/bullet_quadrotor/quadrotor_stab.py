@@ -318,18 +318,18 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
 
-        p_position = np.mean(np.abs(pos_delta)) * 1.0
-        p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 0.5, -3, 3)
-        r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
+        # p_position = np.mean(np.abs(pos_delta)) * 1.0
+        # p_rp = np.clip(np.mean(np.abs(np.array([yaw]))) * 0.5, -3, 3)
+        # r = 1.0 - p_position - p_rp - raw_act_smoothness_pen
 
-        #p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
-        #p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
-        # p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
-        #r = 1.0 - p_position - p_rp
+        p_position = np.clip(np.mean(np.square(pos_delta)) * 2.0, -0.4, 0.4)
+        p_rp = np.clip(np.mean(np.square(np.array([yaw]))) * 1.0, -0.4, 0.4)
+        #p_rotvel = np.clip(np.mean(np.square(torso_angular_vel[2])) * 0.1, -1, 1)
+        r = 1.0 - p_position - p_rp
 
         crashed = (abs(pos_delta) > 5.0).any() or ((torso_pos[2] < 0.5) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
-        if crashed:
-            r -= 100
+        # if crashed:
+        #     r -= 100
 
         self.rew_queue.append([r])
         self.rew_queue.pop(0)

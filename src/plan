@@ -82,3 +82,9 @@ Trial 21 finished with value: 261.1324298132091 and parameters:
 Make testing in sim with joystick (position driven)
 Tune env to learn proper stable policy and learn policy again with transport delays (check christmas git to see what is different in version which used to work)
 Make data gathering script
+
+# TODO:
+Make controllable policy on quad
+Make and test data gathering on quad
+Try RNN policy on obstacle
+Make optuna launching multiple
