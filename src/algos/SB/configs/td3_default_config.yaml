@@ -2,8 +2,8 @@
 "policy_name" : "MlpPolicy" # "MlpLstmPolicy", "MlpPolicy"
 "default_session_ID" :
 "n_envs" : 1
-"iters" : 300000
-"gamma" : 0.99
+"iters" : 200000
+"gamma" : 0.97
 "learning_rate" : "lambda x : x * 0.001"
 "buffer_size" : 100000
 "learning_starts" : 30000

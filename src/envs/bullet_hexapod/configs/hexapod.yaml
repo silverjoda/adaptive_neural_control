@@ -1,12 +1,12 @@
 "env_name" : "hexapod"
 "controller_source" : "joystick" # joystick
-"max_steps" : 160
+"max_steps" : 80
 "terrain_name" : "perlin"
 "sim_step" : 0.00417
 "env_width" : 60
 "env_length" : 100
 "env_change_prob" : 1.0
-"perlin_height" : 30
+"perlin_height" : 40
 "obstacle_height" : 40
 "mass" : 2.0
 "lateral_friction" : 1.6
@@ -27,3 +27,4 @@
 "target_spawn_sigma" : [0.0, 3.0] #[1.0, 4.0]
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
+"training_mode" : "left" # cw/ccw/straight

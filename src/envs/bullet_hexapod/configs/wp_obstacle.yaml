@@ -21,7 +21,7 @@
 "max_joint_force" : 1.5
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
-"mass" : 1.6
+"mass" : 1.8
 "target_vel" : 0.6
 "sim_steps_per_iter" :  12
 "mesh_scale_lat" : 0.1
