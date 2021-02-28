@@ -86,4 +86,4 @@ Make data gathering script
 # TODO:
 Make controllable policy on quad
 Make and test data gathering on quad
-Try RNN policy on obstacle
+train hexapod turning policies and hardware script for switching
