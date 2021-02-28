@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-session="optuna"
+session="$3"
 
 # set up tmux
 tmux start-server

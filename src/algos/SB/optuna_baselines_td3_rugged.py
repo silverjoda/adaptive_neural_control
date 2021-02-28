@@ -49,7 +49,7 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/hexapod.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 300000
+    config["iters"] = 500000
     config["verbose"] = False
     config["animate"] = False
     #config["default_session_ID"] = "OPT_HEX"
