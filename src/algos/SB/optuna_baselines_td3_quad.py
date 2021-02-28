@@ -1,7 +1,6 @@
 import optuna
 from baselines3_TD3 import *
 
-
 def objective(trial, config):
     # Quad
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 7e-4, 3e-3))

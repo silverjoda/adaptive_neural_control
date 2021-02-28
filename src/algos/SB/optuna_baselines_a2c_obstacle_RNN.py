@@ -1,5 +1,6 @@
 import optuna
-from baselines3_TD3 import *
+from baselines_RL import *
+from copy import deepcopy
 
 def objective(trial, config):
     # Hexapod
@@ -11,12 +12,12 @@ def objective(trial, config):
            trial.suggest_uniform('jrl_femur', -1.4, -0.6),
            trial.suggest_uniform('jrl_tibia', -0.8, 0.8)]
     jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1.5, 2.5),
-           trial.suggest_uniform('jr_diff_tibia', 1.5, 2.5)]
+               trial.suggest_uniform('jr_diff_femur', 1.5, 2.5),
+               trial.suggest_uniform('jr_diff_tibia', 1.5, 2.5)]
 
     config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = [jrl[i]+jr_diff[i] for i in range(3)]
-    config["joints_rads_high"] = [jrl[i]+jr_diff[i] for i in range(3)]
+    config["joints_rads_diff"] = [jrl[i] + jr_diff[i] for i in range(3)]
+    config["joints_rads_high"] = [jrl[i] + jr_diff[i] for i in range(3)]
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
@@ -31,7 +32,7 @@ def objective(trial, config):
     except:
         best_value = -1e5
     if avg_episode_rew > best_value:
-        model.save("agents/OBSTACLE_TD3_OPTUNA_policy")
+        model.save("agents/OBSTACLE_A2C_RNN_OPTUNA_policy")
         print("Saved best policy")
 
     env.close()
@@ -43,24 +44,23 @@ def objective(trial, config):
     return avg_episode_rew
 
 if __name__ == "__main__":
-    algo_config = my_utils.read_config("configs/td3_default_config.yaml")
+    algo_config = my_utils.read_config("configs/a2c_hexapod_config.yaml")
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 500000
+    config["iters"] = 3000000
     config["verbose"] = False
     config["animate"] = False
-    #config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
-    config["dummy_vec_env"] = False
+    config["dummy_vec_env"] = True
+    config["policy_name"] = "MlpLstmPolicy"
     config["training_difficulty"] = 0.4
-    config["training_difficulty_increment"] = 0.003 # 0.0005
+    config["training_difficulty_increment"] = 0.0007  # 0.0005
     config["N_test"] = 50
-    N_trials = 100
+    N_trials = 70
 
     t1 = time.time()
-    study = optuna.create_study(direction='maximize', study_name="hexapod_opt_study", storage='sqlite:///hexapod_opt.db', load_if_exists=True)
-    #study = optuna.create_study(direction='maximize')
+    study = optuna.create_study(direction='maximize', study_name="hexapod_obstacle_RNN_study", storage='sqlite:///hexapod_obstacle_rnn.db', load_if_exists=True)
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
     t2 = time.time()
     print("Time taken: ", t2-t1)

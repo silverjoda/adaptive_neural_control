@@ -28,7 +28,7 @@
 "mesh_scale_vert" : 2
 "perlin_height" : 70
 "obstacle_height" : 30
-"training_difficulty" : 0.99
+"training_difficulty" : 0.4
 "training_difficulty_increment" : 0.003 # 0.0005
 "velocities_and_torques" : False
 "joints_rads_low" : [-0.6, -0.853, -0.60]
@@ -36,7 +36,7 @@
 #"joints_rads_low_target" : [-0.6, -1.6, 0.7]
 #"joints_rads_high_target" : [0.6, 0.5, 1.8]
 "target_proximity_threshold" : 0.3
-"target_spawn_mu" : [1.2, 0.] # [1.5, 0.]
+"target_spawn_mu" : [1.4, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
 "inclination_pen" : 0.0
 "urdf_name" : "hexapod_normal.urdf"

@@ -148,7 +148,11 @@ def setup_train(config, setup_dirs=True):
 
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
-    env = VecNormalize(SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork'),
+    if config["dummy_vec_env"]:
+        vec_env = DummyVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])])
+    else:
+        vec_env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+    env = VecNormalize(vec_env,
                        gamma=config["gamma"],
                        norm_obs=config["norm_obs"],
                        norm_reward=config["norm_reward"])
