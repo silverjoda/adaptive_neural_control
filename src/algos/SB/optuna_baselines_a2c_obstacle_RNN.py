@@ -1,6 +1,8 @@
 import optuna
 from baselines_RL import *
 from copy import deepcopy
+import sqlite3
+import sqlalchemy.exc
 
 def objective(trial, config):
     # Hexapod
@@ -24,7 +26,7 @@ def objective(trial, config):
 
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
-    avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)
+    avg_episode_rew = test_agent_rnn(eval_env, model, deterministic=True, N=config["N_test"], print_rew=False)
     avg_episode_rew /= config["N_test"]
 
     try:
@@ -56,12 +58,19 @@ if __name__ == "__main__":
     config["policy_name"] = "MlpLstmPolicy"
     config["training_difficulty"] = 0.4
     config["training_difficulty_increment"] = 0.0007  # 0.0005
-    config["N_test"] = 50
+    config["N_test"] = 70
     N_trials = 70
 
     t1 = time.time()
     study = optuna.create_study(direction='maximize', study_name="hexapod_obstacle_RNN_study", storage='sqlite:///hexapod_obstacle_rnn.db', load_if_exists=True)
-    study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
+
+    while True:
+        try:
+            study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
+            break
+        except (sqlite3.OperationalError, sqlalchemy.exc.InvalidRequestError):
+            print("Optimize failed, restarting")
+
     t2 = time.time()
     print("Time taken: ", t2-t1)
     print("Best params: ", study.best_params, " Best value: ", study.best_value)

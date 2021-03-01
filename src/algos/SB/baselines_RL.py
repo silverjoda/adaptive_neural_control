@@ -13,6 +13,7 @@ import os
 from pprint import pprint
 from shutil import copyfile
 import numpy as np
+from copy import deepcopy
 
 class CustomLSTMPolicy(LstmPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, n_lstm=64, reuse=False, **_kwargs):
@@ -96,7 +97,6 @@ def load_model(config):
     assert model is not None, "Alg name not found, cannot load model, exiting. "
     return model
 
-
 def test_agent(env, model, deterministic=True, N=100, print_rew=True):
     total_rew = 0
     for _ in range(N):
@@ -109,26 +109,31 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True):
                 reward = env.get_original_reward()
             episode_rew += reward
             total_rew += reward
-            #env.render()
-            if done: # .all() for rnn
+            if done:
                 if print_rew:
                     print(episode_rew)
                 break
     return total_rew
 
-def test_multiple(env, model, deterministic=True, N=100, seed=1337):
-    total_rew = 0.
+def test_agent_rnn(env, model, deterministic=True, N=100, print_rew=True):
+    total_rew = 0
     for _ in range(N):
         obs = env.reset()
+        episode_rew = 0
         while True:
             action, _states = model.predict(obs, deterministic=deterministic)
             obs, reward, done, info = env.step(action)
             if hasattr(env, "get_original_reward"):
                 reward = env.get_original_reward()
+            episode_rew += reward[0]
             total_rew += reward[0]
-            if done[0]:
+            # env.render()
+            if done[0]:  # .all() for rnn
+                if print_rew:
+                    print(episode_rew)
                 break
-    return total_rew / N
+    return total_rew
+
 
 def setup_train(config, setup_dirs=True):
     if setup_dirs:
@@ -140,18 +145,16 @@ def setup_train(config, setup_dirs=True):
     if config["default_session_ID"] is None:
         config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
     else:
-        config["session_ID"] = "TST"
-
-    pprint(config)
+        config["session_ID"] = config["default_session_ID"]
 
     stats_path = "agents/{}_vecnorm.pkl".format(config["session_ID"])
 
     # Import correct env by name
     env_fun = my_utils.import_env(config["env_name"])
     if config["dummy_vec_env"]:
-        vec_env = DummyVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])])
+        vec_env = DummyVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])])
     else:
-        vec_env = SubprocVecEnv([lambda: env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
+        vec_env = SubprocVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])], start_method='fork')
     env = VecNormalize(vec_env,
                        gamma=config["gamma"],
                        norm_obs=config["norm_obs"],
@@ -162,7 +165,15 @@ def setup_train(config, setup_dirs=True):
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 
+
     return env, model, checkpoint_callback, stats_path
+
+def setup_eval(config, stats_path, seed=0):
+    env_fun = my_utils.import_env(config["env_name"])
+    config_tmp = deepcopy(config)
+    config_tmp["seed"] = seed
+    env = DummyVecEnv([lambda : env_fun(config) for _ in range(config["n_envs"])])
+    return env
 
 if __name__ == "__main__":
     args = parse_args()

@@ -1,5 +1,7 @@
 import optuna
 from baselines3_TD3 import *
+import sqlite3
+import sqlalchemy.exc
 
 def objective(trial, config):
     # Quad
@@ -46,8 +48,14 @@ if __name__ == "__main__":
 
     t1 = time.time()
     study = optuna.create_study(direction='maximize', study_name="quad_opt_study", storage='sqlite:///quad_opt.db', load_if_exists=True)
-    #study = optuna.create_study(direction='maximize')
-    study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
+
+    while True:
+        try:
+            study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
+            break
+        except (sqlite3.OperationalError, sqlalchemy.exc.InvalidRequestError):
+            print("Optimize failed, restarting")
+
     t2 = time.time()
     print("Time taken: ", t2-t1)
     print("Best params: ", study.best_params, " Best value: ", study.best_value)
