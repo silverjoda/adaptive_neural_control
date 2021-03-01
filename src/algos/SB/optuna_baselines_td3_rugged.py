@@ -55,7 +55,7 @@ if __name__ == "__main__":
     #config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
-    config["N_test"] = 30
+    config["N_test"] = 50
     N_trials = 100
 
     t1 = time.time()

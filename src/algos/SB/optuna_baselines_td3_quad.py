@@ -39,11 +39,11 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 400000
+    config["iters"] = 500000
     config["verbose"] = False
     config["animate"] = False
     config["tensorboard_log"] = False
-    config["N_test"] = 30
+    config["N_test"] = 50
     N_trials = 100
 
     t1 = time.time()

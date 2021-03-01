@@ -27,4 +27,4 @@
 "target_spawn_sigma" : [0.0, 3.0] #[1.0, 4.0]
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
-"training_mode" : "left" # cw/ccw/straight
+"training_mode" : "ccw" # cw/ccw/straight
