@@ -80,6 +80,24 @@ class FF_HEX_EEF_ADVANCED(nn.Module):
             act = self.forward(x)
         return act
 
+class FF_HEX_CYC(nn.Module):
+    def __init__(self, obs_dim, act_dim, config):
+        super(FF_HEX_CYC, self).__init__()
+        self.config = config
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+
+        self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
+
+    def forward(self, x):
+        act = [param.data for param in self.learned_params]
+        return act
+
+    def sample_action(self, x):
+        with T.no_grad():
+            act = self.forward(x)
+        return act
+
 class FF_HEX_JOINT_PHASES(nn.Module):
     def __init__(self, obs_dim, act_dim, config):
         super(FF_HEX_JOINT_PHASES, self).__init__()

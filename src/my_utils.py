@@ -37,8 +37,10 @@ def import_env(name):
         from src.envs.bullet_hexapod.hexapod_wp import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_eef":
         from src.envs.bullet_hexapod.hexapod_wp_eef import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp_eef_direct":
-        from src.envs.bullet_hexapod.hexapod_wp_eef_direct import HexapodBulletEnv as env_fun
+    elif name == "hexapod_wp_cyclic":
+        from src.envs.bullet_hexapod.hexapod_wp_cyclic import HexapodBulletEnv as env_fun
+    elif name == "hexapod_wp_cyclic_es":
+        from src.envs.bullet_hexapod.hexapod_wp_cyclic_es import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_eef_es":
         from src.envs.bullet_hexapod.hexapod_wp_eef_es import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_joint_phases":
@@ -78,6 +80,8 @@ def make_policy(env, config):
         return policies.FF_HEX_EEF_ADVANCED(env.obs_dim, env.act_dim, config)
     elif config["policy_type"] == "ff_hex_joint_phases":
         return policies.FF_HEX_JOINT_PHASES(env.obs_dim, env.act_dim, config)
+    elif config["policy_type"] == "ff_hex_cyc":
+        return policies.FF_HEX_CYC(env.obs_dim, env.act_dim, config)
     else:
         raise TypeError
 

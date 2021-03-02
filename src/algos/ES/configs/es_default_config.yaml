@@ -1,5 +1,5 @@
 "algo_name" : "ES"
-"policy_type" : "ff_hex_eef"
+"policy_type" : "ff_hex_cyc"
 "n_hidden_layers" : 1
 "default_session_ID" :
 "activation_fun" : "T.tanh"
