@@ -36,10 +36,11 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 6 # x_mult, y_offset, z_mult, z_offset, phase_offset_l, phase_offset_r, phase_0 ... phase_5
+        self.act_dim = 12
         self.obs_dim = 1
 
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.06, 0.12, 0.03, -0.12, 0]
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.05, 0.12, 0.05, -0.12, 0]
+        self.dyn_z_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-3, high=3, shape=(self.act_dim,), dtype=np.float32)
@@ -105,7 +106,7 @@ class HexapodBulletEnv(gym.Env):
 
         if env_name == "tiles":
             sf = 3
-            hm = np.random.randint(0, 20 * self.config["training_difficulty"], # 15
+            hm = np.random.randint(0, self.config["tiles_height"], # 15
                                    size=(self.config["env_length"] // sf, self.config["env_width"] // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.config["env_length"], self.config["env_width"]))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -311,16 +312,39 @@ class HexapodBulletEnv(gym.Env):
         return self.robot
 
     def step(self, ctrl_raw, render=False):
-        phases = ctrl_raw
+        torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
+        roll, pitch, yaw = p.getEulerFromQuaternion(torso_quat)
+        tar_angle = np.arctan2(self.target[1] - torso_pos[1], self.target[0] - torso_pos[0])
+        signed_deviation = np.clip(yaw - tar_angle, -0.4, 0.4)
+
+        phases = ctrl_raw[0:6]
+
+        sdev_coeff = 0.00
+        x_mult_arr = [self.x_mult + signed_deviation * sdev_coeff, self.x_mult - signed_deviation * sdev_coeff] * 3
+
+        z_pressure_coeff = 0.02
 
         targets = []
         for i in range(6):
-            target_x = np.sin(self.angle * 2 * np.pi + phases[i]) * self.x_mult
+            x_cyc = np.sin(self.angle * 2 * np.pi + phases[i])
+            z_cyc = np.cos(self.angle * 2 * np.pi + phases[i])
+
+            target_x = x_cyc * x_mult_arr[i]
             target_y = self.y_offset
-            target_z = np.maximum(np.cos(self.angle * 2 * np.pi + phases[i]), self.z_lb) * self.z_mult + self.z_offset
+
+            if x_cyc < 0 and z_cyc > 0:
+                self.dyn_z_array[i] = self.z_lb
+
+            if contacts[i] < 0:
+                self.dyn_z_array[i] = z_cyc
+            else:
+                self.dyn_z_array[i] = np.maximum(-1, self.dyn_z_array[i] - z_pressure_coeff)
+
+            target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
             targets.append([target_x, target_y, target_z])
 
-        joint_angles = self.my_ikt(targets, self.y_offset)
+        rotation_overlay = np.clip(np.array(ctrl_raw[6:12]) * 0.5, -.5, .5) * signed_deviation
+        joint_angles = self.my_ikt(targets, self.y_offset, rotation_overlay)
         self.angle += self.config["angle_increment"]
 
         for i in range(18):
@@ -552,8 +576,10 @@ class HexapodBulletEnv(gym.Env):
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
-    def my_ikt(self, target_positions, y_offset):
-        rotation_angles = [np.pi/4,np.pi/4,0,0,-np.pi/4,-np.pi/4]
+    def my_ikt(self, target_positions, y_offset, rotation_overlay=None):
+        rotation_angles = np.array([np.pi/4,np.pi/4,0,0,-np.pi/4,-np.pi/4])
+        if rotation_overlay is not None:
+            rotation_angles += rotation_overlay
         joint_angles = []
         for i, tp in enumerate(target_positions):
             tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
@@ -566,9 +592,9 @@ class HexapodBulletEnv(gym.Env):
     def single_leg_ikt(self, eef_xyz):
         x,y,z = eef_xyz
 
-        assert -0.15 < x < 0.15
+        assert -0.17 < x < 0.17
         assert 0.05 < y < 0.3
-        assert -0.2 < z < 0.2
+        assert -0.22 < z < 0.1
 
         q1 = 0.2137
         q2 = 0.785
