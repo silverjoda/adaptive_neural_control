@@ -2,7 +2,6 @@
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
 "terrain_name" : "flat"
-"training_mode" : "straight"
 "velocity_control" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.3
@@ -36,7 +35,7 @@
 "joints_rads_high" : [0.5, 0.4, 1.0]
 "target_proximity_threshold" : 0.5
 "target_spawn_mu" : [1.5, 0.] # [1.5, 0.]
-"target_spawn_sigma" : [0.0, 4.0] # [1.0, 4.0]
+"target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
 "angle_increment" : 0.06
 "urdf_name" : "hexapod_normal.urdf"
 "seed" :
@@ -48,4 +47,4 @@
 "z_aux_scalar" : 0.0386 # 0.05
 "x_mult_scalar" : 0.01992 # 0.05
 "inclination_pen" : 0.00
-"locomotion_mode" : "straight" # straight/cw/ccw
+"locomotion_mode" : "cw" # straight/cw/ccw

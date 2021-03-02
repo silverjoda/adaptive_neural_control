@@ -343,7 +343,7 @@ class HexapodBulletEnv(gym.Env):
             target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
             targets.append([target_x, target_y, target_z])
 
-        rotation_overlay = np.clip(np.array(ctrl_raw[6:12]) * 0.5, -.5, .5) * signed_deviation
+        rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
         joint_angles = self.my_ikt(targets, self.y_offset, rotation_overlay)
         self.angle += self.config["angle_increment"]
 
@@ -393,27 +393,24 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        if self.config["locomotion_mode"] == "straight":
-            task_rew = np.clip(velocity_rew, -2, 2) * 1
-        elif self.config["locomotion_mode"] == "cw":
-            task_rew = -psid * 1.0
-        else:
-            task_rew = psid * 1.0
+        if self.config['locomotion_mode'] == "straight":
+            r = velocity_rew
+        if self.config['locomotion_mode'] == "ccw":
+            r = psid * 1 - abs(zd) * 0.1 - abs(roll) * 0.2 - abs(pitch) * 0.2
+        if self.config['locomotion_mode'] == "cw":
+            r = - psid * 1 - abs(zd) * 0.1 - abs(roll) * 0.2 - abs(pitch) * 0.2
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1, # 0.1
              "bobbing": np.sqrt(np.square(zd)) * 0.1, # 0.2
              "yaw_pen": np.square(tar_angle - yaw) * 0.0}
 
         #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}
-        r_pos = {"task_rew": task_rew,
+        r_pos = {"task_rew": r,
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 
         r_pos_sum = sum(r_pos.values())
         r_neg_sum = np.maximum(np.minimum(sum(r_neg.values()) * (self.step_ctr > 5), r_pos_sum), 0)
-        r = np.clip(r_pos_sum - r_neg_sum, -3, 3)
-
-        if abs(r_pos_sum) > 3 or abs(r_neg_sum) > 3:
-            print("!!WARNING!! REWARD IS ABOVE |3|, at step: {}  rpos = {}, rneg = {}".format(self.step_ctr, r_pos, r_neg))
+        r = r_pos_sum - r_neg_sum
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]

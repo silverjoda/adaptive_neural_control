@@ -85,6 +85,9 @@ Tune env to learn proper stable policy and learn policy again with transport del
 Make data gathering script
 
 # TODO:
+Fix IKT on hex and try again with higher z_mult to test on perlin and tiles + steerability + learn turnable policies
+Train cyc policy with energy consumption in mind (both str and turn)
+Think of more learnable parameters to add
 Make controllable policy on quad
 Make and test data gathering on quad
 train hexapod turning policies and hardware script for switching
