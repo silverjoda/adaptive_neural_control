@@ -76,7 +76,8 @@ Trial 13 finished with value: 54.62433840897107 and parameters: {'learning_rate'
 Trial 21 finished with value: 261.1324298132091 and parameters:
 {'learning_rate': 0.0022925056627022995, 'gamma': 0.9739139749550563, 'ou_sigma': 0.624467854316413, 'jrl_femur': -1.1045008457243952, 'jrl_tibia': -0.36821960835910844, 'jr_diff_femur': 1.018553462419685, 'jr_diff_tibia': 1.7157228930637012}.
 
-# Add progress feature to obstacle
+# Turn ccw
+Trial 7 finished with value: 96.58774830205824 and parameters: {'learning_rate': 0.002329791285823174, 'gamma': 0.9508146709690021, 'ou_sigma': 0.40376334377631334, 'batchsize': 138, 'jrl_femur': -1.0896974337351344, 'jrl_tibia': 0.17150358595194848, 'jr_diff_femur': 1.039459610483685, 'jr_diff_tibia': 0.839028505560972}. Best is trial 7 with value: 96.58774830205824.
 
 # QUAD TODO:
 Make testing in sim with joystick (position driven)
