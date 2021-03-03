@@ -79,6 +79,9 @@ Trial 21 finished with value: 261.1324298132091 and parameters:
 # Turn ccw
 Trial 7 finished with value: 96.58774830205824 and parameters: {'learning_rate': 0.002329791285823174, 'gamma': 0.9508146709690021, 'ou_sigma': 0.40376334377631334, 'batchsize': 138, 'jrl_femur': -1.0896974337351344, 'jrl_tibia': 0.17150358595194848, 'jr_diff_femur': 1.039459610483685, 'jr_diff_tibia': 0.839028505560972}. Best is trial 7 with value: 96.58774830205824.
 
+# Turn cw
+Trial 20 finished with value: 98.73567728906572 and parameters: {'learning_rate': 0.0023203593171609626, 'gamma': 0.9697211429955181, 'ou_sigma': 0.4301804813611766, 'batchsize': 37, 'jrl_femur': -1.3003878717522195, 'jrl_tibia': 0.008920230373408694, 'jr_diff_femur': 1.1874822095600355, 'jr_diff_tibia': 0.95917198925586}. Best is trial 20 with value: 98.73567728906572.
+
 # QUAD TODO:
 Make testing in sim with joystick (position driven)
 Tune env to learn proper stable policy and learn policy again with transport delays (check christmas git to see what is different in version which used to work)
@@ -86,7 +89,7 @@ Make data gathering script
 
 # TODO:
 Fix IKT on hex and try again with higher z_mult to test on perlin and tiles + steerability + learn turnable policies
-Train cyc policy with energy consumption in mind (both str and turn)
+Train cyc policy with energy consumption in mind (both str and turn).
 Think of more learnable parameters to add
 Make controllable policy on quad
 Make and test data gathering on quad

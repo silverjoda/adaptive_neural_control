@@ -631,6 +631,10 @@ class HexapodBulletEnv(gym.Env):
 
         return (Ex, Ey, Ez)
 
+
+    def test_kinematics(self):
+        pass
+
 if __name__ == "__main__":
     import yaml
     with open("configs/eef.yaml") as f:
