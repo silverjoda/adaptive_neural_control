@@ -589,9 +589,9 @@ class HexapodBulletEnv(gym.Env):
     def single_leg_ikt(self, eef_xyz):
         x,y,z = eef_xyz
 
-        assert -0.17 < x < 0.17
-        assert 0.05 < y < 0.3
-        assert -0.22 < z < 0.1
+        #assert -0.17 < x < 0.17
+        #assert 0.05 < y < 0.3
+        #assert -0.22 < z < 0.1
 
         q1 = 0.2137
         q2 = 0.785
@@ -633,7 +633,36 @@ class HexapodBulletEnv(gym.Env):
 
 
     def test_kinematics(self):
-        pass
+        np.set_printoptions(precision=3)
+
+        psi_range = np.linspace(-0.6, 0.6, 30)
+        th1_range = np.linspace(-np.pi / 2, np.pi / 2, 30)
+        th2_range = np.linspace(-np.pi / 2, np.pi / 2, 30)
+
+        # Do a sweep first and see minimum and maximum
+        # ex_list = []
+        # ey_list = []
+        # ez_list = []
+        # for psi in psi_range:
+        #     for th1 in th1_range:
+        #         for th2 in th2_range:
+        #             ex, ey, ez = self.single_leg_dkt((psi, th1, th2))
+        #             ex_list.append(ex)
+        #             ey_list.append(ey)
+        #             ez_list.append(ez)
+        # print(f"Ex min: {min(ex_list)}, max: {max(ex_list)}  Ey min: {min(ey_list)}, max: {max(ey_list)}   Ez min: {min(ez_list)}, max: {max(ez_list)} ")
+        # exit()
+
+        # Compare DKT and IKT
+        for psi in psi_range:
+            for th1 in th1_range:
+                for th2 in th2_range:
+                    ex, ey, ez = self.single_leg_dkt((psi, th1, th2))
+                    psi_ikt, th1_ikt, th2_ikt = self.single_leg_ikt((ex,ey, ez))
+                    ex_ikt, ey_ikt, ez_ikt = self.single_leg_dkt((psi_ikt, th1_ikt, th2_ikt))
+                    if not np.isclose(np.array((ex, ey, ez)), np.array((ex_ikt, ey_ikt, ez_ikt)), atol=0.05).any():
+                        print(f"For joints: {format(psi, '.3f')}, {format(th1, '.3f')}, {format(th2, '.3f')},"
+                              f" ikt gave: {format(psi_ikt, '.3f')}, {format(th1_ikt, '.3f')}, {format(th2_ikt, '.3f')}")
 
 if __name__ == "__main__":
     import yaml
@@ -641,4 +670,5 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    env.test_my_ikt()
+    #env.test_my_ikt()
+    env.test_kinematics()
