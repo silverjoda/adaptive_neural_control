@@ -39,7 +39,7 @@ class HexapodBulletEnv(gym.Env):
         self.act_dim = 12
         self.obs_dim = 1
 
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.05, 0.12, 0.05, -0.12, 0]
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.1, 0.10, 0.05, -0.12, 0]
         self.dyn_z_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
@@ -596,7 +596,7 @@ class HexapodBulletEnv(gym.Env):
         F = 0.0675
         T = 0.132
 
-        psi = (np.arcsin(x/y))
+        psi = np.arctan(x/y)
         Cx = C * np.sin(psi)
         Cy = C * np.cos(psi)
         R = np.sqrt((x-Cx)**2 + (y-Cy)**2 + (z)**2)
@@ -605,8 +605,13 @@ class HexapodBulletEnv(gym.Env):
         a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
         b = np.arccos((F ** 2 + T ** 2 - R ** 2) / (2 * F * T))
 
+        assert 0 < a < np.pi or np.isnan(a)
+        assert 0 < b < np.pi or np.isnan(b)
+
         th1 = alpha - q1 - a
         th2 = np.pi - q2 - b
+
+        assert th2 + q2 > 0 or np.isnan(th2)
 
         return -psi, th1, th2
 
@@ -621,21 +626,22 @@ class HexapodBulletEnv(gym.Env):
         F = 0.0675
         T = 0.132
 
-        Ez = -F * np.sin(q1 + th1) - T * np.sin(q1 + th1 + q2 + th2)
-        Ey = C + F * np.cos(q1 + th1) + T * np.cos(q1 + th1 + q2 + th2)
-        Ex = -Ey * np.sin(psi)
+        Ey_flat = (C + F * np.cos(q1 + th1) + T * np.cos(q1 + th1 + q2 + th2))
+
+        Ez = - F * np.sin(q1 + th1) - T * np.sin(q1 + th1 + q2 + th2)
+        Ey = Ey_flat * np.cos(psi)
+        Ex = Ey_flat * np.sin(-psi)
 
         return (Ex, Ey, Ez)
-
 
     def test_kinematics(self):
         #np.set_printoptions(precision=5)
 
-        #psi_range = np.linspace(-0.6, 0.6, 10)
-        #th1_range = np.linspace(-np.pi / 2, np.pi / 2, 10)
-        #th2_range = np.linspace(-np.pi / 2, np.pi / 2, 10)
-
-        # Do a sweep first and see minimum and maximum
+        # psi_range = np.linspace(-0.6, 0.6, 10)
+        # th1_range = np.linspace(-np.pi / 2, np.pi / 2, 10)
+        # th2_range = np.linspace(-np.pi / 2, np.pi / 2, 10)
+        #
+        # # Do a sweep first and see minimum and maximum
         # ex_list = []
         # ey_list = []
         # ez_list = []
@@ -649,22 +655,26 @@ class HexapodBulletEnv(gym.Env):
         # print(f"Ex min: {min(ex_list)}, max: {max(ex_list)}  Ey min: {min(ey_list)}, max: {max(ey_list)}   Ez min: {min(ez_list)}, max: {max(ez_list)} ")
         # exit()
 
-        ex_range = np.linspace(-0.15, 0.15, 30)
-        ey_range = np.linspace(0, 0.2, 30)
-        ez_range = np.linspace(-0.25, 0, 30)
+        ex_range = np.linspace(-0.25, 0.25, 20)
+        ey_range = [0.1]
+        #ey_range = np.linspace(0.05, 0.25, 20)
+        ez_range = np.linspace(-0.25, -0.05, 40)
 
         valid_eef_pts = []
         # Compare DKT and IKT
         for ex in ex_range:
             for ey in ey_range:
                 for ez in ez_range:
-                    ex_ikt, ey_ikt, ez_ikt = self.single_leg_dkt(self.single_leg_ikt((ex, ey, ez)))
+                    psi, th1, th2 = self.single_leg_ikt((ex, ey, ez))
+                    ex_ikt, ey_ikt, ez_ikt = self.single_leg_dkt((psi, th1, th2))
 
-                    print(f"For ekt pose: {format(ex, '.3f')}, {format(ey, '.3f')}, {format(ez, '.3f')},"
-                              f" ikt gave: {format(ex_ikt, '.3f')}, {format(ey_ikt, '.3f')}, {format(ez_ikt, '.3f')}")
-                    if np.isclose(np.array((ex, ey, ez)), np.array((ex_ikt, ey_ikt, ez_ikt)), atol=0.01).all() \
+                    print(f"For eef pose: {format(ex, '.4f')}, {format(ey, '.4f')}, {format(ez, '.4f')},"
+                              f" ikt gave: {format(psi, '.4f')}, {format(th1, '.4f')}, {format(th2, '.4f')}",
+                              f" for ikt angle dkt gave: {format(ex_ikt, '.4f')}, {format(ey_ikt, '.4f')}, {format(ez_ikt, '.4f')}")
+                    if np.isclose(np.array((ex, ey, ez)), np.array((ex_ikt, ey_ikt, ez_ikt)), atol=0.001).all() \
                             and not np.isnan((ex_ikt, ey_ikt, ez_ikt)).any():
                         valid_eef_pts.append([ex,ey,ez])
+
 
         print(f"Valid pts: {len(valid_eef_pts)}")
         x, y, z = list(zip(*valid_eef_pts))
@@ -672,14 +682,14 @@ class HexapodBulletEnv(gym.Env):
         fig = plt.figure()
         ax = plt.axes(projection='3d')
         ax.scatter(x,y,z, marker='*')
-        ax.set_title('Surface plot')
+        ax.set_title('Scatter plot')
         plt.show()
 
 if __name__ == "__main__":
     import yaml
     with open("configs/eef.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
-    env_config["animate"] = False
+    env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    #env.test_my_ikt()
-    env.test_kinematics()
+    env.test_my_ikt()
+    #env.test_kinematics()
