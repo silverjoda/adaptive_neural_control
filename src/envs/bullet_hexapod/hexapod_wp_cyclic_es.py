@@ -6,7 +6,7 @@ import gym
 import numpy as np
 import pybullet as p
 import pybullet_data
-import torch as T
+
 from gym import spaces
 from opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
@@ -39,7 +39,7 @@ class HexapodBulletEnv(gym.Env):
         self.act_dim = 12
         self.obs_dim = 1
 
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.1, 0.10, 0.05, -0.12, 0]
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.06, 0.125, 0.07, -0.12, 0]
         self.dyn_z_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
@@ -63,7 +63,6 @@ class HexapodBulletEnv(gym.Env):
 
     def set_seed(self, np_seed, T_seed):
         np.random.seed(np_seed)
-        T.manual_seed(T_seed)
 
     def create_targets(self):
         self.target = None
@@ -319,7 +318,7 @@ class HexapodBulletEnv(gym.Env):
 
         phases = ctrl_raw[0:6]
 
-        sdev_coeff = 0.00
+        sdev_coeff = 0.02
         x_mult_arr = [self.x_mult + signed_deviation * sdev_coeff, self.x_mult - signed_deviation * sdev_coeff] * 3
 
         z_pressure_coeff = 0.02
@@ -342,6 +341,9 @@ class HexapodBulletEnv(gym.Env):
 
             target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
             targets.append([target_x, target_y, target_z])
+
+            if not (0.0 > target_z > -0.17):
+                print(f"WARNING, TARGET_Z: {target_z}")
 
         rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
         joint_angles = self.my_ikt(targets, self.y_offset, rotation_overlay)
@@ -605,6 +607,9 @@ class HexapodBulletEnv(gym.Env):
         a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
         b = np.arccos((F ** 2 + T ** 2 - R ** 2) / (2 * F * T))
 
+        if np.isnan(a) or np.isnan(b):
+            print(a,b)
+
         assert 0 < a < np.pi or np.isnan(a)
         assert 0 < b < np.pi or np.isnan(b)
 
@@ -655,10 +660,10 @@ class HexapodBulletEnv(gym.Env):
         # print(f"Ex min: {min(ex_list)}, max: {max(ex_list)}  Ey min: {min(ey_list)}, max: {max(ey_list)}   Ez min: {min(ez_list)}, max: {max(ez_list)} ")
         # exit()
 
-        ex_range = np.linspace(-0.25, 0.25, 20)
-        ey_range = [0.1]
-        #ey_range = np.linspace(0.05, 0.25, 20)
-        ez_range = np.linspace(-0.25, -0.05, 40)
+        ex_range = np.linspace(-0.1, 0.1, 20)
+        #ey_range = [0.1]
+        ey_range = np.linspace(0.05, 0.25, 20)
+        ez_range = np.linspace(-0.25, 0.05, 40)
 
         valid_eef_pts = []
         # Compare DKT and IKT
@@ -691,5 +696,5 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    env.test_my_ikt()
-    #env.test_kinematics()
+    #env.test_my_ikt()
+    env.test_kinematics()

@@ -90,7 +90,7 @@ class FF_HEX_CYC(nn.Module):
         self.learned_params = nn.ParameterList([nn.Parameter(T.tensor(0.0)) for _ in range(self.act_dim)])
 
     def forward(self, x):
-        act = [param.data for param in self.learned_params]
+        act = [param.data.item() for param in self.learned_params]
         return act
 
     def sample_action(self, x):

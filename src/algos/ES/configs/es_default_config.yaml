@@ -5,7 +5,7 @@
 "activation_fun" : "T.tanh"
 "log_tb_all" : False
 "cma_std" : 0.6
-"iters" : 30
+"iters" : 80
 "algo" : "cma" # optuna/cma
 "preload" : False
 "optuna_trials" : 150
