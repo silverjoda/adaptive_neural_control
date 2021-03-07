@@ -1,7 +1,7 @@
 "env_name" : "hexapod_wp_cyclic_es"
 "controller_source" : "joystick" # joystick
 "max_steps" : 80
-"terrain_name" : "flat"
+"terrain_name" : "perlin"
 "velocity_control" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.3
@@ -17,7 +17,7 @@
 "rew_input" : 0
 "randomize_env" : False
 "max_actuator_velocity" : 6
-"lateral_friction" : 2.0
+"lateral_friction" : 1.6 # !!!
 "max_joint_force" : 1.4
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
@@ -27,8 +27,8 @@
 "sim_steps_per_iter" :  12
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
-"perlin_height" : 25
-"tiles_height" : 15
+"perlin_height" : 22
+"tiles_height" : 12
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
 "joints_rads_low" : [-0.5, -1.0, 0.4]

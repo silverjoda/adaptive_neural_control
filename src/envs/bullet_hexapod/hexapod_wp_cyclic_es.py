@@ -39,7 +39,7 @@ class HexapodBulletEnv(gym.Env):
         self.act_dim = 12
         self.obs_dim = 1
 
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.06, 0.125, 0.07, -0.12, 0]
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.05, 0.125, 0.06, -0.12, 0]
         self.dyn_z_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
@@ -318,7 +318,7 @@ class HexapodBulletEnv(gym.Env):
 
         phases = ctrl_raw[0:6]
 
-        sdev_coeff = 0.02
+        sdev_coeff = 0.03
         x_mult_arr = [self.x_mult + signed_deviation * sdev_coeff, self.x_mult - signed_deviation * sdev_coeff] * 3
 
         z_pressure_coeff = 0.02
@@ -404,7 +404,7 @@ class HexapodBulletEnv(gym.Env):
 
         r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1, # 0.1
              "bobbing": np.sqrt(np.square(zd)) * 0.1, # 0.2
-             "yaw_pen": np.square(tar_angle - yaw) * 0.0}
+             "yaw_pen": np.square(tar_angle - yaw) * 0.1}
 
         #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}
         r_pos = {"task_rew": r,
