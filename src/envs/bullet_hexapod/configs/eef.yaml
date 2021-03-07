@@ -1,7 +1,7 @@
 "env_name" : "hexapod_wp_cyclic_es"
 "controller_source" : "joystick" # joystick
-"max_steps" : 80
-"terrain_name" : "tiles"
+"max_steps" : 70
+"terrain_name" : "perlin"
 "velocity_control" : False
 "force_target_velocity" : False
 "forced_target_velocity" : 0.3

@@ -45,9 +45,10 @@ def f_optuna(trial, env, policy):
     done = False
     obs = env.reset()
 
-    w_dummy = [0,0,0,0]
-    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(8)]
-    w = np.array(w_dummy + w_suggested)
+    w = parameters_to_vector(policy.parameters()).detach().numpy()
+
+    w_suggested_increment = [trial.suggest_uniform(f'w_{i}', -0.05, 0.05) for i in range(6)]
+    w = np.array(w_suggested_increment) + w
 
     vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
@@ -144,8 +145,26 @@ def test_agent(env, policy, N=30):
             if done:
                 print(cum_rew)
                 break
-    env.close()
-    return total_rew
+    return total_rew / N
+
+def test_agent_adapt(env, policy, N=30):
+    study = optuna.create_study(direction='maximize')
+    study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=20, show_progress_bar=True)
+
+    total_rew = 0
+    for _ in range(N):
+        obs = env.reset()
+        cum_rew = 0
+        while True:
+            action = policy.sample_action(obs)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            total_rew += reward
+            if done:
+                print(cum_rew)
+                break
+
+    return total_rew / N
 
 if __name__=="__main__":
     args = parse_args()
@@ -193,6 +212,12 @@ if __name__=="__main__":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
         print([par.item() for par in policy.parameters()])
-        test_agent(env, policy)
+        avg_rew = test_agent(env, policy)
+        print(f"Avg test rew: {avg_rew}")
+
+        # On tiles policy:
+        # Tiles: ~50
+        # Flat: ~58
+        # Perlin: ~52
 
 
