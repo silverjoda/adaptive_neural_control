@@ -8,7 +8,9 @@
 "iters" : 30
 "algo" : "cma" # optuna/cma
 "preload" : False
+"save_agent" : True
 "optuna_trials" : 150
 "weight_init_bnd" : 1.
 "policy_hid_dim" : 8
 "policy_residual_connection" : True
+"verbose" : 1

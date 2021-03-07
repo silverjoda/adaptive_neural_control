@@ -35,8 +35,7 @@ def objective(trial, config):
         print("Algorithm not implemented")
         exit()
 
-    total_test_rew = test_agent(env, policy, config["N_test"])
-    avg_episode_rew = total_test_rew / config["N_test"]
+    avg_episode_rew = test_agent(env, policy, config["N_test"], print_rew=False)
 
     env.close()
     del env
@@ -48,8 +47,9 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/eef.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 20
-    config["verbose"] = False
+    config["iters"] = 7
+    config["verbose"] = -9
+    config["save_agent"] = False
     config["animate"] = False
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
@@ -58,7 +58,6 @@ if __name__ == "__main__":
 
     t1 = time.time()
     study = optuna.create_study(direction='maximize', study_name="hexapod_eef_cyc_study", storage='sqlite:///hexapod_eef_cyc.db', load_if_exists=True)
-    #study = optuna.create_study(direction='maximize')
     study.optimize(lambda x : objective(x, config), n_trials=N_trials, show_progress_bar=True)
     t2 = time.time()
     print("Time taken: ", t2-t1)

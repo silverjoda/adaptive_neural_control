@@ -476,47 +476,6 @@ class HexapodBulletEnv(gym.Env):
 
         return  np.zeros(self.obs_dim)
 
-    def test_agent(self, policy):
-        import src.my_utils as my_utils
-        for _ in range(100):
-            obs = self.reset()
-            cum_rew = 0
-            ctr = 0
-            while True:
-                torso_pos_prev, torso_quat_prev, _, _, joint_angles_prev, _, _, _, _, _ = self.get_obs()
-                action, _ = policy.sample_action(my_utils.to_tensor(obs, True))
-                obs, reward, done, info = self.step(action.detach().squeeze(0).numpy())
-                cum_rew += reward
-                self.render()
-
-                if ctr % 10 == 0 and ctr > 0 and True:
-                    p.setJointMotorControlArray(bodyUniqueId=self.robot,
-                                                jointIndices=range(18),
-                                                controlMode=p.POSITION_CONTROL,
-                                                targetPositions=[0] * 18,
-                                                forces=[0] * 18,
-                                                physicsClientId=self.client_ID)
-                    joint_angles_desired = self.norm_to_rads(np.tanh(action.detach().squeeze(0).numpy() * 0.5))
-                    for _ in range(3):
-                        [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in range(18)]
-                        p.stepSimulation(physicsClientId=self.client_ID)
-                        time.sleep(0.6)
-
-                        [p.resetJointState(self.robot, k, joint_angles_desired[k], 0, physicsClientId=self.client_ID) for k in range(18)]
-                        p.stepSimulation(physicsClientId=self.client_ID)
-                        time.sleep(0.6)
-
-                    [p.resetJointState(self.robot, k, joint_angles_prev[k], 0, physicsClientId=self.client_ID) for k in
-                     range(18)]
-                    p.stepSimulation(physicsClientId=self.client_ID)
-
-                ctr += 1
-
-                if done:
-                    print(cum_rew)
-                    break
-        env.close()
-
     def test_leg_coordination(self):
         np.set_printoptions(precision=3)
         self.reset()
@@ -619,7 +578,6 @@ class HexapodBulletEnv(gym.Env):
         assert th2 + q2 > 0 or np.isnan(th2)
 
         return -psi, th1, th2
-
 
     def single_leg_dkt(self, angles):
         psi, th1, th2 = angles

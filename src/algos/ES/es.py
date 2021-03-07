@@ -61,7 +61,7 @@ def f_optuna(trial, env, policy):
 
 def train(env, policy, config):
     w = parameters_to_vector(policy.parameters()).detach().numpy()
-    es = cma.CMAEvolutionStrategy(w, config["cma_std"])
+    es = cma.CMAEvolutionStrategy(w, config["cma_std"], {'verbose': config["verbose"]})
     f = f_wrapper(env, policy)
 
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -83,8 +83,9 @@ def train(env, policy, config):
         print("User interrupted process.")
 
     vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
-    T.save(policy.state_dict(), sdir)
-    print("Saved agent, {}".format(sdir))
+    if config["save_agent"]:
+        T.save(policy.state_dict(), sdir)
+        print("Saved agent, {}".format(sdir))
 
     return es.result.fbest
 
@@ -101,8 +102,10 @@ def train_optuna(env, policy, config):
     study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=config["optuna_trials"], show_progress_bar=True)
 
     vector_to_parameters(torch.from_numpy(np.array([0,0,0,0] + list(study.best_params.values()))).float(), policy.parameters())
-    T.save(policy.state_dict(), sdir)
-    print("Saved agent, {}, with best value: {}".format(sdir, study.best_value))
+
+    if config["save_agent"]:
+        T.save(policy.state_dict(), sdir)
+        print("Saved agent, {}, with best value: {}".format(sdir, study.best_value))
 
     return study.best_value
 
@@ -131,7 +134,7 @@ def read_config(path):
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
-def test_agent(env, policy, N=30):
+def test_agent(env, policy, N=30, print_rew=True):
     total_rew = 0
     for _ in range(N):
         obs = env.reset()
@@ -142,10 +145,10 @@ def test_agent(env, policy, N=30):
             cum_rew += reward
             total_rew += reward
             if done:
-                print(cum_rew)
+                if print_rew:
+                    print(cum_rew)
                 break
-    env.close()
-    return total_rew
+    return total_rew / N
 
 if __name__=="__main__":
     args = parse_args()
