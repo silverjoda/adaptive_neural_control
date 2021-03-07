@@ -36,10 +36,10 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 12
+        self.act_dim = 6
         self.obs_dim = 1
 
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.05, 0.125, 0.06, -0.12, 0]
+        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.06, 0.125, 0.07, -0.12, 0]
         self.dyn_z_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
@@ -345,8 +345,8 @@ class HexapodBulletEnv(gym.Env):
             if not (0.0 > target_z > -0.17):
                 print(f"WARNING, TARGET_Z: {target_z}")
 
-        rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
-        joint_angles = self.my_ikt(targets, self.y_offset, rotation_overlay)
+        #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
+        joint_angles = self.my_ikt(targets, self.y_offset)
         self.angle += self.config["angle_increment"]
 
         for i in range(18):
