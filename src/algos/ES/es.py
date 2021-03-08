@@ -45,9 +45,10 @@ def f_optuna(trial, env, policy):
     done = False
     obs = env.reset()
 
-    w_dummy = [0,0,0,0]
-    w_suggested = [trial.suggest_uniform(f'w_{i}', -5, 5) for i in range(8)]
-    w = np.array(w_dummy + w_suggested)
+    w = parameters_to_vector(policy.parameters()).detach().numpy()
+
+    w_suggested_increment = [trial.suggest_uniform(f'w_{i}', -0.05, 0.05) for i in range(6)]
+    w = np.array(w_suggested_increment) + w
 
     vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
@@ -61,7 +62,7 @@ def f_optuna(trial, env, policy):
 
 def train(env, policy, config):
     w = parameters_to_vector(policy.parameters()).detach().numpy()
-    es = cma.CMAEvolutionStrategy(w, config["cma_std"], {'verbose': config["verbose"]})
+    es = cma.CMAEvolutionStrategy(w, config["cma_std"])
     f = f_wrapper(env, policy)
 
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -83,9 +84,8 @@ def train(env, policy, config):
         print("User interrupted process.")
 
     vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
-    if config["save_agent"]:
-        T.save(policy.state_dict(), sdir)
-        print("Saved agent, {}".format(sdir))
+    T.save(policy.state_dict(), sdir)
+    print("Saved agent, {}".format(sdir))
 
     return es.result.fbest
 
@@ -102,10 +102,8 @@ def train_optuna(env, policy, config):
     study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=config["optuna_trials"], show_progress_bar=True)
 
     vector_to_parameters(torch.from_numpy(np.array([0,0,0,0] + list(study.best_params.values()))).float(), policy.parameters())
-
-    if config["save_agent"]:
-        T.save(policy.state_dict(), sdir)
-        print("Saved agent, {}, with best value: {}".format(sdir, study.best_value))
+    T.save(policy.state_dict(), sdir)
+    print("Saved agent, {}, with best value: {}".format(sdir, study.best_value))
 
     return study.best_value
 
@@ -134,7 +132,7 @@ def read_config(path):
         data = yaml.load(f, Loader=yaml.FullLoader)
     return data
 
-def test_agent(env, policy, N=30, print_rew=True):
+def test_agent(env, policy, N=30):
     total_rew = 0
     for _ in range(N):
         obs = env.reset()
@@ -145,9 +143,27 @@ def test_agent(env, policy, N=30, print_rew=True):
             cum_rew += reward
             total_rew += reward
             if done:
-                if print_rew:
-                    print(cum_rew)
+                print(cum_rew)
                 break
+    return total_rew / N
+
+def test_agent_adapt(env, policy, N=30):
+    study = optuna.create_study(direction='maximize')
+    study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=20, show_progress_bar=True)
+
+    total_rew = 0
+    for _ in range(N):
+        obs = env.reset()
+        cum_rew = 0
+        while True:
+            action = policy.sample_action(obs)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            total_rew += reward
+            if done:
+                print(cum_rew)
+                break
+
     return total_rew / N
 
 if __name__=="__main__":
@@ -196,6 +212,12 @@ if __name__=="__main__":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
         print([par.item() for par in policy.parameters()])
-        test_agent(env, policy)
+        avg_rew = test_agent(env, policy)
+        print(f"Avg test rew: {avg_rew}")
+
+        # On tiles policy:
+        # Tiles: ~50
+        # Flat: ~58
+        # Perlin: ~52
 
 
