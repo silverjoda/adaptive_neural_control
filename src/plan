@@ -77,7 +77,7 @@ Trial 21 finished with value: 261.1324298132091 and parameters:
 {'learning_rate': 0.0022925056627022995, 'gamma': 0.9739139749550563, 'ou_sigma': 0.624467854316413, 'jrl_femur': -1.1045008457243952, 'jrl_tibia': -0.36821960835910844, 'jr_diff_femur': 1.018553462419685, 'jr_diff_tibia': 1.7157228930637012}.
 
 # Turn ccw
-Trial 7 finished with value: 96.58774830205824 and parameters: {'learning_rate': 0.002329791285823174, 'gamma': 0.9508146709690021, 'ou_sigma': 0.40376334377631334, 'batchsize': 138, 'jrl_femur': -1.0896974337351344, 'jrl_tibia': 0.17150358595194848, 'jr_diff_femur': 1.039459610483685, 'jr_diff_tibia': 0.839028505560972}. Best is trial 7 with value: 96.58774830205824.
+Trial 7 finished with value: 96.58774830205824 and parameparametersters: {'learning_rate': 0.002329791285823174, 'gamma': 0.9508146709690021, 'ou_sigma': 0.40376334377631334, 'batchsize': 138, 'jrl_femur': -1.0896974337351344, 'jrl_tibia': 0.17150358595194848, 'jr_diff_femur': 1.039459610483685, 'jr_diff_tibia': 0.839028505560972}. Best is trial 7 with value: 96.58774830205824.
 
 # Turn cw
 Trial 20 finished with value: 98.73567728906572 and parameters: {'learning_rate': 0.0023203593171609626, 'gamma': 0.9697211429955181, 'ou_sigma': 0.4301804813611766, 'batchsize': 37, 'jrl_femur': -1.3003878717522195, 'jrl_tibia': 0.008920230373408694, 'jr_diff_femur': 1.1874822095600355, 'jr_diff_tibia': 0.95917198925586}. Best is trial 20 with value: 98.73567728906572.
@@ -94,3 +94,23 @@ Think of more learnable parameters to add
 Make controllable policy on quad
 Make and test data gathering on quad
 train hexapod turning policies and hardware script for switching
+
+# Subt:
+SUBT_ROBOT_TEAM=teymur IGN_GAZEBO_RESOURCE_PATH=~/subt/subt_virtual/worlds SUBT_USE_SINGULARITY=0 ~/subt/subt_virtual/scripts/run_sim worldName:=all_cave
+
+# Add team here (or choose from existing)
+subt_virtual/teams
+
+use explorer x
+
+https://www.google.com/url?sa=j&url=https%3A%2F%2Fgithub.com%2Fosrf%2Fsubt%2Fwiki%2FRobots&uct=1583743535&usg=4j1RiaE1ilZ0m767C81UcOPBbUQ.&source=meet
+
+https://gitlab.fel.cvut.cz/cras/subt/common/subt_virtual/
+https://github.com/osrf/subt/wiki/Robots
+https://github.com/osrf/subt/wiki/Robots
+
+SUBT_ROBOT_TEAM=teymur SUBT_USE_SINGULARITY=0 ~/subt/subt_virtual/scripts/run_bridge_all
+
+ke spousteni simulatoru si pridej jeste SUBT_ENDLESS_MISSION=1
+
+second robot (if used has ros master 11312)
