@@ -36,10 +36,15 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.act_dim = 6
+        self.act_dim = self.config["act_dim"]
         self.obs_dim = 1
 
-        self.x_mult, self.y_offset, self.z_mult, self.z_offset, self.z_lb = [0.06, 0.125, 0.07, -0.12, 0]
+        self.x_mult = self.config["x_mult"]
+        self.y_offset = self.config["y_offset"]
+        self.z_mult = self.config["z_mult"]
+        self.z_offset = self.config["z_offset"]
+        self.z_lb = self.config["z_lb"]
+
         self.dyn_z_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
@@ -318,10 +323,7 @@ class HexapodBulletEnv(gym.Env):
 
         phases = ctrl_raw[0:6]
 
-        sdev_coeff = 0.03
-        x_mult_arr = [self.x_mult + signed_deviation * sdev_coeff, self.x_mult - signed_deviation * sdev_coeff] * 3
-
-        z_pressure_coeff = 0.02
+        x_mult_arr = [self.x_mult + signed_deviation * self.config["turn_coeff"], self.x_mult - signed_deviation * self.config["turn_coeff"]] * 3
 
         targets = []
         for i in range(6):
@@ -337,13 +339,11 @@ class HexapodBulletEnv(gym.Env):
             if contacts[i] < 0:
                 self.dyn_z_array[i] = z_cyc
             else:
-                self.dyn_z_array[i] = np.maximum(-1, self.dyn_z_array[i] - z_pressure_coeff)
+                self.dyn_z_array[i] = np.maximum(-1, self.dyn_z_array[i] - self.config["z_pressure_coeff"])
 
             target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
             targets.append([target_x, target_y, target_z])
 
-            if not (0.0 > target_z > -0.17):
-                print(f"WARNING, TARGET_Z: {target_z}")
 
         #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
         joint_angles = self.my_ikt(targets, self.y_offset)
