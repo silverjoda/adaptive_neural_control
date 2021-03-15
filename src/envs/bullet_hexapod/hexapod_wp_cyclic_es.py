@@ -341,8 +341,8 @@ class HexapodBulletEnv(gym.Env):
             else:
                 self.dyn_z_array[i] = np.maximum(-1, self.dyn_z_array[i] - self.config["z_pressure_coeff"])
 
-            #target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
-            target_z = z_cyc * self.z_mult + self.z_offset
+            target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
+            #target_z = z_cyc * self.z_mult + self.z_offset
             targets.append([target_x, target_y, target_z])
 
         #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
@@ -396,7 +396,7 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         if self.config['locomotion_mode'] == "straight":
-            r = velocity_rew
+            r = velocity_rew - abs(zd) * 0.3 - abs(roll) * 0.5 - abs(pitch) * 0.5
         if self.config['locomotion_mode'] == "ccw":
             r = psid * 1 - abs(zd) * 0.1 - abs(roll) * 0.2 - abs(pitch) * 0.2
         if self.config['locomotion_mode'] == "cw":
