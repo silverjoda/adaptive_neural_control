@@ -331,8 +331,6 @@ class HexapodBulletEnv(gym.Env):
             x_cyc = np.sin(self.angle * 2 * np.pi + phases[i])
             z_cyc = np.cos(self.angle * 2 * np.pi + phases[i])
 
-            # TODO: redo the dyn z lb thing
-
             target_x = x_cyc * x_mult_arr[i]
             target_y = self.y_offset
 
@@ -341,21 +339,21 @@ class HexapodBulletEnv(gym.Env):
 
             if contacts[i] < 0:
                 self.dyn_z_lb_array[i] = z_cyc
-                self.poc_array[i] = 0
+                self.poc_array[i] = 1
             else:
-                if self.poc_array[i] == 0:
+                if self.poc_array[i] == 1:
                     self.poc_array[i] = z_cyc
                 self.dyn_z_lb_array[i] = self.poc_array[i] - self.config["z_pressure_coeff"]
 
             target_z = np.maximum(z_cyc, self.dyn_z_lb_array[i]) * self.z_mult + self.z_offset
-
             #target_z = z_cyc * self.z_mult + self.z_offset
             #x_pitch_rot = target_x * np.cos(-pitch * self.config["pitch_rot_coeff"]) - target_z * np.sin(-pitch * self.config["pitch_rot_coeff"])
             #z_pitch_rot = target_x * np.sin(-pitch * self.config["pitch_rot_coeff"]) + target_z * np.cos(-pitch * self.config["pitch_rot_coeff"])
+
             targets.append([target_x, target_y, target_z])
 
         #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
-        joint_angles = self.my_ikt_robust(targets, self.y_offset)
+        joint_angles = self.my_ikt(targets)
         self.angle += self.config["angle_increment"]
 
         for i in range(18):
@@ -538,18 +536,18 @@ class HexapodBulletEnv(gym.Env):
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
-    def my_ikt(self, target_positions, y_offset, rotation_overlay=None):
-        raise NotImplementedError
+    def my_ikt(self, target_positions, rotation_overlay=None):
+        #raise NotImplementedError
         rotation_angles = np.array([np.pi/4,np.pi/4,0,0,-np.pi/4,-np.pi/4])
         if rotation_overlay is not None:
             rotation_angles += rotation_overlay
         joint_angles = []
         for i, tp in enumerate(target_positions):
-            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
+            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], tp[1])
             joint_angles.extend(self.single_leg_ikt(tp_rotated))
         return joint_angles
 
-    def my_ikt_robust(self, target_positions, y_offset, rotation_overlay=None):
+    def my_ikt_robust(self, target_positions, rotation_overlay=None):
         #raise NotImplementedError
         def find_nearest_valid_point(xyz_query, rot_angle=0):
             sol = self.single_leg_ikt(xyz_query)
@@ -588,7 +586,7 @@ class HexapodBulletEnv(gym.Env):
             rotation_angles += rotation_overlay
         joint_angles = []
         for i, tp in enumerate(target_positions):
-            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
+            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], tp[1])
             joint_angles.extend(find_nearest_valid_point(tp_rotated, rotation_angles[i]))
         return joint_angles
 

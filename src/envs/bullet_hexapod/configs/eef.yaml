@@ -21,13 +21,13 @@
 "max_joint_force" : 1.4
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
-"mass" : 2.0
+"mass" : 0.0
 "target_vel" : 0.5
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  12
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
-"perlin_height" : 40
+"perlin_height" : 30
 "tiles_height" : 15
 "training_difficulty" : 1.0
 "training_difficulty_increment" : 0.0001
@@ -48,12 +48,12 @@
 "x_mult_scalar" : 0.01992 # 0.05
 "inclination_pen" : 0.00
 "z_pressure_coeff" : 0.1
-"turn_coeff" : 0.03
+"turn_coeff" : 0.00
 "x_mult" : 0.06
 "y_offset" : 0.125
 "z_mult" : 0.07
 "z_offset" : -0.11
-"z_lb" : 0.00
+"z_lb" : 1
 "pitch_rot_max" : 0.0
 "pitch_rot_coeff" : 0.5
 "act_dim" : 6
