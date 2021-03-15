@@ -513,9 +513,10 @@ class HexapodBulletEnv(gym.Env):
 
             _,_,torso_vel,_, joint_angles, _,_,_,_ = self.get_obs()
 
-            leg_pts.append(self.single_leg_dkt(joint_angles[15:18]))
+            if step_ctr > 10:
+                leg_pts.append(self.single_leg_dkt(joint_angles[9:12]))
 
-            if step_ctr == 90:
+            if step_ctr == 120:
                 break
             step_ctr += 1
 
@@ -529,6 +530,7 @@ class HexapodBulletEnv(gym.Env):
         p.disconnect(physicsClientId=self.client_ID)
 
     def my_ikt(self, target_positions, y_offset, rotation_overlay=None):
+        raise NotImplementedError
         rotation_angles = np.array([np.pi/4,np.pi/4,0,0,-np.pi/4,-np.pi/4])
         if rotation_overlay is not None:
             rotation_angles += rotation_overlay
@@ -540,7 +542,7 @@ class HexapodBulletEnv(gym.Env):
 
     def my_ikt_robust(self, target_positions, y_offset, rotation_overlay=None):
         #raise NotImplementedError
-        def find_nearest_valid_point(xyz_query):
+        def find_nearest_valid_point(xyz_query, rot_angle=0):
             sol = self.single_leg_ikt(xyz_query)
             if not np.isnan(sol).any(): return sol
 
@@ -554,17 +556,20 @@ class HexapodBulletEnv(gym.Env):
             else:
                 search_dir = -1
 
-            cur_xyz_query[1] += cur_delta * search_dir
+            cur_xyz_query[0] = cur_xyz_query[0] - cur_delta * search_dir * np.sin(rot_angle)
+            cur_xyz_query[1] = cur_xyz_query[1] + cur_delta * search_dir * np.cos(rot_angle)
             for _ in range(n_iters):
                 sol = self.single_leg_ikt(cur_xyz_query)
                 if not np.isnan(sol).any(): # If solution is good
                     cur_valid_sol = sol
                     cur_delta /= 2
-                    cur_xyz_query[1] -= cur_delta * search_dir
+                    cur_xyz_query[0] = cur_xyz_query[0] + cur_delta * search_dir * np.sin(rot_angle)
+                    cur_xyz_query[1] = cur_xyz_query[1] - cur_delta * search_dir * np.cos(rot_angle)
                 else:
                     if cur_valid_sol is not None:
                         cur_delta /= 2
-                    cur_xyz_query[1] += cur_delta * search_dir
+                    cur_xyz_query[0] = cur_xyz_query[0] - cur_delta * search_dir * np.sin(rot_angle)
+                    cur_xyz_query[1] = cur_xyz_query[1] + cur_delta * search_dir * np.cos(rot_angle)
 
             assert cur_valid_sol is not None and not np.isnan(cur_valid_sol).any()
             return cur_valid_sol
@@ -575,11 +580,11 @@ class HexapodBulletEnv(gym.Env):
         joint_angles = []
         for i, tp in enumerate(target_positions):
             tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
-            joint_angles.extend(find_nearest_valid_point(tp_rotated))
+            joint_angles.extend(find_nearest_valid_point(tp_rotated, rotation_angles[i]))
         return joint_angles
 
     def rotate_eef_pos(self, eef_xyz, angle, y_offset):
-        return [eef_xyz[0], eef_xyz[0] * np.sin(angle) + y_offset, eef_xyz[2]]
+        return [eef_xyz[0] * np.cos(angle), eef_xyz[0] * np.sin(angle) + y_offset, eef_xyz[2]]
 
     def single_leg_ikt(self, eef_xyz):
         x,y,z = eef_xyz
