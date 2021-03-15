@@ -45,7 +45,8 @@ class HexapodBulletEnv(gym.Env):
         self.z_offset = self.config["z_offset"]
         self.z_lb = self.config["z_lb"]
 
-        self.dyn_z_array = np.array([self.z_lb] * 6)
+        self.dyn_z_lb_array = np.array([self.z_lb] * 6)
+        self.poc_array = np.array([self.z_lb] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-3, high=3, shape=(self.act_dim,), dtype=np.float32)
@@ -330,19 +331,26 @@ class HexapodBulletEnv(gym.Env):
             x_cyc = np.sin(self.angle * 2 * np.pi + phases[i])
             z_cyc = np.cos(self.angle * 2 * np.pi + phases[i])
 
+            # TODO: Find out why it bobs on flat ground
+
             target_x = x_cyc * x_mult_arr[i]
             target_y = self.y_offset
 
             if x_cyc < 0 and z_cyc > 0:
-                self.dyn_z_array[i] = self.z_lb
+                self.dyn_z_lb_array[i] = self.z_lb
 
             if contacts[i] < 0:
-                self.dyn_z_array[i] = z_cyc
+                self.dyn_z_lb_array[i] = z_cyc
+                self.poc_array[i] = 0
             else:
-                self.dyn_z_array[i] = np.maximum(-1, self.dyn_z_array[i] - self.config["z_pressure_coeff"])
+                if self.poc_array[i] == 0:
+                    self.poc_array[i] = z_cyc
+                self.dyn_z_lb_array[i] = self.poc_array[i] - self.config["z_pressure_coeff"]
 
-            target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
+            target_z = np.maximum(z_cyc, self.dyn_z_lb_array[i]) * self.z_mult + self.z_offset
             #target_z = z_cyc * self.z_mult + self.z_offset
+            #x_pitch_rot = target_x * np.cos(-pitch * self.config["pitch_rot_coeff"]) - target_z * np.sin(-pitch * self.config["pitch_rot_coeff"])
+            #z_pitch_rot = target_x * np.sin(-pitch * self.config["pitch_rot_coeff"]) + target_z * np.cos(-pitch * self.config["pitch_rot_coeff"])
             targets.append([target_x, target_y, target_z])
 
         #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
