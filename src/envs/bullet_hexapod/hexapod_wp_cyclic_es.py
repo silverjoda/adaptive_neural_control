@@ -341,12 +341,12 @@ class HexapodBulletEnv(gym.Env):
             else:
                 self.dyn_z_array[i] = np.maximum(-1, self.dyn_z_array[i] - self.config["z_pressure_coeff"])
 
-            target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
+            #target_z = np.maximum(z_cyc, self.dyn_z_array[i]) * self.z_mult + self.z_offset
+            target_z = z_cyc * self.z_mult + self.z_offset
             targets.append([target_x, target_y, target_z])
 
-
         #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
-        joint_angles = self.my_ikt(targets, self.y_offset)
+        joint_angles = self.my_ikt_robust(targets, self.y_offset)
         self.angle += self.config["angle_increment"]
 
         for i in range(18):
@@ -506,24 +506,18 @@ class HexapodBulletEnv(gym.Env):
         np.set_printoptions(precision=3)
         self.reset()
 
-        targets = [0, 0, 0] * 6
-        ikt_target = self.single_leg_ikt((0,0.15,0))
-        targets[6:9] = ikt_target
-
-        ctr = 0
-        step_ctr = 0
         leg_pts = []
+        step_ctr = 0
         while True:
             self.step([0]*self.act_dim)
 
-            step_ctr += 1
-
             _,_,torso_vel,_, joint_angles, _,_,_,_ = self.get_obs()
 
-            leg_pts.append(self.single_leg_dkt(joint_angles[9:12]))
+            leg_pts.append(self.single_leg_dkt(joint_angles[15:18]))
 
-            if step_ctr == 60:
+            if step_ctr == 90:
                 break
+            step_ctr += 1
 
         x = [leg_pt[0] for leg_pt in leg_pts]
         z = [leg_pt[2] for leg_pt in leg_pts]
@@ -544,8 +538,48 @@ class HexapodBulletEnv(gym.Env):
             joint_angles.extend(self.single_leg_ikt(tp_rotated))
         return joint_angles
 
+    def my_ikt_robust(self, target_positions, y_offset, rotation_overlay=None):
+        #raise NotImplementedError
+        def find_nearest_valid_point(xyz_query):
+            sol = self.single_leg_ikt(xyz_query)
+            if not np.isnan(sol).any(): return sol
+
+            cur_valid_sol = None
+            cur_xyz_query = xyz_query
+            cur_delta = 0.03
+            n_iters = 10
+
+            if xyz_query[2] > -0.1:
+                search_dir = 1
+            else:
+                search_dir = -1
+
+            cur_xyz_query[1] += cur_delta * search_dir
+            for _ in range(n_iters):
+                sol = self.single_leg_ikt(cur_xyz_query)
+                if not np.isnan(sol).any(): # If solution is good
+                    cur_valid_sol = sol
+                    cur_delta /= 2
+                    cur_xyz_query[1] -= cur_delta * search_dir
+                else:
+                    if cur_valid_sol is not None:
+                        cur_delta /= 2
+                    cur_xyz_query[1] += cur_delta * search_dir
+
+            assert cur_valid_sol is not None and not np.isnan(cur_valid_sol).any()
+            return cur_valid_sol
+
+        rotation_angles = np.array([np.pi/4,np.pi/4,0,0,-np.pi/4,-np.pi/4])
+        if rotation_overlay is not None:
+            rotation_angles += rotation_overlay
+        joint_angles = []
+        for i, tp in enumerate(target_positions):
+            tp_rotated = self.rotate_eef_pos(tp, rotation_angles[i], y_offset)
+            joint_angles.extend(find_nearest_valid_point(tp_rotated))
+        return joint_angles
+
     def rotate_eef_pos(self, eef_xyz, angle, y_offset):
-        return [eef_xyz[0] * np.cos(angle), eef_xyz[0] * np.sin(angle) + y_offset, eef_xyz[2]]
+        return [eef_xyz[0], eef_xyz[0] * np.sin(angle) + y_offset, eef_xyz[2]]
 
     def single_leg_ikt(self, eef_xyz):
         x,y,z = eef_xyz
@@ -566,8 +600,8 @@ class HexapodBulletEnv(gym.Env):
         a = np.arccos((F**2 + R**2 - T**2) / (2 * F * R))
         b = np.arccos((F ** 2 + T ** 2 - R ** 2) / (2 * F * T))
 
-        if np.isnan(a) or np.isnan(b):
-            print(a,b)
+        #if np.isnan(a) or np.isnan(b):
+        #    print(a,b)
 
         assert 0 < a < np.pi or np.isnan(a)
         assert 0 < b < np.pi or np.isnan(b)
@@ -621,7 +655,7 @@ class HexapodBulletEnv(gym.Env):
         ex_range = np.linspace(-0.1, 0.1, 20)
         #ey_range = [0.1]
         ey_range = np.linspace(0.05, 0.25, 20)
-        ez_range = np.linspace(-0.25, 0.05, 40)
+        ez_range = np.linspace(-0.25, 0.1, 40)
 
         valid_eef_pts = []
         # Compare DKT and IKT
@@ -648,6 +682,9 @@ class HexapodBulletEnv(gym.Env):
         ax.set_title('Scatter plot')
         plt.show()
 
+    def demo_kinematics(self):
+        pass
+
 if __name__ == "__main__":
     import yaml
     with open("configs/eef.yaml") as f:
@@ -655,4 +692,5 @@ if __name__ == "__main__":
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
     #env.test_my_ikt()
-    env.test_kinematics()
+    #env.test_kinematics()
+    env.test_my_ikt()

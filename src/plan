@@ -97,6 +97,9 @@ train hexapod turning policies and hardware script for switching
 
 # Subt:
 SUBT_ROBOT_TEAM=teymur IGN_GAZEBO_RESOURCE_PATH=~/subt/subt_virtual/worlds SUBT_USE_SINGULARITY=0 ~/subt/subt_virtual/scripts/run_sim worldName:=all_cave
+SUBT_ROBOT_TEAM=teymur SUBT_USE_SINGULARITY=0 ~/subt/subt_virtual/scripts/run_bridge_all
+
+ke spousteni simulatoru si pridej jeste SUBT_ENDLESS_MISSION=1
 
 # Add team here (or choose from existing)
 subt_virtual/teams
@@ -109,8 +112,6 @@ https://gitlab.fel.cvut.cz/cras/subt/common/subt_virtual/
 https://github.com/osrf/subt/wiki/Robots
 https://github.com/osrf/subt/wiki/Robots
 
-SUBT_ROBOT_TEAM=teymur SUBT_USE_SINGULARITY=0 ~/subt/subt_virtual/scripts/run_bridge_all
-
-ke spousteni simulatoru si pridej jeste SUBT_ENDLESS_MISSION=1
-
 second robot (if used has ros master 11312)
+
+ADD EPISODE TIME TO OPTIMIZATION PARAMETERS
