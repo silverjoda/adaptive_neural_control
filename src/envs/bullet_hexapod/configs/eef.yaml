@@ -47,7 +47,7 @@
 "z_aux_scalar" : 0.0386 # 0.05
 "x_mult_scalar" : 0.01992 # 0.05
 "inclination_pen" : 0.00
-"z_pressure_coeff" : 0.01
+"z_pressure_coeff" : 0.1
 "turn_coeff" : 0.03
 "x_mult" : 0.06
 "y_offset" : 0.125

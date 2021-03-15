@@ -331,7 +331,7 @@ class HexapodBulletEnv(gym.Env):
             x_cyc = np.sin(self.angle * 2 * np.pi + phases[i])
             z_cyc = np.cos(self.angle * 2 * np.pi + phases[i])
 
-            # TODO: Find out why it bobs on flat ground
+            # TODO: redo the dyn z lb thing
 
             target_x = x_cyc * x_mult_arr[i]
             target_y = self.y_offset
@@ -348,6 +348,7 @@ class HexapodBulletEnv(gym.Env):
                 self.dyn_z_lb_array[i] = self.poc_array[i] - self.config["z_pressure_coeff"]
 
             target_z = np.maximum(z_cyc, self.dyn_z_lb_array[i]) * self.z_mult + self.z_offset
+
             #target_z = z_cyc * self.z_mult + self.z_offset
             #x_pitch_rot = target_x * np.cos(-pitch * self.config["pitch_rot_coeff"]) - target_z * np.sin(-pitch * self.config["pitch_rot_coeff"])
             #z_pitch_rot = target_x * np.sin(-pitch * self.config["pitch_rot_coeff"]) + target_z * np.cos(-pitch * self.config["pitch_rot_coeff"])
