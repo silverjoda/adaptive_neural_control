@@ -45,8 +45,8 @@ class HexapodBulletEnv(gym.Env):
         self.z_offset = self.config["z_offset"]
         self.z_lb = self.config["z_lb"]
 
-        self.dyn_z_lb_array = np.array([self.z_lb] * 6)
-        self.poc_array = np.array([self.z_lb] * 6)
+        self.dyn_z_lb_array = np.array([float(self.z_lb)] * 6)
+        self.poc_array = np.array([float(self.z_lb)] * 6)
 
         self.observation_space = spaces.Box(low=-5, high=5, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-3, high=3, shape=(self.act_dim,), dtype=np.float32)
@@ -334,7 +334,10 @@ class HexapodBulletEnv(gym.Env):
             target_x = x_cyc * x_mult_arr[i]
             target_y = self.y_offset
 
-            if x_cyc < 0 and z_cyc > 0:
+            # if i==3 and z_cyc < 0:
+            #     contacts[i] = 1
+
+            if x_cyc < 0 and z_cyc > 0.5:
                 self.dyn_z_lb_array[i] = self.z_lb
 
             if contacts[i] < 0:
@@ -353,7 +356,7 @@ class HexapodBulletEnv(gym.Env):
             targets.append([target_x, target_y, target_z])
 
         #rotation_overlay = np.clip(np.array(ctrl_raw[6:12]), -np.pi, np.pi)
-        joint_angles = self.my_ikt(targets)
+        joint_angles = self.my_ikt_robust(targets)
         self.angle += self.config["angle_increment"]
 
         for i in range(18):
@@ -403,13 +406,15 @@ class HexapodBulletEnv(gym.Env):
             self.prev_target_dist = target_dist
 
         if self.config['locomotion_mode'] == "straight":
-            r = velocity_rew - abs(zd) * 0.3 - abs(roll) * 0.5 - abs(pitch) * 0.5
-        if self.config['locomotion_mode'] == "ccw":
-            r = psid * 1 - abs(zd) * 0.1 - abs(roll) * 0.2 - abs(pitch) * 0.2
-        if self.config['locomotion_mode'] == "cw":
-            r = - psid * 1 - abs(zd) * 0.1 - abs(roll) * 0.2 - abs(pitch) * 0.2
+            r = velocity_rew - abs(zd) * 0.2 - abs(roll) * 0.3 - abs(pitch) * 0.3
+        if self.config['training_mode'] == "ccw":
+            r = np.minimum(psid, 0.8) - abs(roll) * 0.2 - abs(pitch) * 0.2 - abs(zd) * 0.2 - abs(phid) * 0.03 - abs(
+                thd) * 0.03
+        if self.config['training_mode'] == "cw":
+            r = np.maximum(-psid, -0.8) - abs(roll) * 0.2 - abs(pitch) * 0.2 - abs(zd) * 0.2 - abs(phid) * 0.03 - abs(
+                thd) * 0.03
 
-        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1, # 0.1
+        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1,
              "bobbing": np.sqrt(np.square(zd)) * 0.1, # 0.2
              "yaw_pen": np.square(tar_angle - yaw) * 0.1}
 

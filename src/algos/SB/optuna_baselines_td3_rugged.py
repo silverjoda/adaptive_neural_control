@@ -6,20 +6,19 @@ import sqlalchemy.exc
 def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-3, 3e-3))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.95, 0.97)
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.94, 0.98)
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.30, 0.50)
-    config["batchsize"] = trial.suggest_int('batchsize', 32, 196)
 
-    jrl = [-0.5,
-           trial.suggest_uniform('jrl_femur', -1.0, -1.01),
-           trial.suggest_uniform('jrl_tibia', 0.5, 0.51)]
-    jr_diff = [1.0,
-               trial.suggest_uniform('jr_diff_femur', 0.99, 1.01),
-               trial.suggest_uniform('jr_diff_tibia', 0.99, 1.01)]
-
-    config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = [jrl[i] + jr_diff[i] for i in range(3)]
-    config["joints_rads_high"] = [jrl[i] + jr_diff[i] for i in range(3)]
+    # jrl = [-0.5,
+    #        trial.suggest_uniform('jrl_femur', -1.0, -1.01),
+    #        trial.suggest_uniform('jrl_tibia', 0.5, 0.51)]
+    # jr_diff = [1.0,
+    #            trial.suggest_uniform('jr_diff_femur', 0.99, 1.01),
+    #            trial.suggest_uniform('jr_diff_tibia', 0.99, 1.01)]
+    #
+    # config["joints_rads_low"] = jrl
+    # config["joints_rads_diff"] = [jrl[i] + jr_diff[i] for i in range(3)]
+    # config["joints_rads_high"] = [jrl[i] + jr_diff[i] for i in range(3)]
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
@@ -61,7 +60,6 @@ if __name__ == "__main__":
 
     t1 = time.time()
     study = optuna.create_study(direction='maximize', study_name="hexapod_rugged_opt_study", storage='sqlite:///hexapod_rugged_opt.db', load_if_exists=True)
-    #study = optuna.create_study(direction='maximize')
 
     while True:
         try:

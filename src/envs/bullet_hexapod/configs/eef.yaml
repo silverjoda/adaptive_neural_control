@@ -17,11 +17,11 @@
 "rew_input" : 0
 "randomize_env" : False
 "max_actuator_velocity" : 7
-"lateral_friction" : 2.0 # !!!
+"lateral_friction" : 1.6 # !!!
 "max_joint_force" : 1.4
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
-"mass" : 0.0
+"mass" : 2.0
 "target_vel" : 0.5
 "target_vel_range" : [0.1, 0.5]
 "sim_steps_per_iter" :  12
@@ -47,7 +47,7 @@
 "z_aux_scalar" : 0.0386 # 0.05
 "x_mult_scalar" : 0.01992 # 0.05
 "inclination_pen" : 0.00
-"z_pressure_coeff" : 0.1
+"z_pressure_coeff" : 0.00
 "turn_coeff" : 0.00
 "x_mult" : 0.06
 "y_offset" : 0.125
@@ -57,4 +57,4 @@
 "pitch_rot_max" : 0.0
 "pitch_rot_coeff" : 0.5
 "act_dim" : 6
-"locomotion_mode" : "straight" # straight/cw/ccw
+"locomotion_mode" : "ccw" # straight/cw/ccw
