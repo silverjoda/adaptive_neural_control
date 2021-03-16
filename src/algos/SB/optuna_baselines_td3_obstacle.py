@@ -5,24 +5,27 @@ import sqlalchemy.exc
 
 def objective(trial, config):
     # Hexapod
-    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 7e-4, 3e-3))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.99)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.5, 1.0)
-    config["batchsize"] = trial.suggest_int('batchsize', 32, 512)
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 8e-4, 3e-3))
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.95, 0.99)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.4, 1.0)
+    config["batchsize"] = trial.suggest_int('batchsize', 32, 196)
+    config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.3, 1.0)
+    config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.001)
+
     jrl = [-0.6,
            trial.suggest_uniform('jrl_femur', -1.4, -0.6),
-           trial.suggest_uniform('jrl_tibia', -0.8, 0.8)]
+           trial.suggest_uniform('jrl_tibia', 0.0, 0.8)]
     jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1.5, 2.5),
-           trial.suggest_uniform('jr_diff_tibia', 1.5, 2.5)]
+           trial.suggest_uniform('jr_diff_femur', 1.2, 2.5),
+           trial.suggest_uniform('jr_diff_tibia', 1.2, 2.5)]
 
     config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = [jrl[i]+jr_diff[i] for i in range(3)]
-    config["joints_rads_high"] = [jrl[i]+jr_diff[i] for i in range(3)]
+    config["joints_rads_diff"] = jr_diff
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
 
+    config["training_difficulty"] = 1.0
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
     avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)
@@ -55,8 +58,6 @@ if __name__ == "__main__":
     #config["default_session_ID"] = "OPT_HEX"
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
-    config["training_difficulty"] = 0.4
-    config["training_difficulty_increment"] = 0.003 # 0.0005
     config["N_test"] = 50
     N_trials = 100
 

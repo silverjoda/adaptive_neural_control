@@ -41,8 +41,8 @@ class HexapodBulletEnv(gym.Env):
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
 
         self.joints_rads_low = np.array(config["joints_rads_low"] * 6)
-        self.joints_rads_high = np.array(config["joints_rads_high"] * 6)
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+        self.joints_rads_diff = np.array(config["joints_rads_diff"] * 6)
+        self.joints_rads_high = self.joints_rads_diff + self.joints_rads_low
 
         self.coxa_joint_ids = range(0, 18, 3)
         self.femur_joint_ids = range(1, 18, 3)
@@ -150,7 +150,7 @@ class HexapodBulletEnv(gym.Env):
             persistence = 1
             lacunarity = 2
 
-            for i in range(int(N/2) + 3, int(N/2) + 7):
+            for i in range(int(N/2) + 3, int(N/2) + 15):
                 for j in range(M):
                     for o in range(octaves):
                         sx = scale_x * (1 / (lacunarity ** o))
@@ -337,7 +337,7 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r = velocity_rew
+        r = velocity_rew + torso_pos[2]
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
