@@ -337,7 +337,7 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r = velocity_rew + torso_pos[2]
+        r = velocity_rew + torso_pos[2] #+ sum(contacts) * 0.03
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
@@ -424,7 +424,7 @@ class HexapodBulletEnv(gym.Env):
 
         joint_init_pos_list = self.norm_to_rads([0] * 18)
         [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(18)]
-        p.resetBasePositionAndOrientation(self.robot, [0, 0, spawn_height + 0.15], rnd_quat, physicsClientId=self.client_ID)
+        p.resetBasePositionAndOrientation(self.robot, [self.config["x_spawn_offset"], 0, spawn_height + 0.25], rnd_quat, physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,

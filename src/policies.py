@@ -291,8 +291,8 @@ class SLP_PG(nn.Module):
         self.fc1 = nn.Linear(self.obs_dim, self.act_dim)
         self.log_std = T.zeros(1, self.act_dim)
 
-        self.fc1.weight.data.uniform_(-0.3, 0.3)
-        self.fc1.bias.data.uniform_(-0.3, 0.3)
+        self.fc1.weight.data.uniform_(-0.8, 0.8)
+        self.fc1.bias.data.uniform_(-0.8, 0.8)
         #nn.init.xavier_uniform_(self.fc1.weight.data)
 
     def forward(self, x):
@@ -302,8 +302,8 @@ class SLP_PG(nn.Module):
         return x_np
 
     def sample_action(self, s):
-        act = self.forward(s)
-        return act, T.normal(act, T.exp(self.log_std))
+        return self.forward(s)
+        #return act, T.normal(act, T.exp(self.log_std))
 
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy

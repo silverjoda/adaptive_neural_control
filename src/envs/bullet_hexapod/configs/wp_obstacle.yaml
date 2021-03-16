@@ -1,6 +1,6 @@
 "env_name" : "hexapod_obstacle"
 "controller_source" : "joystick" # joystick
-"max_steps" : 140
+"max_steps" : 140 #
 "terrain_name" : "obstacle"
 "training_mode" : "straight"
 "velocity_control" : False
@@ -27,7 +27,7 @@
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
 "perlin_height" : 70
-"obstacle_height" : 40
+"obstacle_height" : 30
 "training_difficulty" : 0.99
 "training_difficulty_increment" : 0.003 # 0.0005
 "velocities_and_torques" : False
@@ -38,4 +38,5 @@
 "target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
 "inclination_pen" : 0.0
 "urdf_name" : "hexapod_normal.urdf"
+"x_spawn_offset" : 0.0 #
 "seed" :

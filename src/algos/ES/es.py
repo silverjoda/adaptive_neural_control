@@ -211,7 +211,7 @@ if __name__=="__main__":
     if config["test"] and socket.gethostname() != "goedel":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
-        print([par.item() for par in policy.parameters()])
+        #print([par.item() for par in policy.parameters()])
         avg_rew = test_agent(env, policy)
         print(f"Avg test rew: {avg_rew}")
 
