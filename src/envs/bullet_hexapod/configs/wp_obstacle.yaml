@@ -27,12 +27,12 @@
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
 "perlin_height" : 70
-"obstacle_height" : 30
+"obstacle_height" : 40
 "training_difficulty" : 0.99
 "training_difficulty_increment" : 0.003 # 0.0005
 "velocities_and_torques" : False
-"joints_rads_low" : [-0.6, -0.9, 0.0]
-"joints_rads_diff" : [1.2, 2.0, 1.5]
+"joints_rads_low" : [-0.6, -1, 0.02]
+"joints_rads_diff" : [1.2, 1.58, 1.22]
 "target_proximity_threshold" : 0.3
 "target_spawn_mu" : [1.4, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]

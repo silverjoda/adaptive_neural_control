@@ -1,0 +1,3 @@
+obstacle:
+With torso pos feature, low [-0.6, -1, 0.02], diff [1.2, 1.58, 1.22].
+Works well, needs more tuning and perseverance. Perhaps just retrain that one policy many times.
