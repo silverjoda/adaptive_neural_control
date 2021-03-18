@@ -1,10 +1,10 @@
 "algo_name" : "ES"
-"policy_type" : "slp"
+"policy_type" : "ff_hex_cyc"
 "n_hidden_layers" : 1
 "default_session_ID" :
 "activation_fun" : "T.tanh"
 "log_tb_all" : False
-"cma_std" : 0.24
+"cma_std" : 0.6
 "iters" : 50
 "algo" : "cma" # optuna/cma
 "preload" : False

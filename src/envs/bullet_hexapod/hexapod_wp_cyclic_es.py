@@ -337,7 +337,7 @@ class HexapodBulletEnv(gym.Env):
             # if i==3 and z_cyc < 0:
             #     contacts[i] = 1
 
-            if x_cyc < 0 and z_cyc > 0.5:
+            if x_cyc < 0 and z_cyc > 0.0:
                 self.dyn_z_lb_array[i] = self.z_lb
 
             if contacts[i] < 0:
@@ -405,20 +405,19 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        if self.config['locomotion_mode'] == "straight":
-            r = velocity_rew - abs(zd) * 0.2 - abs(roll) * 0.3 - abs(pitch) * 0.3
-        if self.config['training_mode'] == "ccw":
-            r = np.minimum(psid, 0.8) - abs(roll) * 0.2 - abs(pitch) * 0.2 - abs(zd) * 0.2 - abs(phid) * 0.03 - abs(
-                thd) * 0.03
-        if self.config['training_mode'] == "cw":
-            r = np.maximum(-psid, -0.8) - abs(roll) * 0.2 - abs(pitch) * 0.2 - abs(zd) * 0.2 - abs(phid) * 0.03 - abs(
-                thd) * 0.03
+        # if self.config['locomotion_mode'] == "straight":
+        #     r = velocity_rew - abs(zd) * 0.2 - abs(roll) * 0.3 - abs(pitch) * 0.3
+        # if self.config['locomotion_mode'] == "ccw":
+        #     r = np.minimum(psid, 0.8) - abs(roll) * 0.2 - abs(pitch) * 0.2 - abs(zd) * 0.2 - abs(phid) * 0.03 - abs(
+        #         thd) * 0.03
+        # if self.config['locomotion_mode'] == "cw":
+        #     r = np.maximum(-psid, -0.8) - abs(roll) * 0.2 - abs(pitch) * 0.2 - abs(zd) * 0.2 - abs(phid) * 0.03 - abs(
+        #         thd) * 0.03
 
-        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1,
-             "bobbing": np.sqrt(np.square(zd)) * 0.1, # 0.2
-             "yaw_pen": np.square(tar_angle - yaw) * 0.1}
-
-        #r_pos = {"velocity_rew": np.clip(velocity_rew / (1 + abs(yaw_deviation) * 3), -2, 2)}
+        r = velocity_rew
+        r_neg = {"inclination": np.sqrt(np.square(pitch) + np.square(roll)) * 0.1,  # 0.1
+                 "bobbing": np.sqrt(np.square(zd)) * 0.1,  # 0.2
+                 "yaw_pen": np.square(tar_angle - yaw) * 0.1}
         r_pos = {"task_rew": r,
                  "height_rew": np.clip(torso_pos[2], 0, 0.00)}
 

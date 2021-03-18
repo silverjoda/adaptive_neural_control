@@ -4,10 +4,10 @@
 "n_envs" : 1
 "iters" : 200000
 "gamma" : 0.97
-"learning_rate" : "lambda x : x * 0.001"
+"learning_rate" : "lambda x : x * 0.0012"
 "buffer_size" : 100000
 "learning_starts" : 30000
-"batch_size" : 128
+"batch_size" : 140
 "tau" : 0.005
 "policy_delay" : 2
 "target_policy_noise" : 0.1
@@ -15,7 +15,7 @@
 "policy_hid_dim" : 128
 "verbose" : 1
 "tensorboard_log" : True
-"ou_sigma" : 0.9
+"ou_sigma" : 0.4
 "ou_theta" : 0.1
 "ou_dt" : 0.1
 

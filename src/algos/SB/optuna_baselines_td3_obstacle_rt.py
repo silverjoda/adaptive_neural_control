@@ -5,26 +5,16 @@ import sqlalchemy.exc
 
 def objective(trial, config):
     # Hexapod
-    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 9e-4, 2e-3))
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 3e-4, 3e-3))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.98)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.3, 0.5)
-    config["batchsize"] = trial.suggest_int('batchsize', 96, 160)
-    config["max_steps"] = trial.suggest_int('max_steps', 70, 300)
-    config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.3, 0.6)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.2, 0.5)
+    config["batchsize"] = trial.suggest_int('batchsize', 96, 190)
+    config["max_steps"] = trial.suggest_int('max_steps', 60, 300)
+    config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.7, 0.95)
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
 
-
-    jrl = [-0.6,
-           trial.suggest_uniform('jrl_femur', -1.4, -0.6),
-           trial.suggest_uniform('jrl_tibia', 0.0, 0.8)]
-    jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1.2, 2.5),
-           trial.suggest_uniform('jr_diff_tibia', 1.2, 2.5)]
-
-    config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = jr_diff
-
-    env, model, _, stats_path = setup_train(config, setup_dirs=True)
+    env, _, _, stats_path = setup_train(config, setup_dirs=True)
+    model = TD3.load("agents/OBSTACLE_TD3_OPTUNA_policy")
     model.learn(total_timesteps=config["iters"])
 
     config["training_difficulty"] = 1.0
@@ -54,7 +44,7 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 500000
+    config["iters"] = 1000000
     config["verbose"] = False
     config["animate"] = False
     #config["default_session_ID"] = "OPT_HEX"
