@@ -527,7 +527,7 @@ class HexapodBulletEnv(gym.Env):
             if step_ctr > 10:
                 leg_pts.append(self.single_leg_dkt(joint_angles[9:12]))
 
-            if step_ctr == 120:
+            if step_ctr == 60:
                 break
             step_ctr += 1
 

@@ -147,6 +147,39 @@ def test_agent(env, policy, N=30):
                 break
     return total_rew / N
 
+def test_agent_draw(env, policy, N=30):
+    import matplotlib.pyplot as plt
+    total_rew = 0
+    for _ in range(N):
+        obs = env.reset()
+        cum_rew = 0
+        leg_pts = []
+        step_ctr = 0
+        while True:
+            action = policy.sample_action(obs)
+            obs, reward, done, info = env.step(action)
+            cum_rew += reward
+            total_rew += reward
+
+            _, _, torso_vel, _, joint_angles, _, _, _, _ = env.get_obs()
+
+            if step_ctr > 10:
+                leg_pts.append(env.single_leg_dkt(joint_angles[9:12]))
+
+            if step_ctr == 60:
+                break
+            step_ctr += 1
+
+            if done:
+                print(cum_rew)
+                break
+
+        x = [leg_pt[0] for leg_pt in leg_pts]
+        z = [leg_pt[2] for leg_pt in leg_pts]
+        colors = np.random.rand(len(leg_pts))
+        plt.scatter(x, z, c=colors, alpha=0.5)
+        plt.show()
+
 def test_agent_adapt(env, policy, N=30):
     study = optuna.create_study(direction='maximize')
     study.optimize(lambda trial : f_optuna(trial, env, policy), n_trials=20, show_progress_bar=True)
@@ -211,7 +244,7 @@ if __name__=="__main__":
     if config["test"] and socket.gethostname() != "goedel":
         if not args["train"]:
             policy.load_state_dict(T.load(config["test_agent_path"]))
-        #print([par.item() for par in policy.parameters()])
+        print([par.item() for par in policy.parameters()])
         avg_rew = test_agent(env, policy)
         print(f"Avg test rew: {avg_rew}")
 

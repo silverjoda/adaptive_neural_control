@@ -2,6 +2,7 @@ import optuna
 from baselines3_TD3 import *
 import sqlite3
 import sqlalchemy.exc
+from copy import deepcopy
 
 def objective(trial, config):
     # Hexapod
@@ -13,8 +14,14 @@ def objective(trial, config):
     config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.7, 0.95)
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
 
-    env, _, _, stats_path = setup_train(config, setup_dirs=True)
-    model = TD3.load("agents/OBSTACLE_TD3_OPTUNA_policy")
+    env, model, _, stats_path = setup_train(config, setup_dirs=True)
+    # model_loaded = TD3.load("agents/OBSTACLE_TD3_OPTUNA_policy")
+    # model_loaded.set_env(env)
+    # model.actor = deepcopy(model_loaded.actor)
+    # model.actor_target = deepcopy(model_loaded.actor_target)
+    # model.critic = deepcopy(model_loaded.critic)
+    # model.critic_target = deepcopy(model_loaded.critic_target)
+
     model.learn(total_timesteps=config["iters"])
 
     config["training_difficulty"] = 1.0
