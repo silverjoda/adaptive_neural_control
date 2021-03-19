@@ -138,6 +138,25 @@ def setup_train(config, setup_dirs=True):
 
     return env, model, callback_list, stats_path
 
+def setup_train_partial(config, setup_dirs=True):
+    T.set_num_threads(1)
+    if setup_dirs:
+        for s in ["agents", "agents_cp", "tb"]:
+            if not os.path.exists(s):
+                os.makedirs(s)
+
+    # Random ID of this session
+    if config["default_session_ID"] is None:
+        config["session_ID"] = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ', k=3))
+    else:
+        config["session_ID"] = config["default_session_ID"]
+
+    # Import correct env by name
+    env_fun = my_utils.import_env(config["env_name"])
+    env = env_fun(config)
+
+    return env
+
 def setup_eval(config, stats_path, seed=0):
     T.set_num_threads(1)
     env_fun = my_utils.import_env(config["env_name"])
@@ -178,5 +197,5 @@ if __name__ == "__main__":
 
         model = TD3.load("agents/{}".format(args["test_agent_path"]))
         N_test = 30
-        total_rew = test_agent(env, model, deterministic=True, N=N_test)
+        total_rew = test_agent(env, model, deterministic=False, N=N_test)
         print(f"Total test rew: {total_rew / N_test}")

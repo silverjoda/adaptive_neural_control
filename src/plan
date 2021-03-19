@@ -115,3 +115,6 @@ https://github.com/osrf/subt/wiki/Robots
 second robot (if used has ros master 11312)
 
 ADD EPISODE TIME TO OPTIMIZATION PARAMETERS
+
+'jrl_femur': -0.9713246198770626, 'jrl_tibia': 0.03564075571893458, 'jr_diff_femur': 1.767651864
+7212032, 'jr_diff_tibia': 1.3330814663797086
