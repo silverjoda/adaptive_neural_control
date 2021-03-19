@@ -9,10 +9,9 @@ def objective(trial, config):
     config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.98)
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.3, 0.5)
     config["batchsize"] = trial.suggest_int('batchsize', 96, 160)
-    config["max_steps"] = trial.suggest_int('max_steps', 70, 300)
+    config["max_steps"] = trial.suggest_int('max_steps', 60, 300)
     config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.3, 0.6)
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
-
 
     jrl = [-0.6,
            trial.suggest_uniform('jrl_femur', -1.4, -0.6),
@@ -28,6 +27,7 @@ def objective(trial, config):
     model.learn(total_timesteps=config["iters"])
 
     config["training_difficulty"] = 1.0
+    config["max_steps"] = 120
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
     avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)
