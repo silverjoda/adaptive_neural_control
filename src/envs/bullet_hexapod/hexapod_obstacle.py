@@ -35,7 +35,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.obs_dim = 31 + 36 * self.config["velocities_and_torques"]
+        self.obs_dim = 18 + 31 + 36 * self.config["velocities_and_torques"]
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -74,6 +74,7 @@ class HexapodBulletEnv(gym.Env):
         self.prev_yaw_dev = 0
         self.max_dist_travelled = 0
         self.target_vel_nn_input = 0
+        self.prev_act = np.zeros(18)
 
         self.create_targets()
 
@@ -271,6 +272,7 @@ class HexapodBulletEnv(gym.Env):
 
     def step(self, ctrl_raw, render=False):
         ctrl_clipped = np.tanh(np.array(ctrl_raw) * self.config["action_scaler"])
+        self.prev_act = ctrl_clipped
         scaled_action = self.norm_to_rads(ctrl_clipped)
 
         for i in range(18):
@@ -292,6 +294,7 @@ class HexapodBulletEnv(gym.Env):
 
         # Get all observations
         torso_pos, torso_quat, torso_vel, torso_angular_vel, joint_angles, joint_velocities, joint_torques, contacts, ctct_torso = self.get_obs()
+
         xd, yd, zd = torso_vel
         thd, phid, psid = torso_angular_vel
 
@@ -345,10 +348,8 @@ class HexapodBulletEnv(gym.Env):
 
         # Assemble agent observation
         time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
-        if self.obs_dim > 33:
-            compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles, joint_torques, joint_velocities
-        else:
-            compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles
+
+        compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles, self.prev_act
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 

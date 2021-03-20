@@ -20,7 +20,7 @@ def objective(trial, config):
     model.learn(total_timesteps=config["iters"])
 
     config["training_difficulty"] = 1.0
-    config["max_steps"] = 120
+    config["max_steps"] = 100
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
     avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)
@@ -31,7 +31,7 @@ def objective(trial, config):
     except:
         best_value = -1e5
     if avg_episode_rew > best_value:
-        model.save("agents/OBSTACLE_TD3_OPTUNA_policy")
+        model.save("agents/OBSTACLE_RT_TD3_OPTUNA_policy")
         print("Saved best policy")
 
     env.close()

@@ -14,11 +14,11 @@ def objective(trial, config):
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
 
     jrl = [-0.6,
-           trial.suggest_uniform('jrl_femur', -1.4, -0.6),
-           trial.suggest_uniform('jrl_tibia', 0.0, 0.8)]
+           trial.suggest_uniform('jrl_femur', -1.2, -0.8),
+           trial.suggest_uniform('jrl_tibia', 0.0, 0.5)]
     jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1.2, 2.5),
-           trial.suggest_uniform('jr_diff_tibia', 1.2, 2.5)]
+           trial.suggest_uniform('jr_diff_femur', 1.4, 2.2),
+           trial.suggest_uniform('jr_diff_tibia', 1.0, 2.2)]
 
     config["joints_rads_low"] = jrl
     config["joints_rads_diff"] = jr_diff
@@ -27,7 +27,7 @@ def objective(trial, config):
     model.learn(total_timesteps=config["iters"])
 
     config["training_difficulty"] = 1.0
-    config["max_steps"] = 120
+    config["max_steps"] = 100
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
     avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 500000
+    config["iters"] = 700000
     config["verbose"] = False
     config["animate"] = False
     #config["default_session_ID"] = "OPT_HEX"

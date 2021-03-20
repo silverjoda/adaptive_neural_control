@@ -7,7 +7,8 @@ def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-3, 3e-3))
     config["gamma"] = trial.suggest_loguniform('gamma', 0.94, 0.98)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.30, 0.50)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.30, 0.80)
+    config["ou_theta"] = trial.suggest_uniform('ou_theta', 0.03, 0.5)
     config["max_steps"] = trial.suggest_int('max_steps', 40, 100)
 
     # jrl = [-0.5,
