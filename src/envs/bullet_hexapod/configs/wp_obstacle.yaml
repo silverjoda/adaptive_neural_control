@@ -31,12 +31,14 @@
 "training_difficulty" : 0.99
 "training_difficulty_increment" : 0.003 # 0.0005
 "velocities_and_torques" : False
-"joints_rads_low" : [-0.6, -0.97, 0.035]
-"joints_rads_diff" : [1.2, 1.76, 1.33]
+"joints_rads_low" : [-0.6, -1.17, 0.16]
+"joints_rads_diff" : [1.2, 1.53, 1.17]
 "target_proximity_threshold" : 0.3
 "target_spawn_mu" : [1.4, 0.] # [1.5, 0.]
 "target_spawn_sigma" : [0.0, 0.0] # [1.0, 4.0]
 "inclination_pen" : 0.0
 "urdf_name" : "hexapod_normal.urdf"
 "x_spawn_offset" : 0.0 #
+"min_dif_state_queue_len" : 100 #
+"dif_state_sample_prob" : 0.2 #
 "seed" :

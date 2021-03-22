@@ -189,13 +189,13 @@ if __name__ == "__main__":
 
     if args["test"] and socket.gethostname() != "goedel":
         env_fun = my_utils.import_env(config["env_name"])
-        config["seed"] = 2
+        config["seed"] = 1337
 
         env = env_fun(config)
         env.training = False
         env.norm_reward = False
 
         model = TD3.load("agents/{}".format(args["test_agent_path"]))
-        N_test = 30
+        N_test = 50
         total_rew = test_agent(env, model, deterministic=False, N=N_test)
         print(f"Total test rew: {total_rew / N_test}")

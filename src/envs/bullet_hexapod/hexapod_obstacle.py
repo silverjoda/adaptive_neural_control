@@ -6,7 +6,6 @@ import gym
 import numpy as np
 import pybullet as p
 import pybullet_data
-import torch as T
 from gym import spaces
 from opensimplex import OpenSimplex
 
@@ -22,10 +21,10 @@ class HexapodBulletEnv(gym.Env):
         self.seed = self.config["seed"]
         
         if self.seed is not None:
-            self.set_seed(self.seed, self.seed)
+            self.set_seed(self.seed)
         else:
             rnd_seed = int((time.time() % 1) * 10000000)
-            self.set_seed(rnd_seed, rnd_seed + 1)
+            self.set_seed(rnd_seed)
 
         if (self.config["animate"]):
             self.client_ID = p.connect(p.GUI)
@@ -75,13 +74,17 @@ class HexapodBulletEnv(gym.Env):
         self.max_dist_travelled = 0
         self.target_vel_nn_input = 0
         self.prev_act = np.zeros(18)
+        self.prev_joints = np.zeros(18)
+
+        self.difficult_state_queue = []
+        self.progress = 1
+        self.added_difficult_state_this_episode = False
 
         self.create_targets()
 
 
-    def set_seed(self, np_seed, T_seed):
+    def set_seed(self, np_seed):
         np.random.seed(np_seed)
-        T.manual_seed(T_seed)
 
     def create_targets(self):
         self.target = None
@@ -340,7 +343,7 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r = velocity_rew + torso_pos[2] #+ sum(contacts) * 0.03
+        r = velocity_rew + torso_pos[2] # + sum(contacts) * 0.03
 
         # Calculate relative positions of targets
         relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
@@ -353,7 +356,7 @@ class HexapodBulletEnv(gym.Env):
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 
-        done = self.step_ctr > self.config["max_steps"] or reached_target
+        done = self.step_ctr > self.config["max_steps"] or reached_target or torso_pos[0] > 0.6
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
@@ -363,9 +366,35 @@ class HexapodBulletEnv(gym.Env):
             print("WARNING: TORSO OUT OF RANGE!!")
             done = True
 
+        # If already started climbing
+        if torso_pos[0] > 0.2 and not self.added_difficult_state_this_episode:
+            # If not making progress
+            if xd < 0.07:
+                self.progress = np.maximum(0, self.progress - 0.1)
+            else:
+                self.progress = np.minimum(1, self.progress + 0.2)
+
+            progress_thresh = 0.3
+            if self.progress < progress_thresh and np.random.rand() * progress_thresh > self.progress:
+                # Make difficult state
+                difficult_state = {"seed" : self.seed, "joint_angles" : joint_angles, "torso_pos" : torso_pos, "torso_quat" : torso_quat}
+
+                self.difficult_state_queue.append(difficult_state)
+                if len(self.difficult_state_queue) > self.config["min_dif_state_queue_len"]:
+                    del self.difficult_state_queue[0]
+
+                # Add state as difficult
+                self.added_difficult_state_this_episode = True
+
         return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
+        if len(self.difficult_state_queue) > self.config["min_dif_state_queue_len"] and np.random.rand() < self.config["dif_state_sample_prob"]:
+            return self.reset_difficult()
+
+        self.seed = np.random.randint(0, 1000000)
+        self.set_seed(self.seed)
+
         if hasattr(self, 'terrain'):
             p.removeBody(self.terrain, physicsClientId=self.client_ID)
         if hasattr(self, 'robot'):
@@ -390,28 +419,10 @@ class HexapodBulletEnv(gym.Env):
         self.step_ctr = 0
         self.episode_ctr += 1
         self.prev_yaw_dev = 0
-
-        #"joints_rads_low": [-0.6, -1.0, -0.2]
-        #"joints_rads_high": [0.6, 0.2, 1.5]
+        self.progress = 1
+        self.added_difficult_state_this_episode = False
 
         self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
-        #print(self.config["training_difficulty"])
-        #td = self.config["training_difficulty"]
-        #jrl = self.config["joints_rads_low"]
-        #jrl_t = self.config["joints_rads_low_target"]
-        #jrh = self.config["joints_rads_high"]
-        #jrh_t = self.config["joints_rads_high_target"]
-        #self.joints_rads_low = np.array([jrl[0], jrl[1] * (1 - td) + jrl_t[1] * (td), jrl[2] * (1 - td) + jrl_t[2] * (td)] * 6)
-        #self.joints_rads_high = np.array([jrh[0], jrh[1] * (1 - td) + jrh_t[1] * (td), jrh[2] * (1 - td) + jrh_t[2] * (td)] * 6)
-        #self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
-        if self.config["velocity_control"]:
-            self.target_vel_nn_input = np.random.rand() * 2 - 1
-            self.config["target_vel"] = 0.5 * (self.target_vel_nn_input + 1) * (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"])) + min(self.config["target_vel_range"])
-
-        if self.config["force_target_velocity"]:
-            self.config["target_vel"] = self.config["forced_target_velocity"]
-            self.target_vel_nn_input = 2 * ((self.config["target_vel"] - min(self.config["target_vel_range"])) / (max(self.config["target_vel_range"]) - min(self.config["target_vel_range"]))) - 1
 
         # Get heightmap height at robot position
         if self.terrain is None or self.config["terrain_name"] == "flat":
@@ -433,6 +444,64 @@ class HexapodBulletEnv(gym.Env):
                                     forces=[self.config["max_joint_force"]] * 18,
                                     physicsClientId=self.client_ID)
 
+        self.update_targets()
+        self.prev_target_dist = np.sqrt((0 - self.target[0]) ** 2 + (0 - self.target[1]) ** 2)
+        tar_angle = np.arctan2(self.target[1] - 0, self.target[0] - 0)
+        self.prev_yaw_deviation = np.min((abs((rnd_rot % 6.283) - (tar_angle % 6.283)), abs(rnd_rot - tar_angle)))
+
+        for i in range(10):
+            p.stepSimulation(physicsClientId=self.client_ID)
+
+        obs, _, _, _ = self.step(np.zeros(self.act_dim))
+
+        return obs
+
+    def reset_difficult(self, force_randomize=None):
+        # Get a saved difficult state from the queue
+        self.difficult_state = np.random.choice(self.difficult_state_queue, 1)
+
+        self.seed = self.difficult_state["seed"]
+        self.set_seed(self.seed)
+
+        if hasattr(self, 'terrain'):
+            p.removeBody(self.terrain, physicsClientId=self.client_ID)
+        if hasattr(self, 'robot'):
+            p.removeBody(self.robot, physicsClientId=self.client_ID)
+
+        del self.robot
+        del self.terrain
+        del self.target_body
+        self.target = None
+
+        p.resetSimulation(physicsClientId=self.client_ID)
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        self.robot = self.load_robot()
+        if not self.config["terrain_name"] == "flat":
+            self.terrain = self.generate_rnd_env()
+        else:
+            self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        self.create_targets()
+
+        # Reset episodal vars
+        self.step_ctr = 0
+        self.episode_ctr += 1
+        self.prev_yaw_dev = 0
+        self.progress = 1
+        self.added_difficult_state_this_episode = False
+
+        self.config["training_difficulty"] = np.minimum(self.config["training_difficulty"] + self.config["training_difficulty_increment"], 1)
+
+        [p.resetJointState(self.robot, i, self.difficult_state["joint_angles"][i], 0, physicsClientId=self.client_ID) for i in range(18)]
+        p.resetBasePositionAndOrientation(self.robot, self.difficult_state["torso_pos"], self.difficult_state["torso_quat"], physicsClientId=self.client_ID)
+        # p.setJointMotorControlArray(bodyUniqueId=self.robot,
+        #                             jointIndices=range(18),
+        #                             controlMode=p.POSITION_CONTROL,
+        #                             targetPositions=[0] * 18,
+        #                             forces=[self.config["max_joint_force"]] * 18,
+        #                             physicsClientId=self.client_ID)
+
+        _, _, rnd_rot = p.getEulerFromQuaternion(self.difficult_state["torso_quat"])
         self.update_targets()
         self.prev_target_dist = np.sqrt((0 - self.target[0]) ** 2 + (0 - self.target[1]) ** 2)
         tar_angle = np.arctan2(self.target[1] - 0, self.target[0] - 0)
