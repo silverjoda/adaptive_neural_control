@@ -102,6 +102,43 @@ def test_agent(env, model, deterministic=True, N=100, print_rew=True, render=Tru
                 break
     return total_rew
 
+def test_agent_mirrored(env, model, deterministic=True, N=100, print_rew=True, render=True, perm=[0,1,2,3]):
+    total_rew = 0
+
+    for _ in range(N):
+        # torso_quat, torso_vel, [signed_deviation], time_feature, scaled_joint_angles
+        obs = env.reset()
+
+        episode_rew = 0
+        while True:
+            torso_quat = obs[:4]
+            torso_vel = obs[4:7]
+            signed_deviation = obs[7]
+            time_feature = obs[8]
+            scaled_joint_angles = obs[9:]
+            obs = [*[np.sign(perm[i]) * torso_quat[np.abs(perm[i])] for i in range(4)],
+                   torso_vel[0], -torso_vel[1], torso_vel[2],
+                   -signed_deviation,
+                   time_feature,
+                   *scaled_joint_angles[3:6], *scaled_joint_angles[0:3],
+                    *scaled_joint_angles[9:12], *scaled_joint_angles[6:9],
+                    *scaled_joint_angles[15:18], *scaled_joint_angles[12:15]]
+
+            action, _states = model.predict(obs, deterministic=deterministic)
+            action_mirrored = [*action[3:6], *action[0:3],
+                    *action[9:12], *action[6:9],
+                    *action[15:18], *action[12:15]]
+
+            obs, reward, done, info = env.step(action_mirrored)
+            episode_rew += reward
+            total_rew += reward
+
+            if done:
+                if print_rew:
+                    print(episode_rew)
+                break
+    return total_rew
+
 def setup_train(config, setup_dirs=True):
     T.set_num_threads(1)
     if setup_dirs:
@@ -196,6 +233,26 @@ if __name__ == "__main__":
         env.norm_reward = False
 
         model = TD3.load("agents/{}".format(args["test_agent_path"]))
+        # Normal testing
         N_test = 50
         total_rew = test_agent(env, model, deterministic=False, N=N_test)
+        #total_rew = test_agent_mirrored(env, model, deterministic=False, N=N_test, perm=[-1, 0, 3, 2])
         print(f"Total test rew: {total_rew / N_test}")
+
+        # Testing for permutation
+        # N_test = 10
+        # best_rew = 10000
+        # best_perm = None
+        # from itertools import permutations
+        # for pos_perm in permutations(range(0, 4)):
+        #     sign_perms = [[int(x) * 2 - 1 for x in list('{0:0b}'.format(i))] for i in range(16)]
+        #     for sign_perm in sign_perms:
+        #         pos_perm_copy = list(deepcopy(pos_perm))
+        #         for i in range(len(sign_perm)):
+        #             pos_perm_copy[-i] *= sign_perm[-i]
+        #
+        #         total_rew = test_agent_mirrored(env, model, deterministic=False, N=N_test, perm=pos_perm_copy)
+        #         if total_rew < best_rew:
+        #             best_rew = total_rew
+        #             best_perm = pos_perm_copy
+        # print(best_perm, best_rew)
