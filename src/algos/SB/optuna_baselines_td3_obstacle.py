@@ -14,6 +14,11 @@ def objective(trial, config):
     config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.3, 0.6)
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
 
+    config["min_dif_state_queue_len"] = trial.suggest_int('min_dif_state_queue_len', 50, 500)
+    config["dif_state_sample_prob"] = trial.suggest_uniform('dif_state_sample_prob', 0.1, 0.7)
+    config["low_progress_thresh"] = trial.suggest_uniform('low_progress_thresh', 0.03, 0.2)
+    config["progress_pen"] = trial.suggest_uniform('progress_pen', 0.03, 0.15)
+
     # jrl = [-0.6,
     #        trial.suggest_uniform('jrl_femur', -1.2, -0.8),
     #        trial.suggest_uniform('jrl_tibia', 0.0, 0.5)]
