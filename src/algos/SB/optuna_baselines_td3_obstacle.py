@@ -5,31 +5,30 @@ import sqlalchemy.exc
 
 def objective(trial, config):
     # Hexapod
-    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 9e-4, 2e-3))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.96, 0.98)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.3, 0.5)
+    config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 9e-4, 3e-3))
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.95, 0.98)
+    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.3, 0.6)
     config["ou_theta"] = trial.suggest_uniform('ou_theta', 0.03, 0.3)
     config["ou_dt"] = trial.suggest_uniform('ou_dt', 0.03, 0.3)
-    config["batchsize"] = trial.suggest_int('batchsize', 96, 160)
     config["max_steps"] = trial.suggest_int('max_steps', 60, 300)
     config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.3, 0.6)
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
 
-    jrl = [-0.6,
-           trial.suggest_uniform('jrl_femur', -1.2, -0.8),
-           trial.suggest_uniform('jrl_tibia', 0.0, 0.5)]
-    jr_diff = [1.2,
-           trial.suggest_uniform('jr_diff_femur', 1.4, 2.2),
-           trial.suggest_uniform('jr_diff_tibia', 1.0, 2.2)]
+    # jrl = [-0.6,
+    #        trial.suggest_uniform('jrl_femur', -1.2, -0.8),
+    #        trial.suggest_uniform('jrl_tibia', 0.0, 0.5)]
+    # jr_diff = [1.2,
+    #        trial.suggest_uniform('jr_diff_femur', 1.4, 2.2),
+    #        trial.suggest_uniform('jr_diff_tibia', 1.0, 2.2)]
 
-    config["joints_rads_low"] = jrl
-    config["joints_rads_diff"] = jr_diff
+    # config["joints_rads_low"] = jrl
+    # config["joints_rads_diff"] = jr_diff
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
 
     config["training_difficulty"] = 1.0
-    config["max_steps"] = 100
+    config["max_steps"] = 90
     eval_env = setup_eval(config, stats_path, seed=1337)
     model.set_env(eval_env)
     avg_episode_rew = test_agent(eval_env, model, deterministic=True, N=config["N_test"], render=False, print_rew=False)

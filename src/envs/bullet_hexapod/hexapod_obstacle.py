@@ -367,12 +367,12 @@ class HexapodBulletEnv(gym.Env):
             done = True
 
         # If already started climbing
-        if torso_pos[0] > 0.2 and not self.added_difficult_state_this_episode:
+        if torso_pos[0] > self.config["started_climbing_x_pos"] and not self.added_difficult_state_this_episode:
             # If not making progress
-            if xd < 0.07:
-                self.progress = np.maximum(0, self.progress - 0.1)
+            if xd < self.config["low_progress_thresh"]:
+                self.progress = np.maximum(0, self.progress - self.config["progress_pen"])
             else:
-                self.progress = np.minimum(1, self.progress + 0.2)
+                self.progress = np.minimum(1, self.progress + self.config["progress_pen"] * 2)
 
             progress_thresh = 0.3
             if self.progress < progress_thresh and np.random.rand() * progress_thresh > self.progress:
@@ -458,7 +458,7 @@ class HexapodBulletEnv(gym.Env):
 
     def reset_difficult(self, force_randomize=None):
         # Get a saved difficult state from the queue
-        self.difficult_state = np.random.choice(self.difficult_state_queue, 1)
+        self.difficult_state = np.random.choice(self.difficult_state_queue, 1)[0]
 
         self.seed = self.difficult_state["seed"]
         self.set_seed(self.seed)

@@ -39,6 +39,9 @@
 "inclination_pen" : 0.0
 "urdf_name" : "hexapod_normal.urdf"
 "x_spawn_offset" : 0.0 #
+"started_climbing_x_pos" : 0.2 #
 "min_dif_state_queue_len" : 100 #
-"dif_state_sample_prob" : 0.2 #
+"dif_state_sample_prob" : 0.3 #
+"low_progress_thresh" : 0.07 #
+"progress_pen" : 0.1 #
 "seed" :
