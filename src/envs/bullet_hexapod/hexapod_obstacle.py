@@ -352,11 +352,13 @@ class HexapodBulletEnv(gym.Env):
         # Assemble agent observation
         time_feature = [(float(self.step_ctr) / self.config["max_steps"]) * 2 - 1]
 
+        #torso_pos = [torso_pos[0] + np.random.rand() * 0.1 - 0.05, torso_pos[1], torso_pos[2]]
+
         compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles, self.prev_act
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 
-        done = self.step_ctr > self.config["max_steps"] or reached_target or torso_pos[0] > 0.6
+        done = self.step_ctr > self.config["max_steps"] or reached_target or torso_pos[0] > self.config["x_finishline"]
 
         if np.abs(roll) > 1.57 or np.abs(pitch) > 1.57:
             print("WARNING!! Absolute roll and pitch values exceed bounds: roll: {}, pitch: {}".format(roll, pitch))
@@ -436,7 +438,7 @@ class HexapodBulletEnv(gym.Env):
 
         joint_init_pos_list = self.norm_to_rads([0] * 18)
         [p.resetJointState(self.robot, i, joint_init_pos_list[i], 0, physicsClientId=self.client_ID) for i in range(18)]
-        p.resetBasePositionAndOrientation(self.robot, [self.config["x_spawn_offset"], 0, spawn_height + 0.25], rnd_quat, physicsClientId=self.client_ID)
+        p.resetBasePositionAndOrientation(self.robot, [self.config["x_spawn_offset"] + np.random.rand() * 0.0 - 0.0, 0, spawn_height + 0.25], rnd_quat, physicsClientId=self.client_ID)
         p.setJointMotorControlArray(bodyUniqueId=self.robot,
                                     jointIndices=range(18),
                                     controlMode=p.POSITION_CONTROL,

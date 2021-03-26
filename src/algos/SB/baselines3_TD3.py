@@ -234,7 +234,7 @@ if __name__ == "__main__":
 
         model = TD3.load("agents/{}".format(args["test_agent_path"]))
         # Normal testing
-        N_test = 50
+        N_test = 20
         total_rew = test_agent(env, model, deterministic=False, N=N_test)
         #total_rew = test_agent_mirrored(env, model, deterministic=False, N=N_test, perm=[-1, 0, 3, 2])
         print(f"Total test rew: {total_rew / N_test}")
