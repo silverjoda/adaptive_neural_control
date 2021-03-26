@@ -164,6 +164,8 @@ class HexapodBulletEnv(gym.Env):
 
             wmin, wmax = hm.min(), hm.max()
             hm = (hm - wmin) / (wmax - wmin) * height
+
+            hm = np.minimum(hm, self.config["obstacle_height"] - 10)
             hm += current_height
 
 
