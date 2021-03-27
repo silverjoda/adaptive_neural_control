@@ -126,11 +126,11 @@ class HexapodBulletEnv(gym.Env):
             hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
 
         if env_name == "stairs_up":
-            hm = np.ones((self.config["env_length"], self.config["env_width"])) * current_height
+            hm = np.ones((self.config["env_length"], self.config["env_width"]))
             stair_height = 14 * self.config["training_difficulty"]
             stair_width = 3
 
-            initial_offset = self.config["env_length"] // 2 - self.config["env_length"] // 14
+            initial_offset = self.config["env_length"] // 2 + 1
             n_steps = min(math.floor(self.config["env_length"] / stair_width) - 1, 10)
 
             for i in range(n_steps):
@@ -154,7 +154,7 @@ class HexapodBulletEnv(gym.Env):
             persistence = 1
             lacunarity = 2
 
-            for i in range(int(N/2) + 2 + np.random.randint(0,2), int(N/2) + 15):
+            for i in range(int(N/2) + 3 + np.random.randint(0,2), int(N/2) + 15):
                 for j in range(M):
                     for o in range(octaves):
                         sx = scale_x * (1 / (lacunarity ** o))
@@ -167,7 +167,6 @@ class HexapodBulletEnv(gym.Env):
 
             hm = np.minimum(hm, self.config["obstacle_height"] - 10)
             hm += current_height
-
 
         return hm, current_height
 
