@@ -6,7 +6,7 @@ import sqlalchemy.exc
 def objective(trial, config):
     # Hexapod
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 9e-4, 3e-3))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.95, 0.98)
+    config["gamma"] = trial.suggest_loguniform  ('gamma', 0.95, 0.98)
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.3, 0.6)
     config["ou_theta"] = trial.suggest_uniform('ou_theta', 0.03, 0.3)
     config["ou_dt"] = trial.suggest_uniform('ou_dt', 0.03, 0.3)
