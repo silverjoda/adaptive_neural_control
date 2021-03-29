@@ -595,6 +595,25 @@ class HexapodBulletEnv(gym.Env):
             t2 = time.time()
             print("Time taken for iteration: {}".format(t2 - t1))
 
+    def test_joint_angles(self):
+        test_angles_1 = [-1] * 18
+        test_angles_2 = [0] * 18
+        test_angles_3 = [1] * 18
+
+        test_angles_1_rads = self.norm_to_rads(test_angles_1)
+        test_angles_2_rads = self.norm_to_rads(test_angles_2)
+        test_angles_3_rads = self.norm_to_rads(test_angles_3)
+
+        test_angles_1_rads_normed = self.rads_to_norm(test_angles_1_rads)
+        test_angles_2_rads_normed = self.rads_to_norm(test_angles_2_rads)
+        test_angles_3_rads_normed = self.rads_to_norm(test_angles_3_rads)
+
+        print(f"Test angles: {test_angles_1}, rads: {test_angles_1_rads}, normed: {test_angles_1_rads_normed}, match={np.allclose(test_angles_1, test_angles_1_rads_normed)}")
+        print(f"Test angles: {test_angles_2}, rads: {test_angles_2_rads}, normed: {test_angles_2_rads_normed}, match={np.allclose(test_angles_2, test_angles_2_rads_normed)}")
+        print(f"Test angles: {test_angles_3}, rads: {test_angles_3_rads}, normed: {test_angles_3_rads_normed}, match={np.allclose(test_angles_3, test_angles_3_rads_normed)}")
+
+
+
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
 
@@ -604,4 +623,5 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
-    env.test_leg_coordination()
+    #env.test_leg_coordination()
+    env.test_joint_angles()
