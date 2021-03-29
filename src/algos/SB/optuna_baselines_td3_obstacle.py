@@ -2,6 +2,7 @@ import optuna
 from baselines3_TD3 import *
 import sqlite3
 import sqlalchemy.exc
+import pickle
 
 def objective(trial, config):
     # Hexapod
@@ -46,6 +47,8 @@ def objective(trial, config):
         model.save("agents/OBSTACLE_TD3_OPTUNA_policy")
         print("Saved best policy")
 
+        pickle.dump(config, open( "agents/best_params.p", "wb" ) )
+
     env.close()
     eval_env.close()
     del env
@@ -57,6 +60,8 @@ def objective(trial, config):
 if __name__ == "__main__":
     algo_config = my_utils.read_config("configs/td3_default_config.yaml")
     env_config = my_utils.read_config("../../envs/bullet_hexapod/configs/wp_obstacle.yaml")
+
+    #favorite_color = pickle.load(open("agents/best_params.p", "rb"))
 
     config = {**algo_config, **env_config}
     config["iters"] = 1000000
