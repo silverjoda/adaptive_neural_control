@@ -118,3 +118,13 @@ ADD EPISODE TIME TO OPTIMIZATION PARAMETERS
 
 'jrl_femur': -0.9713246198770626, 'jrl_tibia': 0.03564075571893458, 'jr_diff_femur': 1.767651864
 7212032, 'jr_diff_tibia': 1.3330814663797086
+
+
+Trial 77 finished with value: 45.9684470810997 and parameters: {'learning_rate': 0.0019, 'gamma': 0.97, 'ou_sigma': 0.42, 'ou_theta': 0.20, 'ou_dt
+': 0.18, 'max_steps': 233, 'training_difficulty': 0.44, 'training_difficulty_increment
+': 0.0005, 'min_dif_state_queue_len': 479, 'dif_state_sample_prob': 0.46, 'low_progress
+_thresh': 0.18, 'progress_pen': 0.047}.
+
+
+TODO: Test new trained policy
+TODO: Test sensitivity on initial yaw, avg velocity (give negative 1.3 to see what it does)
