@@ -356,7 +356,7 @@ class HexapodBulletEnv(gym.Env):
 
         #torso_pos = [torso_pos[0] + np.random.rand() * 0.1 - 0.05, torso_pos[1], torso_pos[2]]
 
-        compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles, self.prev_scaled_joint_angles
+        compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles, self.prev_act#self.prev_scaled_joint_angles
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 
