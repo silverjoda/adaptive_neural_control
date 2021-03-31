@@ -47,7 +47,7 @@ def objective(trial, config):
         model.save("agents/OBSTACLE_TD3_OPTUNA_policy")
         print("Saved best policy")
 
-        pickle.dump(config, open( "agents/best_params.p", "wb" ) )
+        pickle.dump(config, open( "agents/obstacle_best_params.p", "wb" ) )
 
     env.close()
     eval_env.close()

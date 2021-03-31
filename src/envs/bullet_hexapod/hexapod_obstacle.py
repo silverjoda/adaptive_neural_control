@@ -401,8 +401,8 @@ class HexapodBulletEnv(gym.Env):
         return env_obs, r, done, {}
 
     def reset(self, force_randomize=None):
-        # if len(self.difficult_state_queue) >= self.config["min_dif_state_queue_len"] and np.random.rand() < self.config["dif_state_sample_prob"]:
-        #     return self.reset_difficult()
+        if len(self.difficult_state_queue) >= self.config["min_dif_state_queue_len"] and np.random.rand() < self.config["dif_state_sample_prob"]:
+            return self.reset_difficult()
 
         self.seed = np.random.randint(0, 1000000)
         self.set_seed(self.seed)
