@@ -18,7 +18,7 @@
 "randomize_env" : False
 "max_actuator_velocity" : 2
 "lateral_friction" : 2.0
-"max_joint_force" : 1.5
+"max_joint_force" : 1.0
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
 "mass" : 1.8

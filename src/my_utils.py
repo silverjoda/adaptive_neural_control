@@ -33,28 +33,12 @@ def to_tensor(x, add_batchdim=False):
 def import_env(name):
     if name == "hexapod":
         from src.envs.bullet_hexapod.hexapod import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp":
-        from src.envs.bullet_hexapod.hexapod_wp import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp_eef":
-        from src.envs.bullet_hexapod.hexapod_wp_eef import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp_cyclic":
-        from src.envs.bullet_hexapod.hexapod_wp_cyclic import HexapodBulletEnv as env_fun
     elif name == "hexapod_wp_cyclic_es":
         from src.envs.bullet_hexapod.hexapod_wp_cyclic_es import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp_eef_es":
-        from src.envs.bullet_hexapod.hexapod_wp_eef_es import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp_joint_phases":
-        from src.envs.bullet_hexapod.hexapod_wp_joint_phases import HexapodBulletEnv as env_fun
-    elif name == "hexapod_wp_joint_phases_es":
-        from src.envs.bullet_hexapod.hexapod_wp_joint_phases_es import HexapodBulletEnv as env_fun
-    elif name == "hexapod_straight":
-        from src.envs.bullet_hexapod.hexapod_straight import HexapodBulletEnv as env_fun
     elif name == "hexapod_obstacle":
         from src.envs.bullet_hexapod.hexapod_obstacle import HexapodBulletEnv as env_fun
-    elif name == "quadrotor_stab":
-        from src.envs.bullet_quadrotor.quadrotor_stab import QuadrotorBulletEnv as env_fun
-    elif name == "quadrotor_vel":
-        from src.envs.bullet_quadrotor.quadrotor_vel import QuadrotorBulletEnv as env_fun
+    elif name == "quadrotor":
+        from src.envs.bullet_quadrotor.quadrotor import QuadrotorBulletEnv as env_fun
     elif name == "buggy":
         from src.envs.bullet_buggy.buggy import BuggyBulletEnv as env_fun
     elif name == "quadruped":
@@ -131,6 +115,13 @@ def _euler_to_quaternion(roll, pitch, yaw):
     qw = np.cos(roll / 2) * np.cos(pitch / 2) * np.cos(yaw / 2) + np.sin(roll / 2) * np.sin(pitch / 2) * np.sin(
         yaw / 2)
     return [qx, qy, qz, qw]
+
+def universal_lf(x,a,c):
+    #A General and Adaptive Robust Loss Function, Jonathan T. Barron
+    coeff = np.abs(a - 2) / a
+    inner_bracket = np.square(x / c) / np.abs(a - 2) + 1
+    f = coeff * (np.power(inner_bracket, (a / 2)) - 1)
+    return f
 
 if __name__=="__main__":
     noise = SimplexNoise(4, 5)
