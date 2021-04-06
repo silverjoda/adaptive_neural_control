@@ -9,7 +9,7 @@
 "perlin_height" : 25
 "obstacle_height" : 40
 "mass" : 2.0
-"lateral_friction" : 1.6
+"lateral_friction" : 0.2
 "max_joint_force" : 1.0
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
