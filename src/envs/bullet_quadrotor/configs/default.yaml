@@ -24,6 +24,7 @@
 "disturbance_frequency" : 0.00 # 0.005
 "act_pen" : 0.001
 "observation_bnd": 7.0
+"init_difficulty" : 0.5
 
 "propeller_parasitic_torque_coeff" : 1.0
 "default_mass" : 0.8

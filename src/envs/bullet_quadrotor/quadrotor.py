@@ -51,7 +51,11 @@ class QuadrotorBulletEnv(gym.Env):
         else:
           self.client_ID = p.connect(p.DIRECT)
 
-        self.set_sim_params()
+        # Set simulation parameters
+        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+        p.setTimeStep(self.config["sim_timestep"], physicsClientId=self.client_ID)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
         # Load robot model and floor
         self.robot = self.load_robot()
@@ -76,13 +80,6 @@ class QuadrotorBulletEnv(gym.Env):
         self.seed = seed
         np.random.seed(self.seed)
         print("Setting seed")
-
-    def set_sim_params(self):
-        # Set simulation parameters
-        p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
-        p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
-        p.setTimeStep(self.config["sim_timestep"], physicsClientId=self.client_ID)
-        p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
     def set_randomize_env(self, rnd):
         self.config["randomize_env"] = rnd
@@ -260,10 +257,7 @@ class QuadrotorBulletEnv(gym.Env):
         else:
             r_unqueued = self.rew_queue
 
-        if torso_pos[2] < 0.3:
-            velocity_target[0] = 0.3 - torso_pos[2]
-
-        done = (self.step_ctr > self.config["max_steps"]) or crashed
+        done = (self.step_ctr > self.config["max_steps"])
 
         compiled_obs = pos_delta, torso_quat, torso_vel, torso_angular_vel
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
@@ -294,7 +288,14 @@ class QuadrotorBulletEnv(gym.Env):
 
         obs = np.array(aux_obs).astype(np.float32)
 
-        return obs, r, done, {"aux_obs" : aux_obs, "randomized_params" : self.randomized_params}
+        obs_dict = {"pos_delta" : pos_delta,
+                    "torso_quat" : torso_quat,
+                    "torso_vel" : torso_vel,
+                    "torso_angular_vel" : torso_angular_vel,
+                    "reward" : r_true,
+                    "action" : ctrl_raw}
+
+        return obs, r, done, {"obs_dict" : obs_dict, "randomized_params" : self.randomized_params, "true_rew" : r_true}
 
     def reset(self, force_randomize=None):
         # If we are randomizing env every episode, then delete everything and load robot again
@@ -302,6 +303,11 @@ class QuadrotorBulletEnv(gym.Env):
             if hasattr(self, 'robot'):
                 p.removeBody(self.robot, physicsClientId=self.client_ID)
                 del self.robot
+
+            p.resetSimulation(physicsClientId=self.client_ID)
+            p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
+            p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
+            p.setTimeStep(self.config["sim_timestep"], physicsClientId=self.client_ID)
 
             self.robot = self.load_robot()
 
@@ -313,10 +319,11 @@ class QuadrotorBulletEnv(gym.Env):
         self.prev_act = None
 
         if self.config["rnd_init"]:
-            rnd_starting_pos_delta = np.random.rand(3) * 3. - 1.5
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(1) * 2 - 1, np.random.rand(1) * 2 - 1, np.random.rand(1) * 2 - .1], physicsClientId=self.client_ID)
-            rnd_starting_lin_velocity = np.random.rand(3) * 2 - 1
-            rnd_starting_rot_velocity = np.random.rand(3) * 1 - .5
+            difc = self.config["init_difficulty"]
+            rnd_starting_pos_delta = np.random.rand(3) * 3. * difc - 1.5 * difc
+            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(3) * 2 * difc - 1 * difc], physicsClientId=self.client_ID)
+            rnd_starting_lin_velocity = np.random.rand(3) * 2 * difc - 1 * difc
+            rnd_starting_rot_velocity = np.random.rand(3) * 1 * difc - .5 * difc
         else:
             rnd_starting_pos_delta = np.zeros(3)
             rnd_starting_orientation = np.array([0,0,0,1])
@@ -472,3 +479,5 @@ if __name__ == "__main__":
     env.demo_joystick()
     #env.deploy_trained_model()
     #env.gather_data()
+
+    # TODO: Continue at demo(s) and debugging
