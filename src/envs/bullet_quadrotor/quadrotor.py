@@ -109,7 +109,7 @@ class QuadrotorBulletEnv(gym.Env):
             buf = in_file.readlines()
 
         index = self.config["urdf_name"].find('.urdf')
-        output_urdf = self.config["urdf_name"][:index] + '_rnd' + f'_{min(2,self.episode_ctr)}' + self.config["urdf_name"][index:]
+        output_urdf = self.config["urdf_name"][:index] + '_rnd' + f'_{np.random.randint(0,100000)}' + self.config["urdf_name"][index:]
 
         # TODO: son of a bitch is keeping a cached version of URDF and loading the same one every time....
 
@@ -128,6 +128,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Load urdf
         robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
         plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf))
 
         # Default robot
         # self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
@@ -352,12 +353,16 @@ class QuadrotorBulletEnv(gym.Env):
         return obs
 
     def demo(self):
-        for i in range(100):
+        k = 0
+        while True:
             self.reset()
             act = np.array([-0.7, -0.7, -0.7, -0.7])
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
+
+            k += 1
+            print(k)
 
     def demo_joystick(self):
         self.config["policy_type"] = "mlp"
@@ -486,7 +491,7 @@ if __name__ == "__main__":
     import yaml
     with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
-    env_config["animate"] = True
+    env_config["animate"] = False
     env = QuadrotorBulletEnv(env_config)
     #env.demo_joystick()
     #env.deploy_trained_model()
