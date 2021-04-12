@@ -123,16 +123,17 @@ class QuadrotorBulletEnv(gym.Env):
                     out_file.write(line)
 
         # Load urdf
-        self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
+        self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         # Default robot
         # self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
         #                         physicsClientId=self.client_ID)
 
         # Change base mass
-        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"], physicsClientId=self.client_ID)
+        p.changeDynamics(robot, -1, mass=self.randomized_params["mass"], physicsClientId=self.client_ID)
 
-        return self.robot
+        return robot
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -178,8 +179,9 @@ class QuadrotorBulletEnv(gym.Env):
         return velocity_target
 
     def render(self, close=False, mode=None):
-        if self.config["animate"]:
-            time.sleep(self.config["sim_timestep"])
+        #if self.config["animate"]:
+        #    time.sleep(self.config["sim_timestep"])
+        pass
 
     def step(self, ctrl_raw):
         self.prev_act = ctrl_raw
@@ -242,7 +244,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Calculate true reward
         pen_position = np.mean(np.square(pos_delta)) * self.config["pen_position_coeff"]
         pen_rpy = np.mean(np.square(np.array(torso_euler))) * self.config["pen_rpy_coeff"]
-        pen_rotvel = np.mean(np.square(torso_angular_vel)) * self.config["pen_position_coeff"]
+        pen_rotvel = np.mean(np.square(torso_angular_vel)) * self.config["pen_ang_vel_coeff"]
         r_true = - action_penalty - pen_position - pen_rpy - pen_rotvel
 
         # Calculate proxy reward (for learning purposes)
@@ -302,7 +304,9 @@ class QuadrotorBulletEnv(gym.Env):
         if self.config["randomize_env"]:
             if hasattr(self, 'robot'):
                 p.removeBody(self.robot, physicsClientId=self.client_ID)
+                p.removeBody(self.plane, physicsClientId=self.client_ID)
                 del self.robot
+                del self.plane
 
             p.resetSimulation(physicsClientId=self.client_ID)
             p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
@@ -318,10 +322,17 @@ class QuadrotorBulletEnv(gym.Env):
         self.current_disturbance = None
         self.prev_act = None
 
+        self.obs_queue = [np.zeros(self.raw_obs_dim, dtype=np.float32) for _ in range(
+            np.maximum(1, self.config["obs_input"]) + self.randomized_params["input_transport_delay"])]
+        self.act_queue = [np.zeros(self.act_dim, dtype=np.float32) for _ in range(
+            np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
+        self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(
+            np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
+
         if self.config["rnd_init"]:
             difc = self.config["init_difficulty"]
             rnd_starting_pos_delta = np.random.rand(3) * 3. * difc - 1.5 * difc
-            rnd_starting_orientation = p.getQuaternionFromEuler([np.random.rand(3) * 2 * difc - 1 * difc], physicsClientId=self.client_ID)
+            rnd_starting_orientation = p.getQuaternionFromEuler(np.random.rand(3) * 2 * difc - 1 * difc, physicsClientId=self.client_ID)
             rnd_starting_lin_velocity = np.random.rand(3) * 2 * difc - 1 * difc
             rnd_starting_rot_velocity = np.random.rand(3) * 1 * difc - .5 * difc
         else:
@@ -343,7 +354,7 @@ class QuadrotorBulletEnv(gym.Env):
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
-                time.sleep(self.config["sim_timestep"])
+
 
             self.reset()
 
@@ -369,7 +380,7 @@ class QuadrotorBulletEnv(gym.Env):
                 else:
                     act, _states = model.predict(obs, deterministic=True)
             else:
-                act = self.calculate_stabilization_action(obs[3:7], obs[10:13], velocity_target)
+                act = self.pid_controller.calculate_stabilization_action(obs[3:7], obs[10:13], velocity_target)
             obs, r, done, _ = self.step(act)
             if done: obs = self.reset()
 
@@ -476,8 +487,9 @@ if __name__ == "__main__":
         env_config = yaml.load(f, Loader=yaml.FullLoader)
     env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
-    env.demo_joystick()
+    #env.demo_joystick()
     #env.deploy_trained_model()
     #env.gather_data()
 
     # TODO: Continue at demo(s) and debugging
+    env.demo()
