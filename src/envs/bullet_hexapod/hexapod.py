@@ -357,6 +357,7 @@ class HexapodBulletEnv(gym.Env):
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         self.create_targets()
 
+
         # Reset episodal vars
         self.step_ctr = 0
         self.episode_ctr += 1

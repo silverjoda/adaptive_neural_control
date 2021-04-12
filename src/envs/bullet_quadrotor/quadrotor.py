@@ -42,6 +42,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Episode variables
         self.step_ctr = 0
+        self.episode_ctr = 0
 
         # Velocity [0,1] which the motors are currently turning at (unobservable)
         self.current_motor_velocity_vec = np.array([0.,0.,0.,0.])
@@ -57,9 +58,12 @@ class QuadrotorBulletEnv(gym.Env):
         p.setTimeStep(self.config["sim_timestep"], physicsClientId=self.client_ID)
         p.setAdditionalSearchPath(pybullet_data.getDataPath(), physicsClientId=self.client_ID)
 
+        # Instantiate instances of joystick controller (human input) and pid controller
+        self.joystick_controller = JoyController(self.config)
+        self.pid_controller = PIDController(self.config)
+
         # Load robot model and floor
-        self.robot = self.load_robot()
-        self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        self.robot, self.plane = self.load_robot()
 
         # Define observation and action space (for gym)
         self.observation_space = spaces.Box(low=-self.config["observation_bnd"], high=self.config["observation_bnd"], shape=(self.obs_dim,))
@@ -72,9 +76,6 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
         self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
 
-        # Instantiate instances of joystick controller (human input) and pid controller
-        self.joystick_controller = JoyController(self.config)
-        self.pid_controller = PIDController(self.config)
 
     def seed(self, seed=None):
         self.seed = seed
@@ -108,7 +109,9 @@ class QuadrotorBulletEnv(gym.Env):
             buf = in_file.readlines()
 
         index = self.config["urdf_name"].find('.urdf')
-        output_urdf = self.config["urdf_name"][:index] + '_rnd' + self.config["urdf_name"][index:]
+        output_urdf = self.config["urdf_name"][:index] + '_rnd' + f'_{min(2,self.episode_ctr)}' + self.config["urdf_name"][index:]
+
+        # TODO: son of a bitch is keeping a cached version of URDF and loading the same one every time....
 
         # Change link lengths in urdf
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), "w") as out_file:
@@ -124,7 +127,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Load urdf
         robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
-        self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+        plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
 
         # Default robot
         # self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
@@ -133,7 +136,7 @@ class QuadrotorBulletEnv(gym.Env):
         # Change base mass
         p.changeDynamics(robot, -1, mass=self.randomized_params["mass"], physicsClientId=self.client_ID)
 
-        return robot
+        return robot, plane
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -313,12 +316,13 @@ class QuadrotorBulletEnv(gym.Env):
             p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
             p.setTimeStep(self.config["sim_timestep"], physicsClientId=self.client_ID)
 
-            self.robot = self.load_robot()
+            self.robot, self.plane = self.load_robot()
 
         # Reset PID variables
         self.pid_controller.setup_stabilization_control()
 
         self.step_ctr = 0
+        self.episode_ctr += 1
         self.current_disturbance = None
         self.prev_act = None
 
@@ -354,9 +358,6 @@ class QuadrotorBulletEnv(gym.Env):
 
             for i in range(self.config["max_steps"]):
                 obs, r, done, _ = self.step(act)
-
-
-            self.reset()
 
     def demo_joystick(self):
         self.config["policy_type"] = "mlp"
