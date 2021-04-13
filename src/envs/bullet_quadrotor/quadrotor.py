@@ -76,7 +76,6 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
         self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
 
-
     def seed(self, seed=None):
         self.seed = seed
         np.random.seed(self.seed)
@@ -86,6 +85,11 @@ class QuadrotorBulletEnv(gym.Env):
         self.config["randomize_env"] = rnd
 
     def load_robot(self):
+        if not hasattr(self, 'robot'):
+            self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
+                               physicsClientId=self.client_ID)
+            self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
+
         # Randomize robot params
         self.randomized_params = {"mass": self.config["default_mass"] + (np.random.rand() * 0.6 - 0.3) * self.config["randomize_env"],
                                  "boom": self.config["default_boom_length"] + (np.random.rand() * 0.2 - 0.05) * self.config["randomize_env"],
@@ -104,40 +108,10 @@ class QuadrotorBulletEnv(gym.Env):
         self.randomized_params_list_norm.append((self.randomized_params["input_transport_delay"] - self.config["maximum_random_input_transport_delay"] / 2) / self.config["maximum_random_input_transport_delay"])
         self.randomized_params_list_norm.append((self.randomized_params["output_transport_delay"] - self.config["maximum_random_output_transport_delay"] / 2) / self.config["maximum_random_output_transport_delay"])
 
-        # # # Write params to URDF file
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
-            buf = in_file.readlines()
-
-        index = self.config["urdf_name"].find('.urdf')
-        output_urdf = self.config["urdf_name"][:index] + '_rnd' + f'_{np.random.randint(0,100000)}' + self.config["urdf_name"][index:]
-
-        # TODO: son of a bitch is keeping a cached version of URDF and loading the same one every time....
-
-        # Change link lengths in urdf
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), "w") as out_file:
-            for line in buf:
-                if "<cylinder radius" in line:
-                    out_file.write(f'          <cylinder radius="0.015" length="{self.randomized_params["boom"]}"/>\n')
-                elif line.rstrip('\n').endswith('<!--boomorigin-->'):
-                    out_file.write(f'        <origin xyz="0 {self.randomized_params["boom"] / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
-                elif line.rstrip('\n').endswith('<!--motorpos-->'):
-                    out_file.write(f'      <origin xyz="0 {self.randomized_params["boom"]} 0" rpy="0 0 0"/><!--motorpos-->\n')
-                else:
-                    out_file.write(line)
-
-        # Load urdf
-        robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), physicsClientId=self.client_ID)
-        plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
-        os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf))
-
-        # Default robot
-        # self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]),
-        #                         physicsClientId=self.client_ID)
-
         # Change base mass
-        p.changeDynamics(robot, -1, mass=self.randomized_params["mass"], physicsClientId=self.client_ID)
+        p.changeDynamics(self.robot, -1, mass=self.randomized_params["mass"], physicsClientId=self.client_ID)
 
-        return robot, plane
+        return self.robot, self.plane
 
     def get_obs(self):
         torso_pos, torso_quat = p.getBasePositionAndOrientation(self.robot, physicsClientId=self.client_ID)
@@ -171,13 +145,13 @@ class QuadrotorBulletEnv(gym.Env):
                 #p.removeBody(self.current_disturbance["visual_shape"])
                 self.current_disturbance = None
 
-    def get_velocity_target(self):
+    def get_input_target(self):
         velocity_target = None
-        if self.config["target_vel_source"] == "still":
+        if self.config["target_input_source"] == "still":
             velocity_target = np.zeros(4, dtype=np.float32)
-        elif self.config["target_vel_source"] == "rnd":
+        elif self.config["target_input_source"] == "rnd":
             velocity_target = self.rnd_target_vel_source()
-        elif self.config["target_vel_source"] == "joystick":
+        elif self.config["target_input_source"] == "joystick":
             throttle, roll, pitch, yaw = self.joystick_controller.get_joystick_input()[:4]
             velocity_target = [-throttle, -roll, -pitch, -yaw]
         return velocity_target
@@ -306,17 +280,6 @@ class QuadrotorBulletEnv(gym.Env):
     def reset(self, force_randomize=None):
         # If we are randomizing env every episode, then delete everything and load robot again
         if self.config["randomize_env"]:
-            if hasattr(self, 'robot'):
-                p.removeBody(self.robot, physicsClientId=self.client_ID)
-                p.removeBody(self.plane, physicsClientId=self.client_ID)
-                del self.robot
-                del self.plane
-
-            p.resetSimulation(physicsClientId=self.client_ID)
-            p.setGravity(0, 0, -9.8, physicsClientId=self.client_ID)
-            p.setRealTimeSimulation(0, physicsClientId=self.client_ID)
-            p.setTimeStep(self.config["sim_timestep"], physicsClientId=self.client_ID)
-
             self.robot, self.plane = self.load_robot()
 
         # Reset PID variables
@@ -362,9 +325,17 @@ class QuadrotorBulletEnv(gym.Env):
                 obs, r, done, _ = self.step(act)
 
             k += 1
-            print(k)
 
-    def demo_joystick(self):
+    def demo_joystick_PID(self):
+        obs = self.reset()
+        while True:
+            input_target = self.get_input_target()
+
+            act = self.pid_controller.calculate_stabilization_action(obs[3:7], obs[10:13], input_target)
+            obs, r, done, _ = self.step(act)
+            if done: obs = self.reset()
+
+    def demo_joystick_NN(self):
         self.config["policy_type"] = "mlp"
 
         # Load neural network policy
@@ -378,7 +349,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         obs = self.reset()
         while True:
-            velocity_target = self.get_velocity_target()
+            velocity_target = self.get_input_target()
 
             if self.config["controller_source"] == "nn":
                 if model == None:
@@ -403,7 +374,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         obs = self.reset()
         while True:
-            velocity_target = self.get_velocity_target()
+            velocity_target = self.get_input_target()
 
             if self.config["controller_source"] == "nn":
                 if model == None:
@@ -434,7 +405,7 @@ class QuadrotorBulletEnv(gym.Env):
                 # Update sensor data
                 position_rob, rotation_rob, euler_rob, vel_rob, angular_vel_rob = self.get_obs()
 
-                velocity_target = self.get_velocity_target()
+                velocity_target = self.get_input_target()
                 #print(velocity_target)
 
                 if self.config["controller_source"] == "pid":
@@ -486,16 +457,37 @@ class QuadrotorBulletEnv(gym.Env):
     def close(self):
         self.kill()
 
+    def generate_urdf_from_specs(self):
+        BOOM_LEN = 0.15
+
+        # # # Write params to URDF file
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
+            buf = in_file.readlines()
+
+        index = self.config["urdf_name"].find('.urdf')
+        output_urdf = self.config["urdf_name"][:index] + '_generated' + self.config["urdf_name"][index:]
+
+        # Change link lengths in urdf
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), output_urdf), "w") as out_file:
+            for line in buf:
+                if "<cylinder radius" in line:
+                    out_file.write(f'          <cylinder radius="0.015" length="{BOOM_LEN}"/>\n')
+                elif line.rstrip('\n').endswith('<!--boomorigin-->'):
+                    out_file.write(
+                        f'        <origin xyz="0 {BOOM_LEN / 2.} 0.0" rpy="-1.5708 0 0" /><!--boomorigin-->\n')
+                elif line.rstrip('\n').endswith('<!--motorpos-->'):
+                    out_file.write(
+                        f'      <origin xyz="0 {BOOM_LEN} 0" rpy="0 0 0"/><!--motorpos-->\n')
+                else:
+                    out_file.write(line)
+
 
 if __name__ == "__main__":
     import yaml
     with open("configs/default.yaml") as f:
         env_config = yaml.load(f, Loader=yaml.FullLoader)
-    env_config["animate"] = False
+    env_config["animate"] = True
     env = QuadrotorBulletEnv(env_config)
-    #env.demo_joystick()
-    #env.deploy_trained_model()
-    #env.gather_data()
 
-    # TODO: Continue at demo(s) and debugging
-    env.demo()
+    #env.demo()
+    env.demo_joystick_PID()

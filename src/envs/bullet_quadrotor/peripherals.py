@@ -6,7 +6,7 @@ class JoyController():
         self.config = config
         logging.info("Initializing joystick controller")
         pygame.init()
-        if self.config["target_vel_source"] == "joystick":
+        if self.config["target_input_source"] == "joystick":
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
             logging.info("Initialized gamepad: {}".format(self.joystick.get_name()))
