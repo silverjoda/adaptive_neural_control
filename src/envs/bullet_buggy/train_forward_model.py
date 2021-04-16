@@ -99,26 +99,29 @@ class ForwardModelTrainer:
             y_pred = self.NN.predict_batch(x_trn)
             loss = self.criterion(y_pred, T.tensor(y_trn, dtype=T.float32))
 
-            if t % 100 == 99:
-                print(t, loss.item())
+            if t % 1000 == 999 and self.config["verbose"]:
+                eval_loss = self.eval()
+                print(f"step: {t}, trn_loss: {loss.item()}, tst_loss: {eval_loss}")
 
             # Zero gradients, perform a backward pass, and update the weights.
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
 
-        print("Done training")
+        if self.config["verbose"]:
+            eval_loss = self.eval()
+            print(f"Done training, eval loss: {eval_loss}")
 
     def eval(self):
         with T.no_grad():
             y_pred = self.NN.predict_batch(self.obs_val)
-            loss = self.criterion(y_pred, self.labels_val)
-        print(f"Evaluation: loss = {loss.item()}")
+            loss = self.criterion(y_pred, T.tensor(self.labels_val, dtype=T.float32))
+        return loss.item()
 
-    def save_model(self):
+    def save_model(self, name):
         if not os.path.exists("models"):
             os.mkdir("models/")
-        T.save(self.NN.state_dict(), "models/saved_model")
+        T.save(self.NN.state_dict(), f"models/{name}")
 
     def load_model(self, filename):
         try:
@@ -132,5 +135,5 @@ if __name__=="__main__":
     fm = ForwardModelTrainer(config)
     fm.load_data()
     fm.train()
-    fm.save_model()
+    fm.save_model("saved_model")
     fm.load_model("saved_model")
