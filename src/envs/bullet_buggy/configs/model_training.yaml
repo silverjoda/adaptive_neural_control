@@ -1,11 +1,11 @@
-"n_trn_iters" : 10
-"input_dim" : 8 + 2
-"output_dim" : 8
+"n_trn_iters" : 1000
+"input_dim" : 5
+"output_dim" : 4
 "hidden_dim" : 32
-"non_linearity" : "nn.Tanh" #  nn.ReLU, nn.ReLU6, nn.LeakyReLU, nn.ELU, nn.Tanh
+"non_linearity" : "nn.ReLU" #  nn.ReLU, nn.ReLU6, nn.LeakyReLU, nn.ELU, nn.Tanh
 "initialization" : ""
-"weight_decay" : 1e-4
+"weight_decay" : 0.0001
 "optimizer" : adam
-"learning_rate" : 1e-3
+"learning_rate" : 0.001
 "trn_val_ratio" : 0.8
 "trn_batchsize" : 128

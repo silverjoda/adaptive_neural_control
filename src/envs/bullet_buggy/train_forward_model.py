@@ -15,30 +15,30 @@ class ForwardNet(nn.Module):
         self.l2 = nn.Linear(self.config["hidden_dim"], self.config["hidden_dim"])
         self.l3 = nn.Linear(self.config["hidden_dim"], self.config["output_dim"])
 
-        self.non_linearity = eval(self.config["non_linearity"])
+        self.non_linearity = eval(self.config["non_linearity"])()
 
     def forward(self, x):
         feat1 = self.non_linearity(self.l1(x))
         feat2 = self.non_linearity(self.l2(feat1))
-        out = self.l1(feat2)
+        out = self.l3(feat2)
         return out
 
-    def predict(self, obs, act):
-        x = T.tensor(np.concatenate((obs, act)), dtype=T.float32).unsqueeze(0)
+    def predict(self, obs):
+        x = T.tensor(obs, dtype=T.float32).unsqueeze(0)
         return self.forward(x)
 
-    def predict_batch(self, obs, act):
-        x = T.tensor(np.concatenate((obs, act), axis=1), dtype=T.float32)
+    def predict_batch(self, obs):
+        x = T.tensor(obs, dtype=T.float32)
         return self.forward(x)
 
-class ForwardModel:
+class ForwardModelTrainer:
     def __init__(self, config):
         self.config = config
 
         self.load_data()
         self.make_train_val_data()
 
-        self.NN = ForwardModel(config)
+        self.NN = ForwardNet(config)
 
         self.criterion = nn.MSELoss(reduction='mean')
         self.optimizer = T.optim.Adam(self.NN.parameters(),
@@ -46,19 +46,23 @@ class ForwardModel:
                                  weight_decay=self.config["weight_decay"])
 
     def load_data(self):
-        data_types_list = ["action", "angular_vel", "position", "rotation", "timestamp", "vel",]
+        data_types_list = ["action", "angular_vel", "position", "rotation", "timestamp", "vel"]
         for dt in data_types_list:
             data_list = []
             for name in glob.glob(f'data/train/*{dt}.npy'):
-                data_list.append(np.load(name))
+                if dt == "timestamp":
+                    data_list.append(np.load(name)[:, np.newaxis])
+                else:
+                    data_list.append(np.load(name))
             vars(self)[dt + "_data"] = np.concatenate(data_list, axis=1)
+
 
     def make_train_val_data(self):
         obs, labels = self._preprocess_data()
 
         n_train = int(len(obs) * self.config['trn_val_ratio'])
         trn_indeces = np.random.choice(range(len(obs)), n_train, replace=False)
-        trn_mask = np.zeros(n_train, dtype=np.bool)
+        trn_mask = np.zeros(len(obs), dtype=np.bool)
         trn_mask[trn_indeces] = True
         val_indeces = np.arange(len(obs))[~trn_mask]
 
@@ -70,15 +74,15 @@ class ForwardModel:
     def _preprocess_data(self):
         # Calculate deltas
         rotation_delta = self.rotation_data[2:, 2:3] - self.rotation_data[1:-1, 2:3]
-        vel_delta = self.vel_data[2:, 2:3] - self.vel_data[1:-1, 2:3]
+        vel_delta = self.vel_data[2:, 1:3] - self.vel_data[1:-1, 1:3]
         angular_vel_delta = self.angular_vel_data[2:, 2:3] - self.angular_vel_data[1:-1, 2:3]
 
         obs = np.concatenate((self.vel_data[1:-1, 0:2],
                               self.angular_vel_data[1:-1, 2:3],
-                              self.action_data[:-2, 2:3]))
-        labels = np.concatenate((rotation_delta[2:, 2:3],
-                                 vel_delta[2:, 0:2],
-                                 angular_vel_delta[2:, 2:3]))
+                              self.action_data[:-2, :]), axis=1)
+        labels = np.concatenate((rotation_delta,
+                                 vel_delta,
+                                 angular_vel_delta), axis=1)
 
         return obs, labels
 
@@ -93,7 +97,7 @@ class ForwardModel:
             x_trn, y_trn = self.get_batch(self.config["trn_batchsize"])
 
             y_pred = self.NN.predict_batch(x_trn)
-            loss = self.criterion(y_pred, y_trn)
+            loss = self.criterion(y_pred, T.tensor(y_trn, dtype=T.float32))
 
             if t % 100 == 99:
                 print(t, loss.item())
@@ -114,7 +118,7 @@ class ForwardModel:
     def save_model(self):
         if not os.path.exists("models"):
             os.mkdir("models/")
-        T.save(self.NN.state_dict(), "models/")
+        T.save(self.NN.state_dict(), "models/saved_model")
 
     def load_model(self, filename):
         try:
@@ -125,5 +129,8 @@ class ForwardModel:
 if __name__=="__main__":
     with open("configs/model_training.yaml") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
-    fm = ForwardModel(config)
+    fm = ForwardModelTrainer(config)
     fm.load_data()
+    fm.train()
+    fm.save_model()
+    fm.load_model("saved_model")
