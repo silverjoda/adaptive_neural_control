@@ -121,7 +121,7 @@ class BuggyBulletEnv(gym.Env):
         self.wheels = [8] # 15
         self.tires = [1, 3, 12, 14]
         self.inactive_wheels = []
-        self.steering = [0,2] # [4, 6]
+        self.steering = [0, 2] # [4, 6]
 
         self.robot = self.load_robot()
         self.plane = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
