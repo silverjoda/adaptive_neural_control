@@ -1,4 +1,4 @@
-"n_training_iters" : 10
+"n_trn_iters" : 10
 "input_dim" : 8 + 2
 "output_dim" : 8
 "hidden_dim" : 32
@@ -7,3 +7,5 @@
 "weight_decay" : 1e-4
 "optimizer" : adam
 "learning_rate" : 1e-3
+"trn_val_ratio" : 0.8
+"trn_batchsize" : 128
