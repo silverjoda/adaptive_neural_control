@@ -50,7 +50,7 @@ class ForwardModelTrainer:
         data_types_list = ["action", "angular", "position", "rotation", "timestamp", "vel"]
         for dt in data_types_list:
             data_list = []
-            for name in glob.glob(f'data/train/*{dt}.npy'):
+            for name in glob.glob(f'data/new/*{dt}.npy'):
                 if dt == "timestamp":
                     data_list.append(np.load(name)[:, np.newaxis])
                 else:
