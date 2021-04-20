@@ -65,7 +65,7 @@ def make_model(config, env):
     if config["tensorboard_log"]:
         tb_log = "./tb/{}/".format(config["session_ID"])
 
-    ou_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(env.action_space.shape[0]), sigma=config["ou_sigma"] *  np.ones(env.action_space.shape[0]), theta=config["ou_theta"], dt=config["ou_dt"], initial_noise=None)
+    ou_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(env.action_space.shape[0]), sigma=config["ou_sigma"] * np.ones(env.action_space.shape[0]), theta=config["ou_theta"], dt=config["ou_dt"], initial_noise=None)
 
     model = TD3(policy=policy,
                 env=env,

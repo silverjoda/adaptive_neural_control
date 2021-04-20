@@ -15,7 +15,7 @@
 "policy_hid_dim" : 128
 "verbose" : 1
 "tensorboard_log" : True
-"ou_sigma" : 0.4
-"ou_theta" : 0.1
-"ou_dt" : 0.1
+"ou_sigma" : 0.7
+"ou_theta" : 0.01
+"ou_dt" : 2.0
 
