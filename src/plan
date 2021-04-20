@@ -114,27 +114,10 @@ https://github.com/osrf/subt/wiki/Robots
 
 second robot (if used has ros master 11312)
 
-ADD EPISODE TIME TO OPTIMIZATION PARAMETERS
+# ----------
+Hexapod: Currently trying to learn a policy which walks on flat terrain normally to test adaptation on real hexapod.
+After this is achieved, we can also do randomization and test that. After, we need to test and find out why obstacle doesn't work on real robot
 
-'jrl_femur': -0.9713246198770626, 'jrl_tibia': 0.03564075571893458, 'jr_diff_femur': 1.767651864
-7212032, 'jr_diff_tibia': 1.3330814663797086
+Quad: After reward and env revision, launched optuna, need to train some baseline policy on easy settings.
 
-
-Trial 77 finished with value: 45.9684470810997 and parameters: {'learning_rate': 0.0019, 'gamma': 0.97, 'ou_sigma': 0.42, 'ou_theta': 0.20, 'ou_dt
-': 0.18, 'max_steps': 233, 'training_difficulty': 0.44, 'training_difficulty_increment
-': 0.0005, 'min_dif_state_queue_len': 479, 'dif_state_sample_prob': 0.46, 'low_progress
-_thresh': 0.18, 'progress_pen': 0.047}.
-
-
-TODO: Test new trained policy
-TODO: Test sensitivity on initial yaw, avg velocity (give negative 1.3 to see what it does)
-
-# Plain
-Trial 111 finished
- with value: 25.66090916889323 and parameters: {'learning_rate': 0.0024330488116903115, 'gamma': 0.9786935731891446, 'ou_sig
-ma': 0.41238633753538484, 'ou_theta': 0.1252421494390056, 'ou_dt': 0.23330284590079864, 'max_steps': 172, 'training_difficul
-ty': 0.3413081109142141, 'training_difficulty_increment': 9.615966865171062e-05, 'min_dif_state_queue_len': 131, 'dif_state_
-sample_prob': 0.20962469870654027, 'low_progress_thresh': 0.05015720545748378, 'progress_pen': 0.14515112398714292}. Best is
- trial 111 with value: 25.66090916889323.
-
-# With difficult reset:
+Buggy: Supervised learning doesn't work well. Need to test hardware delays (for quad as well)
