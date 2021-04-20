@@ -18,6 +18,9 @@ class ForwardNet(nn.Module):
 
         self.non_linearity = eval(self.config["non_linearity"])()
 
+        #for p in self.parameters():
+        #    p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+
     def forward(self, x):
         feat1 = self.non_linearity(self.l1(x))
         feat2 = self.non_linearity(self.l2(feat1))
@@ -79,16 +82,16 @@ class ForwardModelTrainer:
 
     def _preprocess_data(self):
         # Calculate deltas
-        rotation_delta = self.rotation_data[2:, 2:3] - self.rotation_data[1:-1, 2:3]
-        vel_delta = self.vel_data[2:, 1:3] - self.vel_data[1:-1, 1:3]
-        angular_data = self.angular_data[2:, 2:3] - self.angular_data[1:-1, 2:3]
+        vel_delta = self.vel_data[2:, 0:2] - self.vel_data[1:-1, 0:2]
+        angular_delta = self.angular_data[2:, 2:3] - self.angular_data[1:-1, 2:3]
 
         obs = np.concatenate((self.vel_data[1:-1, 0:2],
                               self.angular_data[1:-1, 2:3],
-                              self.action_data[:-2, :]), axis=1)
-        labels = np.concatenate((rotation_delta,
-                                 vel_delta,
-                                 angular_data), axis=1)
+                              self.action_data[1:-1, 0:2]),
+                              #self.rotation_data[1:-1, 2:3],
+                              axis=1)
+        labels = np.concatenate((vel_delta * 10,
+                                 angular_delta * 10), axis=1)
 
         return obs, labels
 
@@ -105,9 +108,12 @@ class ForwardModelTrainer:
             y_pred = self.NN.predict_batch(x_trn)
             loss = self.criterion(y_pred, T.tensor(y_trn, dtype=T.float32))
 
-            if t % 1000 == 999 and self.config["verbose"]:
+            if t % 1000 == 0 and self.config["verbose"]:
                 eval_loss = self.eval()
                 print(f"step: {t}, trn_loss: {loss.item()}, tst_loss: {eval_loss}")
+
+                #rnd_idx = np.random.randint(0, self.config["trn_batchsize"])
+                #print(x_trn[rnd_idx], y_trn[rnd_idx], y_pred[rnd_idx])
 
             # Zero gradients, perform a backward pass, and update the weights.
             self.optimizer.zero_grad()
