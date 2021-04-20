@@ -5,6 +5,7 @@ import numpy as np
 import torch as T
 import torch.nn as nn
 import torch.functional as F
+import quaternion
 
 class ForwardNet(nn.Module):
     def __init__(self, config):
@@ -46,7 +47,7 @@ class ForwardModelTrainer:
                                  weight_decay=self.config["weight_decay"])
 
     def load_data(self):
-        data_types_list = ["action", "angular_vel", "position", "rotation", "timestamp", "vel"]
+        data_types_list = ["action", "angular", "position", "rotation", "timestamp", "vel"]
         for dt in data_types_list:
             data_list = []
             for name in glob.glob(f'data/train/*{dt}.npy'):
@@ -54,7 +55,12 @@ class ForwardModelTrainer:
                     data_list.append(np.load(name)[:, np.newaxis])
                 else:
                     data_list.append(np.load(name))
-            vars(self)[dt + "_data"] = np.concatenate(data_list, axis=1)
+            vars(self)[dt + "_data"] = np.concatenate(data_list, axis=0)
+
+        # Correct velocity
+        for i in range(len(self.action_data)):
+            rotation_rob_matrix = quaternion.as_rotation_matrix(np.quaternion(*self.rotation_data[i]))
+            self.vel_data[i] = np.matmul(rotation_rob_matrix.T, self.vel_data[i])
 
 
     def make_train_val_data(self):
@@ -75,14 +81,14 @@ class ForwardModelTrainer:
         # Calculate deltas
         rotation_delta = self.rotation_data[2:, 2:3] - self.rotation_data[1:-1, 2:3]
         vel_delta = self.vel_data[2:, 1:3] - self.vel_data[1:-1, 1:3]
-        angular_vel_delta = self.angular_vel_data[2:, 2:3] - self.angular_vel_data[1:-1, 2:3]
+        angular_data = self.angular_data[2:, 2:3] - self.angular_data[1:-1, 2:3]
 
         obs = np.concatenate((self.vel_data[1:-1, 0:2],
-                              self.angular_vel_data[1:-1, 2:3],
+                              self.angular_data[1:-1, 2:3],
                               self.action_data[:-2, :]), axis=1)
         labels = np.concatenate((rotation_delta,
                                  vel_delta,
-                                 angular_vel_delta), axis=1)
+                                 angular_data), axis=1)
 
         return obs, labels
 
