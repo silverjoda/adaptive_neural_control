@@ -16,7 +16,7 @@ def objective(trial, config):
     fm = ForwardModelTrainer(config)
     fm.load_data()
     fm.train()
-    score = -fm.eval()
+    score = fm.eval()
 
     try:
         best_value = trial.study.best_value
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     N_trials = 300
 
     t1 = time.time()
-    study = optuna.create_study(direction='maximize', study_name="buggy_model_training_study", storage='sqlite:///buggy_model_training_opt.db', load_if_exists=True)
+    study = optuna.create_study(direction='minimize', study_name="buggy_model_training_study", storage='sqlite:///buggy_model_training_opt.db', load_if_exists=True)
 
     while True:
         try:

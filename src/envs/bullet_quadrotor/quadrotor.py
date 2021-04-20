@@ -9,8 +9,8 @@ import torch as T
 import random
 
 import src.my_utils as my_utils
-from peripherals import *
-from pid_controller import *
+from src.envs.bullet_quadrotor.peripherals import *
+from src.envs.bullet_quadrotor.pid_controller import *
 
 class QuadrotorBulletEnv(gym.Env):
     def __init__(self, config):
