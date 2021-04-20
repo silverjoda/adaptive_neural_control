@@ -14,7 +14,7 @@
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5
 "max_actuator_velocity" : 2
-"target_vel" : 0.2
+"target_vel" : 0.3
 "sim_steps_per_iter" : 12
 "mesh_scale_lat" : 0.1
 "mesh_scale_vert" : 2
