@@ -61,9 +61,9 @@ class ForwardModelTrainer:
             vars(self)[dt + "_data"] = np.concatenate(data_list, axis=0)
 
         # Correct velocity
-        for i in range(len(self.action_data)):
-            rotation_rob_matrix = quaternion.as_rotation_matrix(np.quaternion(*self.rotation_data[i]))
-            self.vel_data[i] = np.matmul(rotation_rob_matrix.T, self.vel_data[i])
+        # for i in range(len(self.action_data)):
+        #     rotation_rob_matrix = quaternion.as_rotation_matrix(np.quaternion(*self.rotation_data[i]))
+        #     self.vel_data[i] = np.matmul(rotation_rob_matrix.T, self.vel_data[i])
 
 
     def make_train_val_data(self):
@@ -88,7 +88,6 @@ class ForwardModelTrainer:
         obs = np.concatenate((self.vel_data[1:-1, 0:2],
                               self.angular_data[1:-1, 2:3],
                               self.action_data[1:-1, 0:2]),
-                              #self.rotation_data[1:-1, 2:3],
                               axis=1)
         labels = np.concatenate((vel_delta * 10,
                                  angular_delta * 10), axis=1)
@@ -148,4 +147,4 @@ if __name__=="__main__":
     fm.load_data()
     fm.train()
     fm.save_model("saved_model")
-    fm.load_model("saved_model")
+    fm.load_model("saved_model") # just to see if it works
