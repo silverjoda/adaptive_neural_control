@@ -18,8 +18,8 @@ class ForwardNet(nn.Module):
 
         self.non_linearity = eval(self.config["non_linearity"])()
 
-        #for p in self.parameters():
-        #    p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+        for p in self.parameters():
+            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
         feat1 = self.non_linearity(self.l1(x))
@@ -44,7 +44,7 @@ class ForwardModelTrainer:
 
         self.NN = ForwardNet(config)
 
-        self.criterion = nn.MSELoss(reduction='mean')
+        self.criterion = nn.MSELoss()
         self.optimizer = T.optim.Adam(self.NN.parameters(),
                                  lr=self.config["learning_rate"],
                                  weight_decay=self.config["weight_decay"])
@@ -82,8 +82,9 @@ class ForwardModelTrainer:
 
     def _preprocess_data(self):
         # Calculate deltas
-        vel_delta = self.vel_data[2:, 0:2] - self.vel_data[1:-1, 0:2]
-        angular_delta = self.angular_data[2:, 2:3] - self.angular_data[1:-1, 2:3]
+        clip_val = 2.
+        vel_delta = np.clip(self.vel_data[2:, 0:2] - self.vel_data[1:-1, 0:2], -clip_val, clip_val)
+        angular_delta = np.clip(self.angular_data[2:, 2:3] - self.angular_data[1:-1, 2:3], -clip_val, clip_val)
 
         obs = np.concatenate((self.vel_data[1:-1, 0:2],
                               self.angular_data[1:-1, 2:3],
