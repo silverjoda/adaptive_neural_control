@@ -289,7 +289,7 @@ class HexapodBulletEnv(gym.Env):
         target_dist = np.sqrt((torso_pos[0] - self.target[0]) ** 2 + (torso_pos[1] - self.target[1]) ** 2)
 
         if self.config['training_mode'] == "straight":
-            r = (self.prev_target_dist - target_dist) * 50 - abs(zd) * 0.2 - abs(phid) * 0.02 - abs(thd) * 0.02 - np.sqrt(np.square(pitch) + np.square(roll)) * 0.2
+            r = (self.prev_target_dist - target_dist) * 50 - abs(zd) * 0.2 - abs(phid) * 0.02 - abs(thd) * 0.02 - np.sqrt(np.square(pitch) + np.square(roll)) * 0.4
         if self.config['training_mode'] == "ccw":
             r = psid
         if self.config['training_mode'] == "cw":
