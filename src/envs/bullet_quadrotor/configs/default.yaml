@@ -1,6 +1,6 @@
 "env_name" : "quadrotor"
-"controller_source" : "nn" # nn/pid
-"target_input_source" : "still" # still/rnd/joystick
+"controller_source" : "pid" # nn/pid
+"target_input_source" : "joystick" # still/rnd/joystick
 "urdf_name" : quadrotor_default.urdf
 "seed" :
 "joystick_mapping" : [3,4,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [2,3,0,1] for Logitech

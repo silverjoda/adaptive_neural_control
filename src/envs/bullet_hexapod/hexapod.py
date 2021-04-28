@@ -264,13 +264,6 @@ class HexapodBulletEnv(gym.Env):
                                     maxVelocity=self.randomized_params["max_actuator_velocity"],
                                     physicsClientId=self.client_ID)
 
-        # p.setJointMotorControlArray(bodyUniqueId=self.robot,
-        #                             jointIndices=range(18),
-        #                             controlMode=p.POSITION_CONTROL,
-        #                             targetPositions=scaled_action,
-        #                             forces=[self.config["max_joint_force"]] * 18,
-        #                             physicsClientId=self.client_ID)
-
         for i in range(self.config["sim_steps_per_iter"]):
             p.stepSimulation(physicsClientId=self.client_ID)
             if (self.config["animate"] or render) and True: time.sleep(self.config["sim_step"])
@@ -356,7 +349,6 @@ class HexapodBulletEnv(gym.Env):
         else:
             self.terrain = p.loadURDF("plane.urdf", physicsClientId=self.client_ID)
         self.create_targets()
-
 
         # Reset episodal vars
         self.step_ctr = 0
