@@ -89,9 +89,27 @@ class ForwardModelTrainer:
         vel_delta = np.clip(self.vel_data[0:-1, 0:2] - self.vel_data[1:, 0:2], -clip_val, clip_val) * 10
         angular_delta = np.clip(self.angular_data[0:-1, 2:3] - self.angular_data[1:, 2:3], -clip_val, clip_val) * 10
 
-        vel_obs = self.vel_data[0:-1, 0:2]
-        angular_obs = self.angular_data[0:-1, 2:3]
-        action_obs = (np.array(self.action_data[0:-1, 0:2]) - 0.1) * 5
+        n_data = len(vel_delta)
+        n_hist = self.config["n_hist"]
+
+        # Make history of obs
+        vel_obs = np.zeros((n_data, 2 * n_hist))
+        for i in range(n_hist - 1, n_data - 1):
+            vel_obs[i, :] = self.vel_data[i - n_hist + 1:i + 1, 0:2].reshape(2 * n_hist)
+
+        # Make history of ang obs
+        angular_obs = np.zeros((n_data, 1 * n_hist))
+        for i in range(n_hist - 1, n_data - 1):
+            angular_obs[i, :] = self.angular_data[i - n_hist + 1:i + 1, 2:3].reshape(1 * n_hist)
+
+        # Make history of actions obs
+        action_obs = np.zeros((n_data, 2 * n_hist))
+        for i in range(n_hist - 1, n_data - 1):
+            action_obs[i, :] = self.action_data[i - n_hist + 1:i+1, 0:2].reshape(2 * n_hist)
+
+        #action_obs = (np.array(self.action_data[0:-1, 0:2]) - 0.1) * 5
+        #vel_obs = self.vel_data[0:-1, 0:2]
+        #angular_obs = self.angular_data[0:-1, 2:3]
 
         obs = np.concatenate((vel_obs, angular_obs, action_obs), axis=1)
         labels = np.concatenate((vel_delta,

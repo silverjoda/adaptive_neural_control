@@ -1,7 +1,8 @@
 "n_trn_iters" : 100000
-"input_dim" : 5
+"n_hist" : 5
+"input_dim" : 25
 "output_dim" : 3
-"hidden_dim" : 32
+"hidden_dim" : 128
 "non_linearity" : "nn.ReLU6" #  nn.ReLU, nn.ReLU6, nn.LeakyReLU, nn.ELU, nn.Tanh
 "initialization" : ""
 "weight_decay" : 0.0017
