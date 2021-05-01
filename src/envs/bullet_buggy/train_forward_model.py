@@ -31,12 +31,11 @@ class ForwardNet(nn.Module):
         out = self.l3(feat2)
         return out
 
-    def predict(self, obs):
-        x = T.tensor(obs, dtype=T.float32).unsqueeze(0)
+    def predict(self, x):
+        x = T.tensor(x, dtype=T.float32).unsqueeze(0)
         return self.forward(x)
 
-    def predict_batch(self, obs):
-        x = T.tensor(obs, dtype=T.float32)
+    def predict_batch(self, x):
         return self.forward(x)
 
 class ForwardModelTrainer:
@@ -107,7 +106,7 @@ class ForwardModelTrainer:
         return obs, labels
 
     def get_batch(self, batchsize):
-        trn_indeces = np.random.choice(range(len(self.obs_trn)), batchsize, replace=False)
+        trn_indeces = np.random.choice(range(len(self.obs_trn) - 1), batchsize, replace=False)
         obs_batch = self.obs_trn[trn_indeces]
         labels_batch = self.labels_trn[trn_indeces]
         return obs_batch, labels_batch
@@ -116,8 +115,11 @@ class ForwardModelTrainer:
         for t in range(self.config["n_trn_iters"]):
             x_trn, y_trn = self.get_batch(self.config["trn_batchsize"])
 
-            y_pred = self.NN.predict_batch(x_trn)
-            loss = self.criterion(T.tensor(y_trn, dtype=T.float32), y_pred)
+            x_trn_tensor = T.tensor(x_trn, dtype=T.float32)
+            y_trn_tensor = T.tensor(y_trn, dtype=T.float32)
+
+            y_pred = self.NN.predict_batch(x_trn_tensor)
+            loss = self.criterion(y_trn_tensor, y_pred)
 
             if t % 1000 == 0 and self.config["verbose"]:
                 eval_loss = self.eval()
@@ -137,8 +139,10 @@ class ForwardModelTrainer:
 
     def eval(self):
         with T.no_grad():
-            y_pred = self.NN.predict_batch(self.obs_val)
-            loss = self.criterion(y_pred, T.tensor(self.labels_val, dtype=T.float32))
+            x_val_tensor = T.tensor(self.obs_val, dtype=T.float32)
+            y_val_tensor = T.tensor(self.labels_val, dtype=T.float32)
+            y_pred = self.NN.predict_batch(x_val_tensor)
+            loss = self.criterion(y_pred, y_val_tensor)
         return loss.item()
 
     def save_model(self, name):
