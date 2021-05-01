@@ -11,3 +11,4 @@
 "trn_batchsize" : 64
 "verbose": True
 "policy_grad_clip_value": 0.5
+"data_dir_name": "train_2"
