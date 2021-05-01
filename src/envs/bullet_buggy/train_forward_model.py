@@ -1,5 +1,7 @@
 import os
 import glob
+
+import matplotlib.pyplot as plt
 import yaml
 import numpy as np
 import torch as T
@@ -7,9 +9,11 @@ import torch.nn as nn
 import torch.functional as F
 import quaternion
 
+T.set_num_threads(1)
+
 class ForwardNet(nn.Module):
     def __init__(self, config):
-        super().__init__()
+        super(ForwardNet, self).__init__()
         self.config = config
 
         self.l1 = nn.Linear(self.config["input_dim"], self.config["hidden_dim"])
@@ -18,8 +22,8 @@ class ForwardNet(nn.Module):
 
         self.non_linearity = eval(self.config["non_linearity"])()
 
-        for p in self.parameters():
-            p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
+        #for p in self.parameters():
+        #   p.register_hook(lambda grad: T.clamp(grad, -config["policy_grad_clip_value"], config["policy_grad_clip_value"]))
 
     def forward(self, x):
         feat1 = self.non_linearity(self.l1(x))
@@ -83,15 +87,22 @@ class ForwardModelTrainer:
     def _preprocess_data(self):
         # Calculate deltas
         clip_val = 2.
-        vel_delta = np.clip(self.vel_data[2:, 0:2] - self.vel_data[1:-1, 0:2], -clip_val, clip_val)
-        angular_delta = np.clip(self.angular_data[2:, 2:3] - self.angular_data[1:-1, 2:3], -clip_val, clip_val)
+        vel_delta = np.clip(self.vel_data[0:-1, 0:2] - self.vel_data[1:, 0:2], -clip_val, clip_val) * 10
+        angular_delta = np.clip(self.angular_data[0:-1, 2:3] - self.angular_data[1:, 2:3], -clip_val, clip_val) * 10
 
-        obs = np.concatenate((self.vel_data[1:-1, 0:2],
-                              self.angular_data[1:-1, 2:3],
-                              self.action_data[1:-1, 0:2]),
-                              axis=1)
-        labels = np.concatenate((vel_delta * 10,
-                                 angular_delta * 10), axis=1)
+        vel_obs = self.vel_data[0:-1, 0:2]
+        angular_obs = self.angular_data[0:-1, 2:3]
+        action_obs = (np.array(self.action_data[0:-1, 0:2]) - 0.1) * 5
+
+        obs = np.concatenate((vel_obs, angular_obs, action_obs), axis=1)
+        labels = np.concatenate((vel_delta,
+                                 angular_delta), axis=1)
+
+        # Plot histograms
+        #plt.hist(self.angular_data[:, 2:3], bins=100)
+        # plt.hist(vel_delta[:, 1], bins=100)
+        #plt.show()
+        #exit()
 
         return obs, labels
 
@@ -106,7 +117,7 @@ class ForwardModelTrainer:
             x_trn, y_trn = self.get_batch(self.config["trn_batchsize"])
 
             y_pred = self.NN.predict_batch(x_trn)
-            loss = self.criterion(y_pred, T.tensor(y_trn, dtype=T.float32))
+            loss = self.criterion(T.tensor(y_trn, dtype=T.float32), y_pred)
 
             if t % 1000 == 0 and self.config["verbose"]:
                 eval_loss = self.eval()

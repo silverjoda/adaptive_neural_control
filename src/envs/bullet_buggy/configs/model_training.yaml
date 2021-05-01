@@ -1,14 +1,14 @@
 "n_trn_iters" : 100000
 "input_dim" : 5
 "output_dim" : 3
-"hidden_dim" : 64
-"non_linearity" : "nn.LeakyReLU" #  nn.ReLU, nn.ReLU6, nn.LeakyReLU, nn.ELU, nn.Tanh
+"hidden_dim" : 32
+"non_linearity" : "nn.ReLU6" #  nn.ReLU, nn.ReLU6, nn.LeakyReLU, nn.ELU, nn.Tanh
 "initialization" : ""
-"weight_decay" : 0.0001
+"weight_decay" : 0.0017
 "optimizer" : adam
-"learning_rate" : 0.007
+"learning_rate" : 0.002
 "trn_val_ratio" : 0.8
-"trn_batchsize" : 64
+"trn_batchsize" : 256
 "verbose": True
-"policy_grad_clip_value": 0.5
-"data_dir_name": "train_2"
+"policy_grad_clip_value": 10
+"data_dir_name": "train_1"

@@ -5,6 +5,7 @@ from train_forward_model import *
 import sqlite3
 import sqlalchemy.exc
 
+T.set_num_threads(1)
 def objective(trial, config):
     config["hidden_dim"] = trial.suggest_int('hidden_dim', 8, 128)
     config["non_linearity"] = trial.suggest_categorical("non_linearity",
