@@ -91,8 +91,6 @@ class ForwardModelTrainer:
         # TODO: add low pass filtering on data to remove noise and replot to see the difference and tune the lp filter
         exit()
 
-
-
     def make_train_val_data(self):
         obs, labels = self._preprocess_data()
 
