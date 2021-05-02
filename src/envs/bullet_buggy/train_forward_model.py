@@ -68,6 +68,30 @@ class ForwardModelTrainer:
         #     rotation_rob_matrix = quaternion.as_rotation_matrix(np.quaternion(*self.rotation_data[i]))
         #     self.vel_data[i] = np.matmul(rotation_rob_matrix.T, self.vel_data[i])
 
+        # Plot data
+
+        plt.figure()
+        plt.title("Actions")
+        plt.plot(self.action_data[1000:1100, 0])
+        plt.plot(self.action_data[1000:1100, 1])
+
+        plt.figure()
+        plt.title("Vels")
+        plt.plot(self.vel_data[1000:1100, 0])
+        plt.plot(self.vel_data[1000:1100, 1])
+        plt.plot(self.vel_data[1000:1100, 2])
+
+        plt.figure()
+        plt.title("Angular vels")
+        #plt.plot(t, self.angular_data[:, 0])
+        #plt.plot(t, self.angular_data[:, 1])
+        plt.plot(self.angular_data[1000:1100, 2])
+        plt.show()
+
+        # TODO: add low pass filtering on data to remove noise and replot to see the difference and tune the lp filter
+        exit()
+
+
 
     def make_train_val_data(self):
         obs, labels = self._preprocess_data()
@@ -178,7 +202,6 @@ if __name__=="__main__":
     with open("configs/model_training.yaml") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
     fm = ForwardModelTrainer(config)
-    fm.load_data()
     fm.train()
     fm.save_model("saved_model")
     fm.load_model("saved_model") # just to see if it works
