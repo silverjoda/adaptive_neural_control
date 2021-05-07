@@ -211,3 +211,5 @@ if __name__=="__main__":
     fm.train()
     fm.save_model("saved_model")
     fm.load_model("saved_model") # just to see if it works
+
+    # TODO: Compare simulations using learned model
