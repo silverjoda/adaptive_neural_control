@@ -34,7 +34,7 @@ class HexapodBulletEnv(gym.Env):
         assert self.client_ID != -1, "Physics client failed to connect"
 
         # Environment parameters
-        self.obs_dim = 18 + 31 + 36 * self.config["velocities_and_torques"]
+        self.obs_dim = 18 * 3 + 12
         self.act_dim = 18
         self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,), dtype=np.float32)
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,), dtype=np.float32)
@@ -356,7 +356,7 @@ class HexapodBulletEnv(gym.Env):
 
         #torso_pos = [torso_pos[0] + np.random.rand() * 0.1 - 0.05, torso_pos[1], torso_pos[2]]
 
-        compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, [avg_vel], scaled_joint_angles, self.prev_scaled_joint_angles
+        compiled_obs = torso_quat, torso_vel, torso_pos, [signed_deviation], time_feature, scaled_joint_angles, self.prev_scaled_joint_angles, joint_torques
         compiled_obs_flat = [item for sublist in compiled_obs for item in sublist]
         env_obs = np.array(compiled_obs_flat).astype(np.float32)
 

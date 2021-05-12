@@ -11,7 +11,6 @@ def objective(trial, config):
     config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.3, 0.6)
     config["ou_theta"] = trial.suggest_uniform('ou_theta', 0.03, 0.3)
     config["ou_dt"] = trial.suggest_uniform('ou_dt', 0.03, 0.3)
-    config["max_steps"] = trial.suggest_int('max_steps', 60, 250)
     config["training_difficulty"] = trial.suggest_uniform('training_difficulty', 0.3, 0.6)
     config["training_difficulty_increment"] = trial.suggest_uniform('training_difficulty_increment', 0.00005, 0.0005)
 
