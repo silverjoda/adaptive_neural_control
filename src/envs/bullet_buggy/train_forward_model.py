@@ -52,6 +52,7 @@ class ForwardModelTrainer:
                                  lr=self.config["learning_rate"],
                                  weight_decay=self.config["weight_decay"])
 
+
     def load_data(self):
         data_types_list = ["action", "angular", "position", "rotation", "timestamp", "vel"]
         for dt in data_types_list:
@@ -68,8 +69,12 @@ class ForwardModelTrainer:
         #     rotation_rob_matrix = quaternion.as_rotation_matrix(np.quaternion(*self.rotation_data[i]))
         #     self.vel_data[i] = np.matmul(rotation_rob_matrix.T, self.vel_data[i])
 
-        # Plot data
+        # Filter data
+        self.action_data = self.filter_data(self.action_data)
+        self.vel_data = self.filter_data(self.vel_data)
+        self.angular_data = self.filter_data(self.angular_data)
 
+        # Plot data
         plt.figure()
         plt.title("Actions")
         plt.plot(self.action_data[1000:1100, 0])
@@ -86,10 +91,13 @@ class ForwardModelTrainer:
         #plt.plot(t, self.angular_data[:, 0])
         #plt.plot(t, self.angular_data[:, 1])
         plt.plot(self.angular_data[1000:1100, 2])
-        plt.show()
+        #plt.show()
 
-        # TODO: add low pass filtering on data to remove noise and replot to see the difference and tune the lp filter
-        exit()
+    def filter_data(self, data):
+        data_copy = np.copy(data)
+        for i in range(self.config["filter_radius"], len(data) - self.config["filter_radius"] - 1):
+            data_copy[i] = data[i - self.config["filter_radius"] : i + self.config["filter_radius"] + 1].sum() / (self.config["filter_radius"] * 2 + 1)
+        return data_copy
 
     def make_train_val_data(self):
         obs, labels = self._preprocess_data()
@@ -203,3 +211,5 @@ if __name__=="__main__":
     fm.train()
     fm.save_model("saved_model")
     fm.load_model("saved_model") # just to see if it works
+
+    # TODO: Compare simulations using learned model

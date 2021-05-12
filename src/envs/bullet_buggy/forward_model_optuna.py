@@ -7,10 +7,10 @@ import sqlalchemy.exc
 
 T.set_num_threads(1)
 def objective(trial, config):
-    config["hidden_dim"] = trial.suggest_int('hidden_dim', 8, 128)
+    config["hidden_dim"] = trial.suggest_int('hidden_dim', 4, 32)
     config["non_linearity"] = trial.suggest_categorical("non_linearity",
                                                         ["nn.ReLU", "nn.ReLU6", "nn.LeakyReLU", "nn.ELU", "nn.Tanh"])
-    config["learning_rate"] = trial.suggest_loguniform("learning_rate", 0.0001, 0.03)
+    config["learning_rate"] = trial.suggest_loguniform("learning_rate", 0.0001, 0.05)
     config["weight_decay"] = trial.suggest_loguniform("weight_decay", 0.00001, 0.01)
     config["trn_batchsize"] = trial.suggest_int("trn_batchsize", 8, 1024)
 

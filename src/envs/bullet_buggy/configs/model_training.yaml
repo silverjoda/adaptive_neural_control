@@ -1,8 +1,8 @@
 "n_trn_iters" : 100000
-"n_hist" : 5
-"input_dim" : 25
+"n_hist" : 1
+"input_dim" : 5
 "output_dim" : 3
-"hidden_dim" : 128
+"hidden_dim" : 16
 "non_linearity" : "nn.ReLU6" #  nn.ReLU, nn.ReLU6, nn.LeakyReLU, nn.ELU, nn.Tanh
 "initialization" : ""
 "weight_decay" : 0.0017
@@ -13,3 +13,4 @@
 "verbose": True
 "policy_grad_clip_value": 10
 "data_dir_name": "train_1"
+"filter_radius" : 20
