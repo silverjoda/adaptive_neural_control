@@ -612,7 +612,8 @@ class HexapodBulletEnv(gym.Env):
         print(f"Test angles: {test_angles_2}, rads: {test_angles_2_rads}, normed: {test_angles_2_rads_normed}, match={np.allclose(test_angles_2, test_angles_2_rads_normed)}")
         print(f"Test angles: {test_angles_3}, rads: {test_angles_3_rads}, normed: {test_angles_3_rads_normed}, match={np.allclose(test_angles_3, test_angles_3_rads_normed)}")
 
-
+        while True:
+            p.stepSimulation()
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)

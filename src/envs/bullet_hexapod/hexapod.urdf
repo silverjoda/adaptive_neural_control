@@ -15,9 +15,9 @@
   <link name="torso">
     <visual>
       <geometry>
-        <box size="0.20 0.12 0.06"/>
+        <box size="0.20 0.12 0.04"/>
       </geometry>
-      <origin xyz="0 0 -0.02"/>
+      <origin xyz="0 0 -0.015"/>
       <material name="green"/>
     </visual>
 
