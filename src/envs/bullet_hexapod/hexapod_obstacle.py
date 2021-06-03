@@ -155,7 +155,7 @@ class HexapodBulletEnv(gym.Env):
             lacunarity = 2
 
             cutoff_scale = 8
-            rnd_dir = np.random.randint(0,2)
+            rnd_dir = np.random.randint(0, 2)
             rnd_slope = np.random.rand() * 0.2
             rnd_left_cutoff = np.random.randint(int(M / 2) - cutoff_scale, int(M / 2) - int(cutoff_scale/2))
             rnd_right_cutoff = np.random.randint(int(M / 2) + int(cutoff_scale/2), int(M / 2) + cutoff_scale)
@@ -355,7 +355,7 @@ class HexapodBulletEnv(gym.Env):
             reached_target = False
             self.prev_target_dist = target_dist
 
-        r = velocity_rew + zd  # + sum(contacts) * 0.03
+        r = velocity_rew + zd - abs(torso_pos[1] * 0.3)  # + sum(contacts) * 0.03
 
         # Calculate relative positions of targets
         #relative_target = self.target[0] - torso_pos[0], self.target[1] - torso_pos[1]
@@ -579,6 +579,10 @@ class HexapodBulletEnv(gym.Env):
                     break
         env.close()
 
+    def demo(self):
+        while True:
+            self.step(np.zeros(18))
+
     def test_leg_coordination(self):
         np.set_printoptions(precision=3)
         self.reset()
@@ -636,4 +640,5 @@ if __name__ == "__main__":
     env_config["animate"] = True
     env = HexapodBulletEnv(env_config)
     #env.test_leg_coordination()
-    env.test_joint_angles()
+    #env.test_joint_angles()
+    env.demo()
