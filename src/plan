@@ -129,4 +129,4 @@ Hexapod paper additional features:
 3) High level strategy is learned on real platform.
 
 
-stp:Go through obstacle env, see if we can do randomization, add obstacle skewness and discontinuity on sides
+stp: Go through quad env and prepare for training
