@@ -15,9 +15,9 @@
 "act_input" : 0
 "obs_input" : 1
 "rew_input" : 0
-"randomize_env" : False
-"max_actuator_velocity" : 2
-"lateral_friction" : 2.0
+"randomize_env" : True
+"max_actuator_velocity" : 2.2
+"lateral_friction" : 1.7
 "max_joint_force" : 1.2
 "actuator_position_gain" : 0.5
 "actuator_velocity_gain" : 0.5

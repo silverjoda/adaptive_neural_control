@@ -121,3 +121,12 @@ After this is achieved, we can also do randomization and test that. After, we ne
 Quad: After reward and env revision, launched optuna, need to train some baseline policy on easy settings.
 
 Buggy: Supervised learning doesn't work well. Need to test hardware delays (for quad as well)
+
+# ------
+Hexapod paper additional features:
+1) Analyze state space when static env and see if it changes when randomizing (TSNE or that newer one)
+2) Train any walking policy, gather data on real robot and then fit sim parameters to the data for closer model approximation
+3) High level strategy is learned on real platform.
+
+
+stp:Go through obstacle env, see if we can do randomization, add obstacle skewness and discontinuity on sides

@@ -83,7 +83,6 @@ class HexapodBulletEnv(gym.Env):
 
         self.create_targets()
 
-
     def set_seed(self, np_seed):
         np.random.seed(np_seed)
 
@@ -155,8 +154,13 @@ class HexapodBulletEnv(gym.Env):
             persistence = 1
             lacunarity = 2
 
-            for i in range(int(N/2) + 3 + np.random.randint(0,2), int(N/2) + 15):
+            rnd_dir = np.random.randint(0,2)
+            rnd_slope = np.random.rand() * 0.2
+
+            init_offset = int(N/2) + 3 + - int(rnd_slope * 26)#np.random.randint(0,2)
+            for i in range(init_offset, int(N/2) + 15):
                 for j in range(M):
+                    if (i < j * rnd_slope + init_offset) * rnd_dir or (i < (M - j) * rnd_slope + init_offset) * (1 - rnd_dir): continue
                     for o in range(octaves):
                         sx = scale_x * (1 / (lacunarity ** o))
                         sy = scale_y * (1 / (lacunarity ** o))
@@ -235,20 +239,20 @@ class HexapodBulletEnv(gym.Env):
             self.robot = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.urdf_name), physicsClientId=self.client_ID)
 
         # Randomize robot params
-        self.randomized_params = {"mass": self.config["mass"] + (np.random.rand() * 1.4 - 0.7) * self.config[
+        self.randomized_params = {"mass": self.config["mass"] + (np.random.rand() * 0.7 - 0.35) * self.config[
             "randomize_env"],
-                                  "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 1.2 - 0.6) *
+                                  "lateral_friction": self.config["lateral_friction"] + (np.random.rand() * 1 - 0.5) *
                                                       self.config[
                                                           "randomize_env"],
-                                  "max_joint_force": self.config["max_joint_force"] + (np.random.rand() * 1.0 - 0.5) *
+                                  "max_joint_force": self.config["max_joint_force"] + (np.random.rand() * 0.4 - 0.2) *
                                                      self.config[
                                                          "randomize_env"],
-                                  "actuator_position_gain": self.config["actuator_position_gain"] + (np.random.rand() * 0.4 - 0.2) * self.config[
+                                  "actuator_position_gain": self.config["actuator_position_gain"] + (np.random.rand() * 0.3 - 0.15) * self.config[
                                       "randomize_env"],
-                                  "actuator_velocity_gain": self.config["actuator_velocity_gain"] + (np.random.rand() * 0.4 - 0.2) * self.config[
+                                  "actuator_velocity_gain": self.config["actuator_velocity_gain"] + (np.random.rand() * 0.3 - 0.15) * self.config[
                                       "randomize_env"],
                                   "max_actuator_velocity": self.config["max_actuator_velocity"] + (
-                                              np.random.rand() * 4.0 - 2.0) * self.config[
+                                              np.random.rand() * 1.0 - .5) * self.config[
                                                                "randomize_env"],
                                   }
 
