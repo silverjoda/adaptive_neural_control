@@ -154,13 +154,19 @@ class HexapodBulletEnv(gym.Env):
             persistence = 1
             lacunarity = 2
 
+            cutoff_scale = 8
             rnd_dir = np.random.randint(0,2)
             rnd_slope = np.random.rand() * 0.2
+            rnd_left_cutoff = np.random.randint(int(M / 2) - cutoff_scale, int(M / 2) - int(cutoff_scale/2))
+            rnd_right_cutoff = np.random.randint(int(M / 2) + int(cutoff_scale/2), int(M / 2) + cutoff_scale)
 
-            init_offset = int(N/2) + 3 + - int(rnd_slope * 26)#np.random.randint(0,2)
+            init_offset = int(N/2) + 3 + - int(rnd_slope * 26) # np.random.randint(0,2)
             for i in range(init_offset, int(N/2) + 15):
                 for j in range(M):
-                    if (i < j * rnd_slope + init_offset) * rnd_dir or (i < (M - j) * rnd_slope + init_offset) * (1 - rnd_dir): continue
+                    if (i < j * rnd_slope + init_offset) * rnd_dir\
+                            or (i < (M - j) * rnd_slope + init_offset) * (1 - rnd_dir)\
+                            or j < rnd_left_cutoff \
+                            or j > rnd_right_cutoff: continue
                     for o in range(octaves):
                         sx = scale_x * (1 / (lacunarity ** o))
                         sy = scale_y * (1 / (lacunarity ** o))
@@ -618,6 +624,7 @@ class HexapodBulletEnv(gym.Env):
 
         while True:
             p.stepSimulation()
+            time.sleep(0.01)
 
     def close(self):
         p.disconnect(physicsClientId=self.client_ID)
