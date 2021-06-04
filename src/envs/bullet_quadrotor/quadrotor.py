@@ -76,10 +76,23 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue = [np.zeros(self.act_dim,dtype=np.float32) for _ in range(np.maximum(1, self.config["act_input"]) + self.randomized_params["output_transport_delay"])]
         self.rew_queue = [np.zeros(1, dtype=np.float32) for _ in range(np.maximum(1, self.config["rew_input"]) + self.randomized_params["input_transport_delay"])]
 
+        self.create_targets()
+
     def seed(self, seed=None):
         self.seed = seed
         np.random.seed(self.seed)
         print("Setting seed")
+
+    def create_targets(self):
+        target_visualshape = p.createVisualShape(shapeType=p.GEOM_SPHERE,
+                                                        radius=0.1,
+                                                        rgbaColor=[0, 1, 0, 1],
+
+                                                        physicsClientId=self.client_ID)
+        self.target_body = p.createMultiBody(baseMass=0,
+                                         baseVisualShapeIndex=target_visualshape,
+                                         basePosition=self.config["target_pos"],
+                                         physicsClientId=self.client_ID)
 
     def set_randomize_env(self, rnd):
         self.config["randomize_env"] = rnd
@@ -162,8 +175,6 @@ class QuadrotorBulletEnv(gym.Env):
         pass
 
     def step(self, ctrl_raw):
-        self.prev_act = ctrl_raw
-
         # Add new action to queue
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
@@ -176,7 +187,7 @@ class QuadrotorBulletEnv(gym.Env):
             ctrl_raw_unqueued = self.act_queue
             ctrl_delayed = self.act_queue[-1]
 
-        # Scale the action apropriately (neural network gives [-1,1], pid controller [0,1])
+        # Scale the action appropriately (neural network gives [-1,1], pid controller [0,1])
         if self.config["controller_source"] == "nn":
             ctrl_processed = np.clip(ctrl_delayed, -1, 1) * 0.5 + 0.5
         else:
@@ -187,8 +198,7 @@ class QuadrotorBulletEnv(gym.Env):
 
         # Apply motor forces
         for i in range(4):
-            motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.randomized_params["motor_power_variance_vector"][i]
-                                          + self.current_motor_velocity_vec[i], 0, 1)
+            motor_force_w_noise = np.clip(self.current_motor_velocity_vec[i] * self.randomized_params["motor_power_variance_vector"][i], 0, 1)
             motor_force_scaled = motor_force_w_noise * self.randomized_params["motor_force_multiplier"]
             p.applyExternalForce(self.robot,
                                  linkIndex=i * 2 + 1,
@@ -226,8 +236,8 @@ class QuadrotorBulletEnv(gym.Env):
         r_true = - action_penalty - pen_position - pen_rpy - pen_rotvel
 
         # Calculate proxy reward (for learning purposes)
-        pen_position = np.mean(my_utils.universal_lf(pos_delta, -1, 0.3))
-        pen_yaw = np.mean(my_utils.universal_lf(yaw, -1, 0.3))
+        pen_position = np.mean(my_utils.universal_lf(pos_delta, -1, self.config["pen_position_c"]))
+        pen_yaw = np.mean(my_utils.universal_lf(yaw, -1, self.config["pen_position_c"]))
         r = - pen_position - pen_yaw
 
         self.rew_queue.append([r])
@@ -274,6 +284,8 @@ class QuadrotorBulletEnv(gym.Env):
                     "torso_angular_vel" : torso_angular_vel,
                     "reward" : r_true,
                     "action" : ctrl_raw}
+
+        self.prev_act = ctrl_raw
 
         return obs, r, done, {"obs_dict" : obs_dict, "randomized_params" : self.randomized_params, "true_rew" : r_true}
 
@@ -458,7 +470,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.kill()
 
     def generate_urdf_from_specs(self):
-        BOOM_LEN = 0.15
+        BOOM_LEN = 0.2
 
         # # # Write params to URDF file
         with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), self.config["urdf_name"]), "r") as in_file:
@@ -490,4 +502,5 @@ if __name__ == "__main__":
     env = QuadrotorBulletEnv(env_config)
 
     #env.demo()
+    #env.generate_urdf_from_specs()
     env.demo_joystick_PID()

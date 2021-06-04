@@ -8,7 +8,7 @@ def f(x,a,c):
     return f
 
 a = -1
-c = 0.3
+c = 0.1
 x = np.linspace(-5,5,500)
 y = f(x, a, c)
 plt.plot(x,y)

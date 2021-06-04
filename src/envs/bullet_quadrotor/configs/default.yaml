@@ -1,11 +1,11 @@
 "env_name" : "quadrotor"
-"controller_source" : "nn" # nn/pid
-"target_input_source" : "still" # still/rnd/joystick
+"controller_source" : "pid" # nn/pid
+"target_input_source" : "joystick" # still/rnd/joystick
 "urdf_name" : quadrotor_default.urdf
 "seed" :
 "joystick_mapping" : [3,4,0,1] # [0,1,2,3] for 3D pro, [3,4,0,1] for xbox, [2,3,0,1] for Logitech
 
-"max_steps" : 300
+"max_steps" : 400
 "step_counter" : 1
 "latent_input" : 0
 "act_input" : 0
@@ -20,31 +20,32 @@
 "env_change_prob" : 0.5
 "starting_pos" : [0, 0, 2.0]
 "target_pos" : [0, 0, 2.0]
-"disturbance_intensity" : 7 # 10
+"disturbance_intensity" : 0 # 10
 "disturbance_frequency" : 0.00 # 0.005
-"observation_bnd": 7.0
+"observation_bnd": 2.0
 "init_difficulty" : 0.5
 
-"pen_act_coeff" : 0.001
-"pen_position_coeff" : 0.3
+"pen_act_coeff" : 0.1
+"pen_position_coeff" : 0.1
 "pen_rpy_coeff" : 0.1
 "pen_ang_vel_coeff" : 0.001
+"pen_position_c" : 0.1
 
 "propeller_parasitic_torque_coeff" : 1.0
 "default_mass" : 0.8
 "default_boom_length" : 0.15
 "default_motor_inertia_coeff" : 0.9
-"default_motor_force_multiplier" : 6
-"default_motor_power_variance" : 0.1
-"maximum_random_input_transport_delay" : 3
-"maximum_random_output_transport_delay" : 3
+"default_motor_force_multiplier" : 9
+"default_motor_power_variance" : 0.0
+"maximum_random_input_transport_delay" : 1
+"maximum_random_output_transport_delay" : 1
 
 "p_roll" : 0.3
 "p_pitch" : 0.3
-"p_yaw" : 0.3
-"d_roll" : 8.0
-"d_pitch" : 8.0
-"d_yaw" : 0.1
+"p_yaw" : 0.2
+"d_roll" : 15.0
+"d_pitch" : 15.0
+"d_yaw" : 0.5
 "i_roll" : -0.00
 "i_pitch" : -0.00
 "i_decay" : -0.00
