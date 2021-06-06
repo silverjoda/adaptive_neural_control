@@ -241,9 +241,6 @@ class QuadrotorBulletEnv(gym.Env):
         #pen_yaw_proxy = np.mean(my_utils.universal_lf(yaw, -1, self.config["pen_position_c"]))
         pen_yaw_proxy = np.mean(np.square(yaw)) * self.config["pen_yaw_coeff"]
         r = - pen_position - pen_yaw_proxy
-        if pen_position > 10 or pen_yaw_proxy > 10:
-            print(pen_position, pen_yaw_proxy, self.step_ctr, pos_delta)
-
         r = np.clip(r, -1, 1)
 
         if self.step_ctr == 1:
