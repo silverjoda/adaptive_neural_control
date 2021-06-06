@@ -221,7 +221,6 @@ class QuadrotorBulletEnv(gym.Env):
         roll, pitch, yaw = torso_euler
 
         pos_delta = np.array(torso_pos) - np.array(self.config["target_pos"])
-
         crashed = (abs(pos_delta) > 6.0).any() or ((torso_pos[2] < 0.3) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
 
         if self.prev_act is not None:
@@ -240,7 +239,7 @@ class QuadrotorBulletEnv(gym.Env):
         pen_position_proxy = np.mean(np.square(pos_delta)) * self.config["pen_position_coeff"]
         #pen_yaw_proxy = np.mean(my_utils.universal_lf(yaw, -1, self.config["pen_position_c"]))
         pen_yaw_proxy = np.mean(np.square(yaw)) * self.config["pen_yaw_coeff"]
-        r = - pen_position - pen_yaw_proxy
+        r = - pen_position_proxy - pen_yaw_proxy - action_penalty
         r = np.clip(r, -1, 1)
 
         if self.step_ctr == 1:
