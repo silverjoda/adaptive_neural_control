@@ -44,4 +44,5 @@
 "low_progress_thresh" : 0.07 #
 "progress_pen" : 0.1 #
 "x_finishline" : 0.8 #
+"ou_noise" : True
 "seed" :

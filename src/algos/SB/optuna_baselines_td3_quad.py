@@ -7,9 +7,9 @@ import pickle
 def objective(trial, config):
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 3e-4, 5e-3))
     config["gamma"] = trial.suggest_loguniform  ('gamma', 0.95, 0.99)
-    config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.2, 0.8)
-    config["ou_theta"] = trial.suggest_uniform('ou_theta', 0.01, 0.3)
-    config["ou_dt"] = trial.suggest_uniform('ou_dt', 0.01, 2.0)
+    #config["ou_sigma"] = trial.suggest_uniform('ou_sigma', 0.2, 0.8)
+    #config["ou_theta"] = trial.suggest_uniform('ou_theta', 0.01, 0.3)
+    #config["ou_dt"] = trial.suggest_uniform('ou_dt', 0.01, 2.0)
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])
@@ -27,7 +27,7 @@ def objective(trial, config):
         model.save("agents/QUAD_TD3_OPTUNA_policy")
         print("Saved best policy")
 
-        pickle.dump(config, open( "agents/quad_best_params.p", "wb" ) )
+        pickle.dump(config, open("agents/quad_best_params.p", "wb" ))
 
     env.close()
     eval_env.close()
@@ -42,12 +42,12 @@ if __name__ == "__main__":
     env_config = my_utils.read_config("../../envs/bullet_quadrotor/configs/default.yaml")
 
     config = {**algo_config, **env_config}
-    config["iters"] = 500000
+    config["iters"] = 2000000
     config["verbose"] = False
     config["animate"] = False
     config["tensorboard_log"] = False
     config["dummy_vec_env"] = False
-    config["N_test"] = 50
+    config["N_test"] = 100
     N_trials = 100
 
     t1 = time.time()

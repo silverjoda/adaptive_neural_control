@@ -224,23 +224,24 @@ class QuadrotorBulletEnv(gym.Env):
         crashed = (abs(pos_delta) > 6.0).any() or ((torso_pos[2] < 0.3) and (abs(roll) > 2.5 or abs(pitch) > 2.5))
 
         if self.prev_act is not None:
-            action_penalty = np.mean(np.square(np.array(ctrl_raw) - np.array(self.prev_act))) * self.config["pen_act_coeff"]
+            action_penalty = np.mean(np.square(np.array(ctrl_processed) - np.array(self.prev_act))) * self.config["pen_act_coeff"]
         else:
             action_penalty = 0
 
         # Calculate true reward
         pen_position = np.mean(np.square(pos_delta)) * self.config["pen_position_coeff"]
         pen_rpy = np.mean(np.square(np.array(torso_euler))) * self.config["pen_rpy_coeff"]
+        pen_vel = np.mean(np.square(torso_vel)) * self.config["pen_vel_coeff"]
         pen_rotvel = np.mean(np.square(torso_angular_vel)) * self.config["pen_ang_vel_coeff"]
-        r_true = - action_penalty - pen_position - pen_rpy - pen_rotvel
+        r_true = - action_penalty - pen_position - pen_rpy - pen_rotvel - pen_vel
+        #print(action_penalty, pen_position, pen_rpy, pen_rotvel, pen_vel)
 
         # Calculate proxy reward (for learning purposes)
-        #pen_position_proxy = np.mean(my_utils.universal_lf(np.abs(pos_delta), -1, self.config["pen_position_c"]))
         pen_position_proxy = np.mean(np.square(pos_delta)) * self.config["pen_position_coeff"]
-        #pen_yaw_proxy = np.mean(my_utils.universal_lf(yaw, -1, self.config["pen_position_c"]))
         pen_yaw_proxy = np.mean(np.square(yaw)) * self.config["pen_yaw_coeff"]
-        r = - pen_position_proxy - pen_yaw_proxy - action_penalty
-        r = np.clip(r, -1, 1)
+        pen_vel_proxy = np.mean(np.square(torso_vel)) * np.maximum(1. - 3 * pen_position_proxy, 0) * self.config["pen_vel_coeff"]
+        r = - pen_position_proxy - pen_yaw_proxy - action_penalty - pen_vel_proxy
+        r = np.clip(r_true, -2, 2)
 
         if self.step_ctr == 1:
             r = 0
@@ -288,9 +289,9 @@ class QuadrotorBulletEnv(gym.Env):
                     "torso_vel" : torso_vel,
                     "torso_angular_vel" : torso_angular_vel,
                     "reward" : r_true,
-                    "action" : ctrl_raw}
+                    "action" : ctrl_processed}
 
-        self.prev_act = ctrl_raw
+        self.prev_act = ctrl_processed
 
         return obs, r, done, {"obs_dict" : obs_dict, "randomized_params" : self.randomized_params, "true_rew" : r_true}
 

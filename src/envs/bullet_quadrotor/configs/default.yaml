@@ -24,12 +24,14 @@
 "disturbance_frequency" : 0.003 # 0.005
 "observation_bnd": 2.0
 "init_difficulty" : 0.5
+"ou_noise" : False
 
-"pen_act_coeff" : 0.03
-"pen_position_coeff" : 0.5
+"pen_act_coeff" : 0.5
+"pen_position_coeff" : 1.5
 "pen_yaw_coeff" : 0.3
 "pen_rpy_coeff" : 0.1
-"pen_ang_vel_coeff" : 0.001
+"pen_vel_coeff" : 0.5
+"pen_ang_vel_coeff" : 0.1
 "pen_position_c" : 0.9
 
 "propeller_parasitic_torque_coeff" : 1.0
