@@ -53,6 +53,8 @@ if __name__ == "__main__":
     config["N_test"] = 100
     N_trials = 100
 
+    # TODO: ADD INCREASING POSITION PEN WITH STEP COUNTER
+
     t1 = time.time()
     study = optuna.create_study(direction='maximize', study_name="quad_opt_study",
                                 storage='sqlite:///quad_opt.db', load_if_exists=True)
