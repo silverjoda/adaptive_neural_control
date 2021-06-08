@@ -41,11 +41,11 @@ def parse_args():
                         help='Flag indicating whether the environment will be rendered. ')
     parser.add_argument('--test_agent_path', type=str, default=".", required=False,
                         help='Path of test agent. ')
-    parser.add_argument('--algo_config', type=str, default="configs/td3_default_config.yaml", required=False,
+    parser.add_argument('--algo_config', type=str, default="configs/a2c_default_config.yaml", required=False,
                         help='Algorithm config file name. ')
     parser.add_argument('--env_config', type=str, required=True,
                         help='Env config file name. ')
-    parser.add_argument('--iters', type=int, required=False, default=200000, help='Number of training steps. ')
+    parser.add_argument('--iters', type=int, required=False, default=2000000, help='Number of training steps. ')
 
     args = parser.parse_args()
     return args.__dict__
@@ -67,6 +67,9 @@ def make_model(config, env):
 
     model = A2C(policy=policy,
                 env=env,
+                gae_lambda=config["gae_lambda"],
+                use_rms_prop=config["use_rms_prop"],
+                normalize_advantage=config["normalize_advantage"],
                 gamma=config["gamma"],
                 n_steps=config["n_steps"],
                 vf_coef=config["vf_coef"],
@@ -125,7 +128,7 @@ def setup_train(config, setup_dirs=True):
                        norm_reward=config["norm_reward"])
     model = make_model(config, env)
 
-    checkpoint_callback = CheckpointCallback(save_freq=300000,
+    checkpoint_callback = CheckpointCallback(save_freq=1000000,
                                              save_path='agents_cp/',
                                              name_prefix=config["session_ID"], verbose=1)
 

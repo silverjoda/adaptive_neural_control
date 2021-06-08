@@ -179,6 +179,7 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
+
         # Simulate the delayed action
         if self.randomized_params["output_transport_delay"] > 0:
             ctrl_raw_unqueued = self.act_queue[-self.config["act_input"]:]
@@ -229,7 +230,7 @@ class QuadrotorBulletEnv(gym.Env):
             action_penalty = 0
 
         # Calculate true reward
-        pen_position = np.mean(np.square(pos_delta)) * self.config["pen_position_coeff"]
+        pen_position = np.mean(np.square(pos_delta)) * (self.config["pen_position_coeff"] + 0 * self.step_ctr / float(self.config["max_steps"]))
         pen_rpy = np.mean(np.square(np.array(torso_euler))) * self.config["pen_rpy_coeff"]
         pen_vel = np.mean(np.square(torso_vel)) * self.config["pen_vel_coeff"]
         pen_rotvel = np.mean(np.square(torso_angular_vel)) * self.config["pen_ang_vel_coeff"]

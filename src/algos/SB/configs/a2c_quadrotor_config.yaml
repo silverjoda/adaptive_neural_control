@@ -1,15 +1,18 @@
 "algo_name" : "A2C"
 "policy_name" : "MlpPolicy" # "MlpPolicy", "CustomAC", "CustomTCNPolicy"
 "default_session_ID" :
-"n_envs" : 6
+"n_envs" : 4
 "iters" : 36000000
 "n_steps_per_checkpoint" : 1000000
 "gamma" : 0.99
 "n_steps" : 20
 "vf_coef" : 0.5
 "ent_coef" : 0.00000
+"gae_lambda" : 1.0
+"use_rms_prop" : True
+"normalize_advantage" : False
 "max_grad_norm" : 0.5
-"learning_rate" : "lambda x : x * 0.0002"
+"learning_rate" : "lambda x : x * 0.0009"
 "lr_schedule" : "linear"
 "alpha" : 0.99
 "epsilon" : 0.00001
@@ -17,8 +20,7 @@
 "tensorboard_log" : True
 "full_tensorboard_log" : False
 "policy_lastlayer_tanh" : False
-"policy_hid_dim" : 128
-"policy_grad_clip_value" : 0.5
+"policy_hid_dim" : 64
 "policy_residual_connection" : False
 "norm_obs" : False
 "norm_reward" : False
