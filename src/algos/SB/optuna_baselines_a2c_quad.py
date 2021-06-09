@@ -6,12 +6,12 @@ import pickle
 
 def objective(trial, config):
     config["learning_rate"] = "lambda x : x * {}".format(trial.suggest_uniform('learning_rate', 1e-4, 5e-3))
-    config["gamma"] = trial.suggest_loguniform('gamma', 0.93, 0.999)
-    config["n_steps"] = trial.suggest_int('n_steps', 10, 100)
-    config["ent_coef"] = trial.suggest_loguniform('ent_coef', 0.000001, 0.0001)
-    config["gae_lambda"] = trial.suggest_loguniform('gae_lambda', 0.95, 1)
-    config["use_rms_prop"] = trial.suggest_categorical('use_rms_prop', [True, False])
-    config["normalize_advantage"] = trial.suggest_categorical('normalize_advantage', [True, False])
+    config["gamma"] = trial.suggest_loguniform('gamma', 0.95, 0.999)
+    #config["n_steps"] = trial.suggest_int('n_steps', 10, 100)
+    #config["ent_coef"] = trial.suggest_loguniform('ent_coef', 0.000001, 0.0001)
+    #config["gae_lambda"] = trial.suggest_loguniform('gae_lambda', 0.95, 1)
+    #config["use_rms_prop"] = trial.suggest_categorical('use_rms_prop', [True, False])
+    #config["normalize_advantage"] = trial.suggest_categorical('normalize_advantage', [True, False])
 
     env, model, _, stats_path = setup_train(config, setup_dirs=True)
     model.learn(total_timesteps=config["iters"])

@@ -179,7 +179,6 @@ class QuadrotorBulletEnv(gym.Env):
         self.act_queue.append(ctrl_raw)
         self.act_queue.pop(0)
 
-
         # Simulate the delayed action
         if self.randomized_params["output_transport_delay"] > 0:
             ctrl_raw_unqueued = self.act_queue[-self.config["act_input"]:]

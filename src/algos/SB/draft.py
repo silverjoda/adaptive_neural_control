@@ -24,7 +24,7 @@ if __name__ == '__main__':
     input_queue.put(0)
     for i in range(1, 100):
         if not output_queue.empty():
-            print(output_queue.get())
+            print(f"Output: {output_queue.get()}")
             input_queue.put(i)
         time.sleep(0.1)
 
