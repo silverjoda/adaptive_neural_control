@@ -128,5 +128,18 @@ Hexapod paper additional features:
 2) Train any walking policy, gather data on real robot and then fit sim parameters to the data for closer model approximation
 3) High level strategy is learned on real platform.
 
+stp: Go through quad env and prepare for training.
 
-stp: Go through quad env and prepare for training
+================================
+
+Hexapod:
+0) Read RMA paper in more detail to see if there is any special training or policy info or rewards (DONE)
+1) Make obstacle env with priviledged height info, and random height step sizes, including flat terrain. (IP)
+2) Train "RMA" agent on env from 1) and see at what step height it fails
+3) Train obstacle policy using RMA
+4) Show working on real robot
+5) Work on cyclic policy (or inspired by procedural animation)
+
+Flipper controller:
+1) Refresh MARV robot generation with ros bridge in ignition
+2) Start making environment with random obstacle generation in ignition
