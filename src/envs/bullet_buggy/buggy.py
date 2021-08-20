@@ -207,7 +207,7 @@ class BuggyBulletEnv(gym.Env):
 
         # Randomize robot params
         self.randomized_params = {"mass": 1.0 + (np.random.rand() * 1 - 0.5) * self.config["randomize_env"],
-                                 "wheels_friction": 2.0 + (np.random.rand() * 1.4 - 0.7) * self.config["randomize_env"],
+                                 "wheels_friction": 1.0 + (np.random.rand() * 1.4 - 0.7) * self.config["randomize_env"],
                                  "steering_scalar": 1.0 - np.random.rand() * 0.3 * self.config["randomize_env"],
                                  "max_force": 2.0 + (np.random.rand() * 1.0 - 0.5) * self.config["randomize_env"],  # With 0.7 works great
                                  "velocity_scaler": 100 + (np.random.rand() * 80 - 40) * self.config["randomize_env"], # With 50 works great
